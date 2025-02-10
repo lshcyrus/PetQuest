@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Git user
+        run: |
+          git config --global user.email "cyruslshei@gmail.com"
+          git config --global user.name "Shing Hei LEE"
       - name: Update Cyrus
         run: |
           git fetch origin
