@@ -1,8 +1,10 @@
 name: Update Branches
+
 on:
   push:
     branches:
       - main
+
 jobs:
   update-branches:
     runs-on: ubuntu-latest
@@ -12,29 +14,29 @@ jobs:
         run: |
           git fetch origin
           git checkout Cyrus
-          git merge main --no-edit
+          git merge main --no-edit --allow-unrelated-histories
           git push origin Cyrus
       - name: Update Ken
         run: |
           git fetch origin
           git checkout Ken
-          git merge main --no-edit
+          git merge main --no-edit --allow-unrelated-histories
           git push origin Ken
       - name: Update Jophy
         run: |
           git fetch origin
           git checkout Jophy
-          git merge main --no-edit
+          git merge main --no-edit --allow-unrelated-histories
           git push origin Jophy
       - name: Update Jack
         run: |
           git fetch origin
           git checkout Jack
-          git merge main --no-edit
+          git merge main --no-edit --allow-unrelated-histories
           git push origin Jack
       - name: Update Jacky
         run: |
           git fetch origin
           git checkout Jacky
-          git merge main --no-edit
+          git merge main --no-edit --allow-unrelated-histories
           git push origin Jacky
