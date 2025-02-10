@@ -17,31 +17,39 @@ jobs:
         run: |
           git config --global user.email "cyruslshei@gmail.com"
           git config --global user.name "Shing Hei LEE"
+      - name: Check Fetch Preference
+        id: fetch_check
+        run: echo "fetch=${{ github.event.inputs.fetch }}" >> $GITHUB_ENV
       - name: Update Cyrus
+        if: ${{ env.fetch == 'true' }}
         run: |
           git fetch origin
           git checkout Cyrus
           git merge main --no-edit --allow-unrelated-histories
           git push origin Cyrus
       - name: Update Ken
+        if: ${{ env.fetch == 'true' }}
         run: |
           git fetch origin
           git checkout Ken
           git merge main --no-edit --allow-unrelated-histories
           git push origin Ken
       - name: Update Jophy
+        if: ${{ env.fetch == 'true' }}
         run: |
           git fetch origin
           git checkout Jophy
           git merge main --no-edit --allow-unrelated-histories
           git push origin Jophy
       - name: Update Jack
+        if: ${{ env.fetch == 'true' }}
         run: |
           git fetch origin
           git checkout Jack
           git merge main --no-edit --allow-unrelated-histories
           git push origin Jack
       - name: Update Jacky
+        if: ${{ env.fetch == 'true' }}
         run: |
           git fetch origin
           git checkout Jacky
