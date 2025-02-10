@@ -1,0 +1,40 @@
+name: Update Branches
+on:
+  push:
+    branches:
+      - main
+jobs:
+  update-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update branch 1
+        run: |
+          git fetch origin
+          git checkout branch1
+          git merge main --no-edit
+          git push origin branch1
+      - name: Update branch 2
+        run: |
+          git fetch origin
+          git checkout branch2
+          git merge main --no-edit
+          git push origin branch2
+      - name: Update branch 3
+        run: |
+          git fetch origin
+          git checkout branch3
+          git merge main --no-edit
+          git push origin branch3
+      - name: Update branch 4
+        run: |
+          git fetch origin
+          git checkout branch4
+          git merge main --no-edit
+          git push origin branch4
+      - name: Update branch 5
+        run: |
+          git fetch origin
+          git checkout branch5
+          git merge main --no-edit
+          git push origin branch5
