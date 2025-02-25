@@ -1,0 +1,231 @@
+/* Base container */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: clamp(1rem, 5vw, 3rem);
+    background-color: #f0f0f0;
+    background-image: url('/assets/login.png'); /* Add your background image to public/assets folder */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat; 
+    animation: backgroundPan 20s linear infinite alternate;
+}
+
+/* Logo styling */
+.login-container .logo {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    text-align: center;
+    margin-bottom: clamp(1rem, 4vw, 2.5rem);
+}
+
+.logo img {
+    width: 100%;
+    height: auto;
+    max-width: 300px;
+}
+
+/* Login box */
+.login-box {
+    background: rgba(255, 255, 255, 0.95);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: min(90vw, 400px);
+    backdrop-filter: blur(5px);
+    color: #000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Form elements */
+.form-group {
+    margin: clamp(0.8rem, 2vw, 1.5rem) 0;
+}
+
+input {
+    width: 90%;
+    padding: clamp(0.6rem, 2vw, 0.8rem);
+    margin: 0.5rem 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: clamp(14px, 2vw, 16px);
+    transition: all 0.3s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Button styling */
+.login-button {
+    width: 100%;
+    padding: clamp(0.6rem, 2vw, 0.8rem);
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: clamp(14px, 2vw, 16px);
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.login-button:hover {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+.login-button:active {
+    transform: translateY(0);
+}
+
+/* Toggle mode section */
+.toggle-mode {
+    margin-top: clamp(1rem, 3vw, 1.5rem);
+    text-align: center;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    cursor: pointer;
+    font-size: clamp(12px, 1.5vw, 14px);
+    text-decoration: underline;
+    padding: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.toggle-button:hover {
+    color: #45a049;
+}
+
+/* Error message */
+.error-message {
+    color: #ff3333;
+    margin: 0.5rem 0;
+    font-size: clamp(12px, 1.5vw, 14px);
+    text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .login-container {
+        padding: 1rem;
+    }
+    
+    .login-box {
+        padding: 1.5rem;
+    }
+
+    input, .login-button {
+        padding: 0.6rem;
+    }
+    
+    .form-group {
+        margin: 0.8rem 0;
+    }
+    
+    .logo img {
+        max-width: 200px;
+    }
+}
+
+/* Add animation for login box */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease-in forwards;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Add smooth transition for form height changes */
+form {
+    transition: all 0.3s ease;
+}
+
+/* Breakpoints */
+@media (max-width: 768px) {
+    .login-box {
+        margin: 1 auto;
+    }
+}
+
+/* For smaller mobile devices */
+@media (max-width: 320px) {
+    .login-box {
+        padding: 1rem;
+    }
+    
+    .logo img {
+        max-width: 150px;
+    }
+}
+
+/* For landscape orientation */
+@media (max-height: 600px) and (orientation: landscape) {
+    .login-container {
+        padding: 1rem;
+    }
+    
+    .logo {
+        margin-bottom: 1rem;
+    }
+    
+    .logo img {
+        max-width: 150px;
+    }
+    
+    .form-group {
+        margin: 0.5rem 0;
+    }
+}
+
+/* Add new keyframes for background movement */
+@keyframes backgroundPan {
+    from {
+        background-position: 0% center;
+    }
+    to {
+        background-position: 100% center;
+    }
+}
+
+/* For better performance - add to existing media queries */
+@media (prefers-reduced-motion: reduce) {
+    .login-container {
+        animation: none;
+    }
+}
+
+

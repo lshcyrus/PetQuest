@@ -2,9 +2,14 @@ import { useRef, useState } from 'react';
 
 import Phaser from 'phaser';
 import { PhaserGame } from './game/PhaserGame';
+import LoginPage from './components/LoginPage';
 
 function App ()
 {
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [username, setUsername] = useState('');
+
     // The sprite can only be moved in the MainMenu Scene
     const [canMoveSprite, setCanMoveSprite] = useState(true);
     
@@ -70,10 +75,22 @@ function App ()
         
     }
 
+    const handleLogin = (user) => {
+        console.log('Logging in with:', user);
+        setIsLoggedIn(true);
+        setUsername(user);
+    }
+
+    if (!isLoggedIn)
+    {
+        return <LoginPage onLogin={handleLogin} />;
+    }
+
     return (
-        <div id="app">
+        <div id="app" className='main-menu-fade-in'>
+
             <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
-            <div>
+            {/* <div>
                 <div>
                     <button className="button" onClick={changeScene}>Change Scene</button>
                 </div>
@@ -86,7 +103,7 @@ function App ()
                 <div>
                     <button className="button" onClick={addSprite}>Add New Sprite</button>
                 </div>
-            </div>
+            </div> */}
         </div>
     )
 }
