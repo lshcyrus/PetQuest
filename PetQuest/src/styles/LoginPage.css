@@ -10,8 +10,8 @@
     background-image: url('/assets/login.png'); /* Add your background image to public/assets folder */
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat; 
-    animation: backgroundPan 20s linear infinite alternate;
+    background-repeat: repeat; 
+    animation: backgroundPan 20s linear infinite;
 }
 
 /* Logo styling */
