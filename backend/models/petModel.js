@@ -51,15 +51,15 @@ const petSchema = new mongoose.Schema({
     skills: {
         strength: {
             type: Number,
-            default: 0
+            default: 10
         },
         agility: {
             type: Number,
-            default: 0  
+            default: 10 
         },
         intelligence: {
             type: Number,
-            default: 0
+            default: 10
         }
     },
 
@@ -67,12 +67,46 @@ const petSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+
+    lastInteraction: {
+        type: Date,
+        default: Date.now
+    },
+
+    completedQuests: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Quest"
+    },
+
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-const Pet = mongoose.model("Pet", petSchema);
+// Method to update pet stats based on time passed, making the game more realistic (works when player is offline)
+PetSchema.methods.updateStats = function() {
+    const now = new Date();
+    const hoursSinceLastFed = (now - this.lastFed) / (1000 * 60 * 60);
+    const hoursSinceLastInteraction = (now - this.lastInteraction) / (1000 * 60 * 60);
+    
+    // Decrease hunger and happiness over time
+    this.attributes.hunger = Math.max(0, this.attributes.hunger - (hoursSinceLastFed * 5));
+    this.attributes.happiness = Math.max(0, this.attributes.happiness - (hoursSinceLastInteraction * 3));
+    
+    // Update health based on hunger and happiness
+    if (this.attributes.hunger < 20 || this.attributes.happiness < 20) {
+      this.attributes.health = Math.max(0, this.attributes.health - 5);
+    }
+    
+    // Update energy recovery
+    this.attributes.energy = Math.min(100, this.attributes.energy + (hoursSinceLastInteraction * 15));
+    
+    // Update timestamps
+    this.lastFed = now;
+    this.lastInteraction = now;
+    
+    return this.save();
+};
 
-module.exports = Pet;
+module.exports = mongoose.model("Pet", petSchema);
