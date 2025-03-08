@@ -1,12 +1,19 @@
 import { useRef, useState, useEffect } from 'react';
 import { PhaserGame } from './game/PhaserGame';
 import LoginPage from './components/LoginPage';
+import GlobalProvider from './provider/globalContext';
+import { initOrientationHandling } from './utils/orientationHandler';
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState('');
     const [canMoveSprite, setCanMoveSprite] = useState(true);
     const phaserRef = useRef();
+
+    // Initialize orientation handling when the app loads
+    useEffect(() => {
+        initOrientationHandling();
+    }, []);
 
     // Event emitted from the PhaserGame component
     const currentScene = (scene) => {

@@ -27,6 +27,7 @@
         "build-nolog": "vite build --config vite/config.prod.mjs"
     },
     "dependencies": {
+        "async-storage": "^0.1.0",
         "phaser": "^3.88.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

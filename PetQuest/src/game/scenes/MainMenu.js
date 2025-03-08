@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { getGlobalContext } from '../../utils/contextBridge';
 
 export class MainMenu extends Scene {
     logoTween;
@@ -12,8 +13,15 @@ export class MainMenu extends Scene {
     }
 
     init(data) {
-        // Get the username passed from the main app
-        this.username = data.username || 'Player';
+        // Get context data
+        const globalContext = getGlobalContext();
+        if (globalContext) {
+            this.username = globalContext.userData.username || 'Player';
+            this.petData = globalContext.userData.pet;
+        } else {
+            // Fallback if context is not available
+            this.username = data.username || 'Player';
+        }
     }
 
     create() {
@@ -21,12 +29,22 @@ export class MainMenu extends Scene {
         this.setupUI();
         this.setupPet();
         
-        // Handle window resize
-        this.scale.on('resize', this.handleResize, this);
+        // Check initial orientation and setup UI accordingly
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const isPortrait = height > width;
+        
+        // Apply appropriate layout based on orientation
+        if (isPortrait) {
+            this.setupPortraitLayout();
+        } else {
+            this.setupLandscapeLayout();
+        }
         
         EventBus.emit('current-scene-ready', this);
     }
 
+    // method for setting up the background
     setupBackground() {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
@@ -37,11 +55,13 @@ export class MainMenu extends Scene {
         this.background.setDepth(0);
     }
 
+    // method for setting up the user interface for the main menu
     setupUI() {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
+        const centerY = height * 0.5;
         
-        // Welcome message
+        // Welcome message - set to much larger size
         const welcomeText = this.add.text(
             centerX, 
             height * 0.05, 
@@ -54,26 +74,38 @@ export class MainMenu extends Scene {
                 strokeThickness: 5
             }
         )
-        .setOrigin(0.5, 0)
-        .setDepth(10);
+        welcomeText.setOrigin(0.5, 0);
         
-        // Start button
+        // Create a button for starting the game
         const buttonWidth = Math.min(width * 0.4, 200);
         const buttonHeight = 60;
-        const buttonX = width * 0.85;
-        const buttonY = height * 0.85;
+        const buttonX = centerX;
+        const buttonY = height * 0.6;
         
-        const buttonBg = this.add.rectangle(
-            buttonX,    
-            buttonY,
+        // Draw button
+        const button = this.add.graphics();
+        button.fillRoundedRect(
+            buttonX - buttonWidth/2, 
+            buttonY - buttonHeight/2, 
+            buttonWidth, 
+            buttonHeight, 
+            16
+        );
+        button.strokeRoundedRect(
+            buttonX - buttonWidth/2, 
+            buttonY - buttonHeight/2, 
+            buttonWidth, 
+            buttonHeight, 
+            16
+        );
+        button.setInteractive(new Phaser.Geom.Rectangle(
+            buttonX - buttonWidth/2,
+            buttonY - buttonHeight/2,
             buttonWidth,
-            buttonHeight,
-            0x000000,
-            0  // Transparent
-        )
-        .setInteractive({ useHandCursor: true })
-        .setDepth(10);
+            buttonHeight
+        ), Phaser.Geom.Rectangle.Contains);
         
+        // Button text - much larger size
         const buttonText = this.add.text(
             buttonX,
             buttonY,
@@ -83,11 +115,10 @@ export class MainMenu extends Scene {
                 fontSize: this.getResponsiveFontSize(3, 'rem'),
                 color: '#ffffff',
                 stroke: '#000000',
-                strokeThickness: 8
+                strokeThickness: Math.min(8, Math.max(4, width / 100))
             }
         )
-        .setOrigin(0.5)
-        .setDepth(11);
+        buttonText.setOrigin(0.5);
         
         // Button text animation
         this.tweens.add({
@@ -99,7 +130,7 @@ export class MainMenu extends Scene {
             ease: 'Sine.easeInOut'
         });
         
-        buttonBg.on('pointerdown', () => {
+        button.on('pointerdown', () => {
             // Add click animation
             this.tweens.add({
                 targets: buttonText,
@@ -110,10 +141,11 @@ export class MainMenu extends Scene {
             });
         });
         
-        // Store UI elements for resizing
-        this.ui = { welcomeText, buttonBg, buttonText };
+        // Store UI elements
+        this.ui = { welcomeText, button, buttonText };
     }
 
+    // method for setting up the pet sprite
     setupPet() {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
@@ -124,7 +156,7 @@ export class MainMenu extends Scene {
         this.pet.anims.create({
             key: 'idle',
             frames: this.anims.generateFrameNumbers('fire_dragon', { start: 0, end: 3 }),
-            frameRate: 5,
+            frameRate: 6,
             repeat: -1
         });
 
@@ -136,46 +168,6 @@ export class MainMenu extends Scene {
         
         // Set depth to appear above background
         this.pet.setDepth(1);
-    }
-
-    handleResize(gameSize) {
-        const { width, height } = gameSize;
-        const centerX = width * 0.5;
-        
-        // Reposition and scale background
-        this.background.setPosition(centerX, height * 0.5);
-        this.scaleToFit(this.background);
-
-        // Reposition and scale pet
-        this.pet.setPosition(centerX, height * 0.8);
-        this.scalePet();
-        
-        // Update UI positions
-        if (this.ui) {
-            // Update welcome text
-            this.ui.welcomeText.setPosition(centerX, height * 0.05);
-            this.ui.welcomeText.setStyle({
-                fontSize: this.getResponsiveFontSize(4, 'em')
-            });
-            
-            // Calculate responsive button position and size
-            const buttonWidth = Math.min(width * 0.4, 200);
-            const buttonHeight = 60;
-            const buttonX = width * 0.85;
-            const buttonY = height * 0.85;
-            
-            // Update button background
-            this.ui.buttonBg.setPosition(buttonX, buttonY);
-            this.ui.buttonBg.displayWidth = buttonWidth;
-            this.ui.buttonBg.displayHeight = buttonHeight;
-            
-            // Update button text
-            this.ui.buttonText.setPosition(buttonX, buttonY);
-            this.ui.buttonText.setStyle({
-                fontSize: this.getResponsiveFontSize(3, 'rem'),
-                strokeThickness: Math.min(8, Math.max(4, width / 100)) // Responsive stroke thickness
-            });
-        }
     }
 
     // Scale background to fit screen
@@ -200,11 +192,11 @@ export class MainMenu extends Scene {
         
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
             // Start the game scene with level data
-            this.scene.start('Game', { level: 1 });
+            this.scene.start('LevelTransition', { level: 2 });
         });
     }
 
-    // Add this new helper method to calculate responsive font sizes
+    // Helper method to calculate responsive font sizes
     getResponsiveFontSize(baseSize, unit = 'px') {
         const { width, height } = this.scale;
         const baseWidth = 1280; // Base design width
@@ -213,5 +205,54 @@ export class MainMenu extends Scene {
         
         const finalScale = Math.max(scaleFactor, minScale);
         return `${baseSize * finalScale}${unit}`;
+    }
+
+    // Example of updating context from a Phaser scene
+    collectCoins(amount) {
+        const globalContext = getGlobalContext();
+        if (globalContext) {
+            globalContext.addCoins(amount);
+            console.log(`Added ${amount} coins. Total: ${globalContext.userData.coins}`);
+        }
+    }
+
+    setupPortraitLayout() {
+        const { width, height } = this.scale;
+        
+        // Example: Reposition elements for portrait orientation
+        if (this.titleText) {
+            this.titleText.setPosition(width / 2, height * 0.15);
+        }
+        
+        // Other UI adjustments...
+    }
+
+    setupLandscapeLayout() {
+        const { width, height } = this.scale;
+        
+        // Example: Default landscape layout
+        if (this.titleText) {
+            this.titleText.setPosition(width / 2, height * 0.2);
+        }
+        
+        // Other UI adjustments...
+    }
+
+    setupTouchControls() {
+        const { width, height } = this.scale;
+        
+        // Add touch controls here if needed
+        // For example, virtual joystick for movement
+        // You might want to use plugins like rexvirtualjoystickplugin
+        
+        // Example: Add a touch area for basic interaction
+        const touchArea = this.add.rectangle(width/2, height/2, width, height)
+            .setOrigin(0.5)
+            .setInteractive()
+            .setAlpha(0.001);
+            
+        touchArea.on('pointerdown', (pointer) => {
+            // Handle touch input
+        });
     }
 }

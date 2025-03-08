@@ -29,186 +29,85 @@
     max-width: 300px;
 }
 
-/* Login box */
+/* Remove the login-box styling that's constraining the size */
 .login-box {
-    background: rgba(255, 255, 255, 0.95);
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    border-radius: 8px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
     width: 100%;
-    max-width: min(90vw, 400px);
-    backdrop-filter: blur(5px);
-    color: #000;
-    animation: fadeIn 0.5s ease-out;
+    max-width: 100%;
+    backdrop-filter: none;
 }
 
 /* Form elements */
 .form-group {
-    margin: clamp(0.8rem, 2vw, 1.5rem) 0;
+    padding: 0 min(10%, 30px);
+    position: relative;
 }
 
-input {
-    width: 90%;
-    padding: clamp(0.6rem, 2vw, 0.8rem);
-    margin: 0.5rem 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: clamp(14px, 2vw, 16px);
-    transition: all 0.3s ease;
+.form-group .username-input {
+    width: 45%;
+    padding: clamp(0.7rem, 2vw, 0.6rem);
+    margin: 0rem 6rem;
+    border: none;
+    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 16px */
+    background-color: transparent;
+    font-family: 'Pixelify Sans', sans-serif;
 }
 
-input:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+.form-group .password-input {
+    width: 45%;
+    padding: clamp(0.7rem, 2vw, 0.6rem);
+    margin: 0rem 6rem;
+    border: none;
+    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 16px */
+    background-color: transparent;
+    font-family: 'Pixelify Sans', sans-serif;
 }
 
 /* Button styling */
 .login-button {
-    width: 100%;
-    padding: clamp(0.6rem, 2vw, 0.8rem);
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: clamp(14px, 2vw, 16px);
-    transition: all 0.3s ease;
-    margin-top: 1rem;
+    margin-top: min(5%, 15px);
+    width: auto;
+    padding: clamp(0.5rem, 1.5vw, 0.8rem) clamp(1rem, 3vw, 2rem);
+    align-self: center; /* Center the button */
+    margin-inline: auto; /* Alternative centering */
+    font-family: 'Pixelify Sans', sans-serif;
+    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 18px */
 }
 
-.login-button:hover {
-    background-color: #45a049;
-    transform: translateY(-1px);
-}
-
-.login-button:active {
-    transform: translateY(0);
-}
 
 /* Toggle mode section */
 .toggle-mode {
-    margin-top: clamp(1rem, 3vw, 1.5rem);
+    margin-top: clamp(18rem, 3vw, 1.5rem);
     text-align: center;
 }
 
 .toggle-button {
     background: none;
     border: none;
-    color: #4CAF50;
+    color: #ffffff;
     cursor: pointer;
-    font-size: clamp(12px, 1.5vw, 14px);
+    font-size: clamp(18px, 2.2vw, 26px); /* Increased from 14px, 1.8vw, 20px */
     text-decoration: underline;
     padding: 0.5rem;
     transition: color 0.3s ease;
+    font-family: 'Pixelify Sans', sans-serif;
 }
 
 .toggle-button:hover {
-    color: #45a049;
+    color: #ae6af6;
 }
 
 /* Error message */
 .error-message {
     color: #ff3333;
     margin: 0.5rem 0;
-    font-size: clamp(12px, 1.5vw, 14px);
+    font-size: clamp(16px, 1.8vw, 20px); /* Increased from 12px, 1.5vw, 14px */
     text-align: center;
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-    .login-container {
-        padding: 1rem;
-    }
-    
-    .login-box {
-        padding: 1.5rem;
-    }
-
-    input, .login-button {
-        padding: 0.6rem;
-    }
-    
-    .form-group {
-        margin: 0.8rem 0;
-    }
-    
-    .logo img {
-        max-width: 200px;
-    }
-}
-
-/* Add animation for login box */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-}
-
-.fade-out {
-    animation: fadeOut 0.5s ease-in forwards;
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease-out;
-}
-
-/* Add smooth transition for form height changes */
-form {
-    transition: all 0.3s ease;
-}
-
-/* Breakpoints */
-@media (max-width: 768px) {
-    .login-box {
-        margin: 1 auto;
-    }
-}
-
-/* For smaller mobile devices */
-@media (max-width: 320px) {
-    .login-box {
-        padding: 1rem;
-    }
-    
-    .logo img {
-        max-width: 150px;
-    }
-}
-
-/* For landscape orientation */
-@media (max-height: 600px) and (orientation: landscape) {
-    .login-container {
-        padding: 1rem;
-    }
-    
-    .logo {
-        margin-bottom: 1rem;
-    }
-    
-    .logo img {
-        max-width: 150px;
-    }
-    
-    .form-group {
-        margin: 0.5rem 0;
-    }
+    color: #ff3333;
+    font-size: 14px;
+    margin-bottom: 10px;
 }
 
 /* Add new keyframes for background movement */
@@ -228,4 +127,177 @@ form {
     }
 }
 
+/* Update the login panel styling for maximum responsiveness */
+.login-panel {
+  position: relative;
+  width: min(95vw, 800px); /* Increased maximum size, but still responsive */
+  max-width: 100%;
+  aspect-ratio: 1 / 1; /* Adjust if your image has a different aspect ratio */
+  margin: 0 auto;
+}
 
+.login-panel-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/assets/login-window.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+.login-panel form {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+/* Reset base input styles */
+input {
+  border-radius: 4px;
+  font-family: 'Pixelify Sans', sans-serif;
+  background-color: transparent;
+}
+
+/* Position form elements with percentage-based positioning for responsiveness */
+.form-group {
+  position: absolute;
+  width: 75%;
+  max-width: 400px;
+  padding: 0;
+  margin: 0;
+}
+
+/* Move username input down */
+.form-group:nth-child(1) {
+  top: 37%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Position password input */
+.form-group:nth-child(2) {
+  top: 49.5%; 
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Position confirm password input (for register mode) */
+.form-group:nth-child(3) {
+  top: 75%; /* Adjust this percentage as needed */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Style for username and password input fields */
+.form-group input {
+  width: 100%;
+  padding: clamp(0.4rem, 1.5vw, 0.6rem);
+  font-size: clamp(16px, 2vw, 22px); /* Increased from 12px, 1.5vw, 16px */
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  height: auto;
+  outline: none;
+}
+
+/* Remove focus border/outline */
+.form-group input:focus {
+    outline: none;
+    box-shadow: none; /* Remove any potential focus shadow */
+}
+
+/* Specific styling for error message */
+.error-message {
+  position: absolute;
+  top: 85%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  text-align: center;
+}
+
+/* Position login button at the bottom */
+.login-button {
+  position: absolute;
+  bottom: 32%;
+  left: 17.5%;
+  width: 75%;
+  max-width: 400px;
+  padding: clamp(0.5rem, 1.5vw, 0.8rem);
+  font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 18px */
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+
+
+
+/* Add responsive adjustments */
+@media (min-width: 670px) {
+  .login-panel {
+    width: 600px;
+  }
+}
+
+
+@media (max-width: 669px) {
+  .login-button {
+    left: auto;
+  }
+}
+
+@media (max-width: 632px) {
+    /* Move username input down */
+    .form-group:nth-child(1) {
+        top: 37%;
+        left: 51%;
+        transform: translateX(-50%);
+    }
+    
+    /* Position password input */
+    .form-group:nth-child(2) {
+        top: 49.5%; 
+        left: 51%;
+        transform: translateX(-50%);
+    }
+    
+    /* Position confirm password input (for register mode) */
+    .form-group:nth-child(3) {
+        top: 75%; /* Adjust this percentage as needed */
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+@media (max-width: 429px) {
+    /* Move username input down */
+    .form-group:nth-child(1) {
+        top: 35%;
+        left: 45%;
+        transform: translateX(-50%);
+    }
+    
+    /* Position password input */
+    .form-group:nth-child(2) {
+        top: 48%; 
+        left: 45%;
+        transform: translateX(-50%);
+    }
+    
+    /* Position confirm password input (for register mode) */
+    .form-group:nth-child(3) {
+        top: 75%; /* Adjust this percentage as needed */
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
