@@ -61,6 +61,7 @@ export class Preloader extends Scene {
 
         this.load.spritesheet('fire_dragon', 'fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
 
+
         WebFontLoader.load({
             google: {
                 families: ['Pixelify Sans:400,500,600,700', 'Caveat:400,500,600,700']

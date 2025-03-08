@@ -25,9 +25,9 @@ export class FirstLogin extends Scene {
                 }
             },
             {
-                key: 'water_turtle',
+                key: 'ice_dragon',
                 name: 'Ripple',
-                description: 'A calm turtle with healing abilities. Strong against fire enemies but weak to nature.',
+                description: 'A frosty dragon with a cool demeanor. Strong against nature enemies but weak to fire.',
                 stats: {
                     health: 100,
                     attack: 60,
@@ -35,17 +35,17 @@ export class FirstLogin extends Scene {
                     speed: 50
                 }
             },
-            {
-                key: 'nature_fox',
-                name: 'Leafy',
-                description: 'A swift forest fox with keen senses. Strong against water enemies but weak to fire.',
-                stats: {
-                    health: 70,
-                    attack: 75,
-                    defense: 65,
-                    speed: 90
-                }
-            }
+            // {
+            //     key: 'nature_fox',
+            //     name: 'Leafy',
+            //     description: 'A swift forest fox with keen senses. Strong against water enemies but weak to fire.',
+            //     stats: {
+            //         health: 70,
+            //         attack: 75,
+            //         defense: 65,
+            //         speed: 90
+            //     }
+            // }
         ];
     }
 
@@ -61,26 +61,22 @@ export class FirstLogin extends Scene {
 
     preload() {
         // Preload pet spritesheets if not already loaded
-        // if (!this.textures.exists('water_turtle')) {
-        //     this.load.spritesheet('water_turtle', 'assets/water_turtle/water_turtle.png', { frameWidth: 640, frameHeight: 400 });
-        // }
+        if (!this.textures.exists('fire_dragon')) {
+            this.load.spritesheet('fire_dragon', 'assets/fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
+        }
+
+        if (!this.textures.exists('ice_dragon')) {
+            this.load.spritesheet('ice_dragon', 'assets/ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
+        }
         
         // if (!this.textures.exists('nature_fox')) {
         //     this.load.spritesheet('nature_fox', 'assets/nature_fox/nature_fox.png', { frameWidth: 640, frameHeight: 400 });
         // }
 
-        // UI elements
-        // if (!this.textures.exists('panel')) {
-        //     this.load.image('panel', 'assets/ui/panel.png');
-        // }
-        
-        // if (!this.textures.exists('button')) {
-        //     this.load.image('button', 'assets/ui/button.png');
-        // }
-        
-        // if (!this.textures.exists('arrow')) {
-        //     this.load.image('arrow', 'assets/ui/arrow.png');
-        // }
+        // Always ensure we have the arrow image (used for navigation)
+        if (!this.textures.exists('arrow')) {
+            this.load.image('arrow', 'assets/ui/arrow.png');
+        }
     }
 
     create() {
@@ -90,6 +86,9 @@ export class FirstLogin extends Scene {
         
         // Welcome message
         this.setupHeader();
+        
+        // Create animations for all pets
+        this.createPetAnimations();
         
         // Create pet selection area
         this.setupPetSelection();
@@ -119,6 +118,21 @@ export class FirstLogin extends Scene {
         
         // Let the React component know this scene is ready
         EventBus.emit('current-scene-ready', this);
+    }
+
+    createPetAnimations() {
+        // Create animations for each pet type
+        this.pets.forEach(pet => {
+            // Only create the animation if it doesn't already exist
+            if (!this.anims.exists(`${pet.key}_idle`)) {
+                this.anims.create({
+                    key: `${pet.key}_idle`,
+                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 3 }),
+                    frameRate: 6,
+                    repeat: -1
+                });
+            }
+        });
     }
 
     setupBackground() {
@@ -166,21 +180,21 @@ export class FirstLogin extends Scene {
         
         // Create pet sprites
         this.petSprites = [];
-        
-        // Add navigation arrows
+         
+        // Add navigation arrows - using clear visual style for better UX
         const arrowOffset = 250;
         
         // Left arrow
         this.leftArrow = this.add.image(width / 2 - arrowOffset, height * 0.4, 'arrow')
-            .setScale(1.2)
-            .setRotation(-45 / 180 * Math.PI)
+            .setScale(1.25)
+            .setAngle(-45)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.navigatePets(-1));
         
         // Right arrow
         this.rightArrow = this.add.image(width / 2 + arrowOffset, height * 0.4, 'arrow')
-            .setScale(1.2)
-            .setRotation(45 / 180 * Math.PI)
+            .setScale(1.25)
+            .setAngle(45)
             .setFlipX(true)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.navigatePets(1));
@@ -189,17 +203,7 @@ export class FirstLogin extends Scene {
         this.pets.forEach((pet, index) => {
             const sprite = this.add.sprite(0, 0, pet.key);
             
-            // Create idle animation if it doesn't exist
-            if (this.anims.exists(`${pet.key}_idle`)) {
-                this.anims.create({
-                    key: `${pet.key}_idle`,
-                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 3 }),
-                    frameRate: 6,
-                    repeat: -1
-                });
-            }
-            
-            // Play animation
+            // Play the animation - we already created all animations in createPetAnimations()
             sprite.play(`${pet.key}_idle`);
             
             // Scale appropriately
@@ -223,6 +227,24 @@ export class FirstLogin extends Scene {
             strokeThickness: 5,
             align: 'center'
         }).setOrigin(0.5);
+
+        // Add indicator for navigation
+        this.pageIndicator = this.add.text(width / 2, height * 0.59, '', {
+            fontFamily: '"Pixelify Sans", cursive',
+            fontSize: '24px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.updatePageIndicator();
+    }
+
+    updatePageIndicator() {
+        // Create dots for each pet, highlighting the current one
+        let dots = '';
+        for (let i = 0; i < this.pets.length; i++) {
+            dots += i === this.selectedPetIndex ? '● ' : '○ ';
+        }
+        this.pageIndicator.setText(dots.trim());
     }
 
     setupInfoPanel() {
@@ -362,6 +384,9 @@ export class FirstLogin extends Scene {
         
         // Update info
         this.updatePetInfo();
+        
+        // Update pagination dots
+        this.updatePageIndicator();
     }
     
     updatePetInfo() {
@@ -458,6 +483,7 @@ export class FirstLogin extends Scene {
         this.promptText.setPosition(width / 2, 110);
         this.petContainer.setPosition(width / 2, height * 0.35);
         this.petName.setPosition(width / 2, height * 0.5);
+        this.pageIndicator.setPosition(width / 2, height * 0.54);
         this.infoPanel.setPosition(width / 2, height * 0.72);
         this.descriptionText.setPosition(width / 2, height * 0.63);
         this.statsContainer.setPosition(width / 2, height * 0.75);
@@ -474,6 +500,7 @@ export class FirstLogin extends Scene {
         this.promptText.setPosition(width / 2, 140);
         this.petContainer.setPosition(width / 2, height * 0.4);
         this.petName.setPosition(width / 2, height * 0.55);
+        this.pageIndicator.setPosition(width / 2, height * 0.59);
         this.infoPanel.setPosition(width / 2, height * 0.75);
         this.descriptionText.setPosition(width / 2, height * 0.68);
         this.statsContainer.setPosition(width / 2, height * 0.78);
