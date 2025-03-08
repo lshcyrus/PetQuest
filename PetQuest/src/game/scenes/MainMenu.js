@@ -192,7 +192,10 @@ export class MainMenu extends Scene {
         
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
             // Start the game scene with level data
-            this.scene.start('LevelTransition', { level: 2 });
+            this.scene.start('LevelTransition', { 
+                level: 1,
+                nextScene: 'MainMenu',
+                });
         });
     }
 

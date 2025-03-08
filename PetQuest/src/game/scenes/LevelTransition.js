@@ -13,6 +13,14 @@ export class LevelTransition extends Scene {
 
         // Get the level passed from the previous scene
         this.level = data.level || 1;
+        
+        // Store the next scene to transition to (default to same level if not specified)
+        this.nextScene = data.nextScene || 'GameOver';
+        
+        // Configure timing (in milliseconds)
+        this.displayDuration = data.displayDuration || 2000; // How long to show the level info
+        this.fadeInDuration = data.fadeInDuration || 800;
+        this.fadeOutDuration = data.fadeOutDuration || 800;
     }
 
     create() {
@@ -23,6 +31,9 @@ export class LevelTransition extends Scene {
 
         // Set background color
         this.cameras.main.setBackgroundColor(0x000000);
+        
+        // Start with black screen (fully faded out)
+        this.cameras.main.fadeIn(this.fadeInDuration);
 
         // Add background image based on level
         let backgroundKey;
@@ -45,30 +56,37 @@ export class LevelTransition extends Scene {
         // Scale the background to cover the screen
         this.scaleBackgroundToFit(this.background);
 
-        // Add text at the center of the screen - much larger size
-        this.add.text(centerX, centerY, `Level ${this.level}`, {
+        // Add level text with animation
+        const levelText = this.add.text(centerX, centerY, `Level ${this.level}`, {
             fontFamily: '"Pixelify Sans", cursive',
-            fontSize: '96px',  // Significantly larger size
+            fontSize: '96px',  // Large size
             color: '#ffffff',
             stroke: '#000000', 
             strokeThickness: 8,
             align: 'center'
-        }).setOrigin(0.5);
-        
-        // Check for and increase size of any status text
-        if (this.statusText) {
-            this.statusText.setFontSize('48px');
-        }
-        
-        // Check for and increase size of any score/level text
-        if (this.scoreText) {
-            this.scoreText.setFontSize('36px');
-        }
+        }).setOrigin(0.5).setAlpha(0);
 
+        // Animate the text to fade in and scale up
+        this.tweens.add({
+            targets: levelText,
+            alpha: 1,
+            scale: 1.2,
+            ease: 'Power1',
+            duration: 500,
+            yoyo: true,
+            hold: 500,
+            repeat: 0
+        });
+        
         // Add resize handler to maintain proper scaling when window size changes
         this.scale.on('resize', this.onResize, this);
 
         EventBus.emit('current-scene-ready', this);
+
+        // Set a timer to transition to the next scene
+        this.transitionTimer = this.time.delayedCall(this.displayDuration, () => {
+            this.transitionToNextScene();
+        });
 
         // Optimize UI for mobile
         this.setupResponsiveUI();
@@ -110,17 +128,39 @@ export class LevelTransition extends Scene {
         if (this.background) {
             this.scaleBackgroundToFit(this.background);
         }
-        
-        // Reposition any other UI elements...
-        // ...
     }
 
+    // Transition to the next scene with fade out effect
+    transitionToNextScene() {
+        // Check if we've already started transitioning to prevent double calls
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        
+        // Start the fade out animation
+        this.cameras.main.fadeOut(this.fadeOutDuration, 0, 0, 0);
+        
+        // Once fade out is complete, go to the next scene
+        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+            // Cancel any pending timers
+            if (this.transitionTimer) this.transitionTimer.remove();
+            
+            // Start the next scene with any necessary data
+            this.scene.start(this.nextScene, { level: this.level });
+        });
+    }
+
+    // Legacy method - now routes to the proper transition method
     changeScene() {
-        this.scene.start('GameOver');
+        this.transitionToNextScene();
     }
 
     // Clean up when scene is shutdown
     shutdown() {
+        // Cancel pending timer if scene is shut down early
+        if (this.transitionTimer) {
+            this.transitionTimer.remove();
+        }
+        
         // Remove the resize listener to prevent memory leaks
         this.scale.off('resize', this.onResize, this);
 
@@ -130,6 +170,7 @@ export class LevelTransition extends Scene {
         }
     }
 
+    // The rest of your existing methods (setupResponsiveUI, etc.)
     setupResponsiveUI() {
         // Detect if we're on mobile
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -166,8 +207,6 @@ export class LevelTransition extends Scene {
         if (this.titleText) {
             this.titleText.setPosition(width / 2, height * 0.15);
         }
-        
-        // Other UI adjustments...
     }
 
     setupLandscapeLayout() {
@@ -177,61 +216,43 @@ export class LevelTransition extends Scene {
         if (this.titleText) {
             this.titleText.setPosition(width / 2, height * 0.2);
         }
-        
-        // Other UI adjustments...
     }
 
     setupTouchControls() {
         const { width, height } = this.scale;
         
         // Add touch controls here if needed
-        // For example, virtual joystick for movement
-        // You might want to use plugins like rexvirtualjoystickplugin
-        
-        // Example: Add a touch area for basic interaction
         const touchArea = this.add.rectangle(width/2, height/2, width, height)
             .setOrigin(0.5)
             .setInteractive()
             .setAlpha(0.001);
             
-        touchArea.on('pointerdown', (pointer) => {
-            // Handle touch input
+        touchArea.on('pointerdown', () => {
+            // Skip to next scene when tapping screen
+            this.transitionToNextScene();
         });
     }
 
     setupMobileUI() {
         const { width, height } = this.scale;
         
-        // Create a back button using our touch utility
-        this.backButton = createTouchButton(
+        // Create a skip button using our touch utility
+        this.skipButton = createTouchButton(
             this,
-            100,
+            width - 100,
             50,
-            'Back',
+            'Skip',
             { fontSize: '20px' },
             () => {
-                this.scene.start('MainMenu');
+                this.transitionToNextScene();
             }
         );
         
         // Add touch controls for game interactions
         this.touchControlsCleanup = setupTouchControls(this, {
-            onTap: (pointer) => {
-                console.log('Tapped at', pointer.x, pointer.y);
-                // Handle tap interaction
-            },
-            onSwipe: (direction, data) => {
-                console.log('Swiped', direction);
-                // Handle swipe interactions - for example, character movement
-                switch (direction) {
-                    case 'left':
-                        // Move character left
-                        break;
-                    case 'right':
-                        // Move character right
-                        break;
-                    // etc.
-                }
+            onTap: () => {
+                // Skip to next scene when tapping
+                this.transitionToNextScene();
             }
         });
     }
