@@ -194,7 +194,7 @@ export class MainMenu extends Scene {
             // Start the game scene with level data
             this.scene.start('LevelTransition', { 
                 level: 1,
-                nextScene: 'MainMenu',
+                nextScene: 'FirstLogin',
                 });
         });
     }
