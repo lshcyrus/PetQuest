@@ -26,7 +26,7 @@ export class FirstLogin extends Scene {
             },
             {
                 key: 'ice_dragon',
-                name: 'Ripple',
+                name: 'Frosty',
                 description: 'A frosty dragon with a cool demeanor. Strong against nature enemies but weak to fire.',
                 stats: {
                     health: 100,
@@ -139,7 +139,7 @@ export class FirstLogin extends Scene {
         const { width, height } = this.scale;
         
         // Use a background image that fits the pet selection theme
-        this.background = this.add.image(width / 2, height / 2, 'background');
+        this.background = this.add.image(width / 2, height / 2, 'first-time-pet-selection');
         this.scaleToFit(this.background);
         
         // Add a semi-transparent overlay for better text readability
@@ -427,6 +427,14 @@ export class FirstLogin extends Scene {
         if (globalContext) {
             // Save selected pet to global context
             globalContext.selectPet(selectedPet);
+            
+            // Set first-time flag to false
+            globalContext.isFirstLogin = false;
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('petquest_selected_pet', JSON.stringify(selectedPet));
+            localStorage.setItem('petquest_has_selected_pet', 'true');
+            
             console.log(`Selected pet: ${selectedPet.name}`);
         }
         
@@ -434,7 +442,7 @@ export class FirstLogin extends Scene {
         this.cameras.main.fadeOut(800, 0, 0, 0);
         
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-            // Go to the main menu or tutorial
+            // Go to the main menu
             this.scene.start('MainMenu', { firstLogin: true });
         });
     }

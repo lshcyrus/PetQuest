@@ -22,33 +22,31 @@ function App() {
 
     const handleLogin = (user) => {
         console.log('Logging in with:', user);
+        
+        // Check if this is a first-time login - if localStorage doesn't have pet selection
+        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet');
+        
+        // Clear pet selection for testing (remove in production)
+        localStorage.removeItem('petquest_has_selected_pet');
+        localStorage.removeItem('petquest_selected_pet');
+        
         setIsLoggedIn(true);
         setUsername(user);
     }
 
-    // When username changes, pass it to the Phaser game
-    useEffect(() => {
-        if (isLoggedIn && phaserRef.current && phaserRef.current.game) {
-            // Wait for the game to be ready
-            setTimeout(() => {
-                const scene = phaserRef.current.scene;
-                if (scene && scene.scene.key === 'MainMenu') {
-                    // Restart the scene with username data
-                    scene.scene.restart({ username });
-                }
-            }, 100);
-        }
-    }, [isLoggedIn, username]);
-
-    if (!isLoggedIn) {
-        return <LoginPage onLogin={handleLogin} />;
-    }
-
     return (
         <div id="app" className='main-menu-fade-in'>
-            <PhaserGame ref={phaserRef} currentActiveScene={currentScene} userData={{ username }} />
+            {!isLoggedIn ? (
+                <LoginPage onLogin={handleLogin} />
+            ) : (
+                <PhaserGame 
+                    ref={phaserRef} 
+                    currentActiveScene={currentScene} 
+                    userData={{ username }} 
+                />
+            )}
         </div>
-    )
+    );
 }
 
-export default App
+export default App;

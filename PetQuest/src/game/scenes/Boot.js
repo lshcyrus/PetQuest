@@ -1,29 +1,61 @@
 import { Scene } from 'phaser';
+import { getGlobalContext } from '../../utils/contextBridge';
 
-export class Boot extends Scene
-{
-    constructor ()
-    {
+export class Boot extends Scene {
+    constructor() {
         super('Boot');
     }
 
-    preload ()
-    {
-        //  The Boot Scene is typically used to load in any assets you require for your Preloader, such as a game logo or background.
-        //  The smaller the file size of the assets, the better, as the Boot Scene itself has no preloader.
-
+    preload() {
+        // Load essential assets
+        this.load.image('first-time-pet-selection', 'assets/pet-selection.png');
         this.load.image('background', 'assets/mainmenu.png');
         this.load.image('forest1', 'assets/forest1.png');
         this.load.image('forest2', 'assets/forest2.png');
         this.load.image('arrow', 'assets/ui/arrow.png');
     }
 
-    create ()
-    {
+    create() {
+        console.log('Boot scene started');
+        
+        // Check if this is a first-time user
+        this.checkFirstTimeUser();
+        
+        // Proceed to preloader
         this.scene.start('Preloader');
         
         // Optimize for mobile performance
         this.optimizeForMobile();
+    }
+
+    checkFirstTimeUser() {
+        // Get global context
+        const globalContext = getGlobalContext();
+        
+        // Check localStorage for pet selection status
+        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet');
+        
+        if (!hasSelectedPet && globalContext) {
+            // This is a first-time user - flag for pet selection
+            globalContext.isFirstLogin = true;
+            console.log('First-time user detected - will route to pet selection');
+        } else if (globalContext) {
+            // User has already selected a pet
+            globalContext.isFirstLogin = false;
+            
+            try {
+                // Try to restore the selected pet from localStorage
+                const savedPet = JSON.parse(localStorage.getItem('petquest_selected_pet'));
+                if (savedPet) {
+                    globalContext.userData.pet = savedPet;
+                    console.log('Restored previously selected pet:', savedPet.name);
+                }
+            } catch (e) {
+                console.error('Error restoring saved pet data:', e);
+                // If data is corrupted, reset to first login
+                globalContext.isFirstLogin = true;
+            }
+        }
     }
 
     optimizeForMobile() {

@@ -18,6 +18,13 @@ export class MainMenu extends Scene {
         if (globalContext) {
             this.username = globalContext.userData.username || 'Player';
             this.petData = globalContext.userData.pet;
+            
+            // Log which pet is being loaded
+            if (this.petData) {
+                console.log(`Loading pet in MainMenu: ${this.petData.name}`);
+            } else {
+                console.warn('No pet data found in MainMenu');
+            }
         } else {
             // Fallback if context is not available
             this.username = data.username || 'Player';
@@ -150,24 +157,46 @@ export class MainMenu extends Scene {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
         
-        this.pet = this.add.sprite(centerX, height * 0.8, 'fire_dragon');
+        // Use the selected pet from global context if available
+        const petKey = this.petData?.key || 'fire_dragon';
         
-        // Create idle animation
-        this.pet.anims.create({
-            key: 'idle',
-            frames: this.anims.generateFrameNumbers('fire_dragon', { start: 0, end: 3 }),
-            frameRate: 6,
-            repeat: -1
-        });
+        // Create pet sprite with the correct key
+        this.pet = this.add.sprite(centerX, height * 0.8, petKey);
+        
+        // Create pet-specific idle animation key
+        const animKey = `${petKey}_idle`;
+        
+        // Check if the animation exists already
+        if (!this.anims.exists(animKey)) {
+            // Create idle animation for this specific pet
+            this.anims.create({
+                key: animKey,
+                frames: this.anims.generateFrameNumbers(petKey, { start: 0, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+        }
 
-        // Play idle animation
-        this.pet.anims.play('idle');
+        // Play the correct pet animation
+        this.pet.play(animKey);
         
         // Set initial scale for the pet
         this.scalePet();
         
         // Set depth to appear above background
         this.pet.setDepth(1);
+        
+        // Add pet name display if we have pet data
+        if (this.petData) {
+            this.petNameText = this.add.text(centerX, height * 0.7, this.petData.name, {
+                fontFamily: '"Pixelify Sans", cursive',
+                fontSize: '28px',
+                color: '#ffffff',
+                stroke: '#000000', 
+                strokeThickness: 4,
+                align: 'center'
+            }).setOrigin(0.5).setDepth(1);
+        }
     }
 
     // Scale background to fit screen
@@ -194,7 +223,7 @@ export class MainMenu extends Scene {
             // Start the game scene with level data
             this.scene.start('LevelTransition', { 
                 level: 1,
-                nextScene: 'FirstLogin',
+                nextScene: 'GameOver',
                 });
         });
     }
