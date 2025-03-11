@@ -5,13 +5,13 @@ const {
   login, // handles user authentication
   getMe, // retrieve the current user's information
   logout // handles user logout
-} = require('backend/controllers/authController.js');
-const { protect } = require('backend/middleware/auth.js'); // protect routes that require authentication
+} = require('../../controllers/authController.js');
+const { protect } = require('../../middleware/auth.js'); // protect routes that require authentication
 const { 
   validateRegister, // validate the data provided during user registration
   validateLogin, // validate the data provided during user login
   validateResults // handle the results of the validation process
-} = require('backend/middleware/validators.js');
+} = require('../../middleware/validators.js');
 
 // POST route for user registration
 router.post('/register', validateRegister, validateResults, register);

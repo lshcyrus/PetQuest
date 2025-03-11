@@ -85,7 +85,7 @@ const petSchema = new mongoose.Schema({
 });
 
 // Method to update pet stats based on time passed, making the game more realistic (works when player is offline)
-PetSchema.methods.updateStats = function() {
+petSchema.methods.updateStats = function() {
     const now = new Date();
     const hoursSinceLastFed = (now - this.lastFed) / (1000 * 60 * 60);
     const hoursSinceLastInteraction = (now - this.lastInteraction) / (1000 * 60 * 60);

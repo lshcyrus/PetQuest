@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router(); // to create modular, mountable route handlers
 const { check, validationResult } = require('express-validator'); // from the express-validator library used for validating and sanitizing user input
-const auth = require('backend/middleware/auth.js');
-const User = require('backend/models/userModel.js');
+const {protect} = require('../../middleware/auth.js');
+const User = require('../../models/userModel.js');
 
 // @route   GET api/users
 // @desc    Get all users  
 // @access  Private/Admin  restricted to admin users
-router.get('/', auth, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     // Check if requesting user is admin
     const user = await User.findById(req.user.id).select('-password');
@@ -26,7 +26,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET api/users/me
 // @desc    Get current user profile
 // @access  Private                     get the profile of the currently authenticated user
-router.get('/me', auth, async (req, res) => {
+router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password'); // fetches the current user's details from the database, excluding the password
     if (!user) {
@@ -42,7 +42,7 @@ router.get('/me', auth, async (req, res) => {
 // @route   GET api/users/:id     :id : placeholder for the user ID
 // @desc    Get user by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password'); // fetches the user details from the database using the ID provided in the request parameters
     if (!user) {
@@ -63,7 +63,7 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.put('/me', [ // check functions from express-validator 
 // used to validate the name and email fields in the request body.
-  auth,
+protect,
   [
     check('name', 'Name is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail()
@@ -99,7 +99,7 @@ router.put('/me', [ // check functions from express-validator
 // @route   DELETE api/users/me
 // @desc    Delete current user
 // @access  Private
-router.delete('/me', auth, async (req, res) => {
+router.delete('/me', protect, async (req, res) => {
   try {
     // Remove user
     await User.findByIdAndRemove(req.user.id);

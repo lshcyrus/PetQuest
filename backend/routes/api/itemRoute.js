@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const auth = require('backend/middleware/auth.js');
-const Item = require('backend/models/itemModel.js');
-const User = require('backend/models/userModel.js');
+const {protect} = require('../../middleware/auth.js');
+const Item = require('../../models/itemModel.js');
+const User = require('../../models/userModel.js');
 
 // @route   GET api/items
 // @desc    Get all items
@@ -42,7 +42,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Create an item
 // @access  Private/Admin
 router.post('/', [
-  auth,
+  protect,
   [
     check('name', 'Name is required').not().isEmpty(),
     check('type', 'Type is required').not().isEmpty(),
@@ -85,7 +85,7 @@ router.post('/', [
 // @desc    Update an item
 // @access  Private/Admin
 router.put('/:id', [
-  auth,
+  protect,
   [
     check('name', 'Name is required').not().isEmpty(),
     check('type', 'Type is required').not().isEmpty(),
@@ -137,7 +137,7 @@ router.put('/:id', [
 // @route   DELETE api/items/:id
 // @desc    Delete an item
 // @access  Private/Admin
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     // Check if user is admin
     const user = await User.findById(req.user.id).select('-password');
@@ -177,7 +177,7 @@ router.get('/rarity/:rarity', async (req, res) => {
 // @route   POST api/items/:id/purchase
 // @desc    Purchase an item for user
 // @access  Private
-router.post('/:id/purchase', auth, async (req, res) => {
+router.post('/:id/purchase', protect, async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
     if (!item) {

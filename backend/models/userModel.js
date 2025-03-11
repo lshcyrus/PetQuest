@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs'); // hashing passwords
 const jwt = require('jsonwebtoken'); // creating and verifying JSON Web Tokens
-const config = require('backend/config/config.js'); // Imports configuration settings
+const config = require('../config/config.js'); // Imports configuration settings
 
 const UserSchema = new mongoose.Schema({ // Define the User Schema
   username: {

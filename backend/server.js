@@ -1,6 +1,6 @@
 const app = require('./app'); // imports the main application
-const config = require('backend/config/config.js'); // imports configuration settings
-const connectDB = require('backend/config/db.js'); // imports a function to connect to the database
+const config = require('./config/config.js'); // imports configuration settings
+const connectDB = require('./config/db.js'); // imports a function to connect to the database
 
 // Connect to database
 connectDB();

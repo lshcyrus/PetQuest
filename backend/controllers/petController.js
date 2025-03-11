@@ -1,5 +1,5 @@
-const Pet = require('../models/Pet');
-const User = require('../models/User');
+const Pet = require('../models/petModel');
+const User = require('../models/userModel');
 const gameLogic = require('../utils/gameLogic');
 
 // @desc    Create new pet

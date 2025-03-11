@@ -4,9 +4,9 @@ const router = express.Router();
 // Import route files
 const authRoutes = require('./api/authRoute');
 const userRoutes = require('./api/usersRoute');
-const petRoutes = require('./api/petsRoute');
-const itemRoutes = require('./api/itemsRoute');
-const questRoutes = require('./api/questsRoute');
+const petRoutes = require('./api/petRoute');
+const itemRoutes = require('./api/itemRoute');
+const questRoutes = require('./api/questRoute');
 
 // Mount routes
 router.use('/auth', authRoutes);

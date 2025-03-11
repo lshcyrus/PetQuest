@@ -1,4 +1,4 @@
-const Item = require('backend/models/itemModel.js');
+const Item = require('../models/itemModel.js');
 
 // Get all items
 exports.getAllItems = async (req, res) => {

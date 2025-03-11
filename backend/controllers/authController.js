@@ -1,4 +1,4 @@
-const User = require('backend/models/userModel.js');
+const User = require('../models/userModel.js');
 
 // @desc    Register user
 // @route   POST /api/auth/register
