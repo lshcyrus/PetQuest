@@ -1,12 +1,14 @@
 # PetQuest
 ReactJS + PhaserJS
 
+Use Git bash if you are on Windows OS
+
 # Frontend
 /PetQuest
 
-npm run dev
+cd PetQuest && npm run dev
 
 # Backend
 /backend
 
-npm start
+cd backend && npm start
