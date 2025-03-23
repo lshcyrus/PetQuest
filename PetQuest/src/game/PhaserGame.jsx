@@ -11,6 +11,11 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene },
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     const { userData } = useGlobalContext();
+    
+    // Log userData for debugging
+    useEffect(() => {
+        console.log('PhaserGame initialized with userData:', userData);
+    }, [userData]);
 
     // toggleFullscreen function
     const toggleFullscreen = () => {
@@ -32,7 +37,6 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene },
 
     // Create the game inside a useLayoutEffect hook to avoid the game being created outside the DOM
     useLayoutEffect(() => {
-
         if (game.current === undefined) {
             game.current = StartGame("game-container");
 
@@ -42,12 +46,10 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene },
         }
 
         return () => {
-
             if (game.current) {
                 game.current.destroy(true);
                 game.current = undefined;
             }
-
         }
     }, [ref]);
 

@@ -14,7 +14,7 @@ export const useGlobalContext = () => {
 export const GlobalProvider = ({ children }) => {
   const API_URL = import.meta.env.VITE_API_URL;
   
-  // State for user data
+  // State for user data - ensure username is loaded from localStorage
   const [userData, setUserData] = useState({
     username: localStorage.getItem('username') || '',
     pet: null, // Will store the chosen pet object
@@ -30,8 +30,10 @@ export const GlobalProvider = ({ children }) => {
     }
   });
 
-  // Load user data from storage when app starts
+  // Load user data from storage when provider mounts
   useEffect(() => {
+    console.log('GlobalProvider initialized with username:', userData.username);
+    
     const loadUserData = async () => {
       try {
         // Get token from localStorage
@@ -39,6 +41,8 @@ export const GlobalProvider = ({ children }) => {
         
         // If no token exists, don't try to fetch user data
         if (!token) return;
+        
+        console.log('Fetching user data from API');
         
         // Get data from the server
         const response = await fetch(`${API_URL}/users/me`, {
@@ -53,9 +57,14 @@ export const GlobalProvider = ({ children }) => {
           throw new Error('Failed to load user data');
         }
         
-        const userData = await response.json();
-        if (userData) {
-          setUserData(userData);
+        const serverUserData = await response.json();
+        if (serverUserData) {
+          console.log('User data loaded:', serverUserData);
+          // Make sure we keep the username if it's not provided by the server
+          setUserData(prev => ({
+            ...serverUserData,
+            username: serverUserData.username || prev.username
+          }));
         }
       } catch (error) {
         console.error('Failed to load user data', error);

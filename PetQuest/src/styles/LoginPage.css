@@ -69,11 +69,14 @@
 .login-button {
     margin-top: min(5%, 15px);
     width: auto;
-    padding: clamp(0.5rem, 1.5vw, 0.8rem) clamp(1rem, 3vw, 2rem);
+    padding: 0 clamp(1rem, 3vw, 2rem);
+    padding-top: clamp(0.7rem, 1.8vw, 1rem);
+    padding-bottom: clamp(0.4rem, 1.2vw, 0.7rem);
     align-self: center; /* Center the button */
     margin-inline: auto; /* Alternative centering */
     font-family: 'Pixelify Sans', sans-serif;
     font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 18px */
+    line-height: 1;
 }
 
 

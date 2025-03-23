@@ -17,12 +17,12 @@ const LoginPage = ({ onLogin }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (isRegister) {
+        if (isRegister && showEmailModal) {
             if (!username || !password || !email) {
                 setError('Please enter both username, password, and email');
                 return;
             }
-        } else {
+        } else if (!isRegister) {
             if (!email || !password) {
                 setError('Please enter both email and password');
                 return;
@@ -57,14 +57,43 @@ const LoginPage = ({ onLogin }) => {
                 localStorage.setItem('token', data.token);
             }
             
+            // Ensure we have the username from the API response
+            if (!data.username) {
+                // If server didn't provide username, make another request to get user data
+                const userResponse = await fetch(`${API_URL}/users/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${data.token}`
+                    }
+                });
+                
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    if (userData && userData.username) {
+                        // Store username for the App component
+                        localStorage.setItem('username', userData.username);
+                        
+                        const loginBox = document.querySelector('.login-box');
+                        loginBox.classList.add('fade-out');
+                        
+                        setTimeout(() => {
+                            onLogin(userData.username);
+                        }, 500);
+                        return;
+                    }
+                }
+            }
+            
+            // If we got the username in the login response
             // Store username for the App component
-            localStorage.setItem('username', data.username || username);
+            localStorage.setItem('username', data.username || email.split('@')[0]);
             
             const loginBox = document.querySelector('.login-box');
             loginBox.classList.add('fade-out');
             
             setTimeout(() => {
-                onLogin(data.username || username);
+                onLogin(data.username || email.split('@')[0]);
             }, 500);
             
         } catch (err) {
@@ -146,7 +175,7 @@ const LoginPage = ({ onLogin }) => {
                                 ) : (
                                     <input
                                         className='username-input'
-                                        style={{ fontSize: '18px' }}
+                                        style={{ fontSize: '20px' }}
                                         type="text"
                                         placeholder="Email"
                                         value={email}
