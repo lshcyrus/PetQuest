@@ -18,7 +18,7 @@ npm install
 Start frontend 
 
 ```
-cd PetQuest && npm run dev
+npm run dev
 ```
 
 # Backend
