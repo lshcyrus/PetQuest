@@ -97,6 +97,8 @@ const sendTokenResponse = (user, statusCode, res) => {
   
   res.status(statusCode).json({
     success: true,
-    token
+    token,
+    username: user.username,
+    hasSelectedPet: user.hasSelectedPet
   });
 };

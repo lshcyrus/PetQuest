@@ -39,6 +39,33 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
+// @route   GET api/users/pet-selection
+// @desc    Update user's pet selection status
+// @access  Private
+router.put('/pet-selection', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    
+    // Update the pet selection status
+    user.hasSelectedPet = true;
+    
+    await user.save();
+    
+    res.json({
+      success: true,
+      data: {
+        hasSelectedPet: user.hasSelectedPet
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // @route   GET api/users/:id     :id : placeholder for the user ID
 // @desc    Get user by ID
 // @access  Private

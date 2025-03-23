@@ -21,10 +21,6 @@ function App() {
     const handleLogin = (user) => {
         console.log('Logging in with:', user);
         
-        // Clear pet selection for testing (remove in production)
-        localStorage.removeItem('petquest_has_selected_pet');
-        localStorage.removeItem('petquest_selected_pet');
-        
         setIsLoggedIn(true);
         localStorage.setItem('username', user);
     }

@@ -30,6 +30,10 @@ const UserSchema = new mongoose.Schema({ // Define the User Schema
     minlength: [6, 'Password must be at least 6 characters long'],
     select: false // Excludes the password field from query results by default for security reasons.
   },
+  hasSelectedPet: {
+    type: Boolean,
+    default: false
+  },
   //////////////////////////////////////////////////////////////////////////////
   // changable for futher game development
   currency: {

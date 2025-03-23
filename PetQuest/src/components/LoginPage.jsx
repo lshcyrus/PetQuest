@@ -57,6 +57,14 @@ const LoginPage = ({ onLogin }) => {
                 localStorage.setItem('token', data.token);
             }
             
+            // Store hasSelectedPet in localStorage
+            if (data.hasSelectedPet === true) {
+                localStorage.setItem('petquest_has_selected_pet', data.hasSelectedPet.toString());
+            }
+            else {
+                localStorage.setItem('petquest_has_selected_pet', 'false');
+            }
+            
             // Ensure we have the username from the API response
             if (!data.username) {
                 // If server didn't provide username, make another request to get user data
@@ -73,6 +81,11 @@ const LoginPage = ({ onLogin }) => {
                     if (userData && userData.username) {
                         // Store username for the App component
                         localStorage.setItem('username', userData.username);
+                        
+                        // If hasSelectedPet not set in login response, get it from user data
+                        if (data.hasSelectedPet === undefined && userData.hasSelectedPet !== undefined) {
+                            localStorage.setItem('petquest_has_selected_pet', userData.hasSelectedPet.toString());
+                        }
                         
                         const loginBox = document.querySelector('.login-box');
                         loginBox.classList.add('fade-out');

@@ -33,7 +33,7 @@ export class Boot extends Scene {
         const globalContext = getGlobalContext();
         
         // Check localStorage for pet selection status
-        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet');
+        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet') === 'true';
         
         if (!hasSelectedPet && globalContext) {
             // This is a first-time user - flag for pet selection

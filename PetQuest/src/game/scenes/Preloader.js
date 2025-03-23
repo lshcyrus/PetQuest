@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import Phaser from 'phaser';
 import WebFontLoader from 'webfontloader';
 import { getGlobalContext } from '../../utils/contextBridge';
 import { EventBus } from '../EventBus';
@@ -102,31 +103,35 @@ export class Preloader extends Scene {
 
     create() {
         console.log("Preloader create method started");
-
-        // IMPORTANT: Force first login for development testing
-        localStorage.removeItem('petquest_has_selected_pet');
-        localStorage.removeItem('petquest_selected_pet');
-        
-        // Update global context immediately
-        const globalContext = getGlobalContext();
-        if (globalContext) {
-            globalContext.isFirstLogin = true;
-            console.log("Forcing first login experience");
-        }
         
         // Create pet animations
         this.createPetAnimations();
+        
+        // Check if the user has selected a pet
+        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet') === 'true';
+        console.log("Has selected pet:", hasSelectedPet);
+        
+        // Update global context
+        const globalContext = getGlobalContext();
+        if (globalContext) {
+            globalContext.isFirstLogin = !hasSelectedPet;
+        }
         
         // Fade out the current scene
         this.cameras.main.fadeOut(400, 0, 0, 0);
         
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-            // Start FirstLogin scene
-            console.log('Directly starting FirstLogin scene');
-            this.scene.start('FirstLogin');
+            // Start appropriate scene based on pet selection status
+            if (!hasSelectedPet) {
+                console.log('Starting FirstLogin scene');
+                this.scene.start('FirstLogin');
+            } else {
+                console.log('Starting MainMenu scene');
+                this.scene.start('MainMenu');
+            }
             
             // Let the React component know the scene is changing
-            EventBus.emit('scene-changing', 'FirstLogin');
+            EventBus.emit('scene-changing', hasSelectedPet ? 'MainMenu' : 'FirstLogin');
         });
     }
 
