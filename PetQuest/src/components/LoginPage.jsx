@@ -46,67 +46,36 @@ const LoginPage = ({ onLogin }) => {
                 body: JSON.stringify({ email, password }),
             });
             
-            const data = await response.json();
+            const loginData = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.message || 'Login failed. Please check your credentials.');
+                throw new Error(loginData.error || loginData.message || 'Login failed. Please check your credentials.');
             }
             
-            // Store token in localStorage if needed
-            if (data.token) {
-                localStorage.setItem('token', data.token);
+            // Store token in localStorage
+            if (loginData.token) {
+                localStorage.setItem('token', loginData.token);
             }
             
-            // Store hasSelectedPet in localStorage
-            if (data.hasSelectedPet === true) {
-                localStorage.setItem('petquest_has_selected_pet', data.hasSelectedPet.toString());
-            }
-            else {
-                localStorage.setItem('petquest_has_selected_pet', 'false');
+            // Get username from response
+            let username = '';
+            
+            // The API now returns { success: true, token, data: { username, ... } }
+            if (loginData.data && loginData.data.username) {
+                username = loginData.data.username;
+            } else {
+                // Fallback if username not in expected location
+                username = email.split('@')[0];
             }
             
-            // Ensure we have the username from the API response
-            if (!data.username) {
-                // If server didn't provide username, make another request to get user data
-                const userResponse = await fetch(`${API_URL}/users/me`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${data.token}`
-                    }
-                });
-                
-                if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    if (userData && userData.username) {
-                        // Store username for the App component
-                        localStorage.setItem('username', userData.username);
-                        
-                        // If hasSelectedPet not set in login response, get it from user data
-                        if (data.hasSelectedPet === undefined && userData.hasSelectedPet !== undefined) {
-                            localStorage.setItem('petquest_has_selected_pet', userData.hasSelectedPet.toString());
-                        }
-                        
-                        const loginBox = document.querySelector('.login-box');
-                        loginBox.classList.add('fade-out');
-                        
-                        setTimeout(() => {
-                            onLogin(userData.username);
-                        }, 500);
-                        return;
-                    }
-                }
-            }
-            
-            // If we got the username in the login response
             // Store username for the App component
-            localStorage.setItem('username', data.username || email.split('@')[0]);
+            localStorage.setItem('username', username);
             
             const loginBox = document.querySelector('.login-box');
             loginBox.classList.add('fade-out');
             
             setTimeout(() => {
-                onLogin(data.username || email.split('@')[0]);
+                onLogin(username);
             }, 500);
             
         } catch (err) {
@@ -136,10 +105,21 @@ const LoginPage = ({ onLogin }) => {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.message || 'Registration failed');
+                throw new Error(data.error || data.message || 'Registration failed');
             }
             
             console.log('Registration successful');
+            
+            // Store token in localStorage
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+            
+            // Get username from response or use the one from form
+            const registeredUsername = (data.data && data.data.username) ? data.data.username : username;
+            
+            // Store username for the App component
+            localStorage.setItem('username', registeredUsername);
             
             // Add fade-out animations
             const emailModal = document.querySelector('.email-modal-overlay');
@@ -148,7 +128,7 @@ const LoginPage = ({ onLogin }) => {
             loginBox.classList.add('fade-out');
             
             setTimeout(() => {
-                onLogin(username);
+                onLogin(registeredUsername);
             }, 500);
             
         } catch (err) {

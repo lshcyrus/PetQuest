@@ -32,30 +32,12 @@ export class Boot extends Scene {
         // Get global context
         const globalContext = getGlobalContext();
         
-        // Check localStorage for pet selection status
-        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet') === 'true';
+        // The isFirstLogin value will be set in the globalContext during initialization
+        // based on the hasSelectedPet value from the server
+        console.log("Boot: First-time user check - global context available:", !!globalContext);
         
-        if (!hasSelectedPet && globalContext) {
-            // This is a first-time user - flag for pet selection
-            globalContext.isFirstLogin = true;
-            console.log('First-time user detected - will route to pet selection');
-        } else if (globalContext) {
-            // User has already selected a pet
-            globalContext.isFirstLogin = false;
-            
-            try {
-                // Try to restore the selected pet from localStorage
-                const savedPet = JSON.parse(localStorage.getItem('petquest_selected_pet'));
-                if (savedPet) {
-                    globalContext.userData.pet = savedPet;
-                    console.log('Restored previously selected pet:', savedPet.name);
-                }
-            } catch (e) {
-                console.error('Error restoring saved pet data:', e);
-                // If data is corrupted, reset to first login
-                globalContext.isFirstLogin = true;
-            }
-        }
+        // Nothing else to do here - the first-time user status is already determined
+        // in the GlobalProvider when loading user data from the server
     }
 
     optimizeForMobile() {

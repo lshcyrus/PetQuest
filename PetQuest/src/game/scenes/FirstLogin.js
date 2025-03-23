@@ -440,39 +440,10 @@ export class FirstLogin extends Scene {
         // Get global context
         const globalContext = getGlobalContext();
         if (globalContext) {
-            // Save selected pet to global context
-            globalContext.selectPet(selectedPet);
-            
-            // Set first-time flag to false
-            globalContext.isFirstLogin = false;
-            
-            // Save to localStorage for persistence
-            localStorage.setItem('petquest_selected_pet', JSON.stringify(selectedPet));
-            localStorage.setItem('petquest_has_selected_pet', 'true');
-            
             console.log(`Selected pet: ${selectedPet.name}`);
-            
-            // Send update to server to set hasSelectedPet to true
-            const token = localStorage.getItem('token');
-            if (token) {
-                const API_URL = import.meta.env.VITE_API_URL;
-                
-                const response = fetch(`${API_URL}/users/pet-selection`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
 
-                if (response.ok) {
-                    console.log('Updated pet selection status on server:', response);
-                } else {
-                    console.error('Error updating pet selection status:', response);
-                }
-
-                
-            }
+            // Save selected pet to global context and update server
+            globalContext.selectPet(selectedPet);
         }
         
         // Transition to next scene with fade

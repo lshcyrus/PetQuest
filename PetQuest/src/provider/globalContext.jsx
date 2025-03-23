@@ -14,16 +14,17 @@ export const useGlobalContext = () => {
 export const GlobalProvider = ({ children }) => {
   const API_URL = import.meta.env.VITE_API_URL;
   
-  // State for user data
+  // State for user data - only get username from localStorage initially
   const [userData, setUserData] = useState({
     username: localStorage.getItem('username') || '',
-    pet: null, // Will store the chosen pet object
-    hasSelectedPet: localStorage.getItem('petquest_has_selected_pet') === 'true' || false,
+    pet: null, 
+    hasSelectedPet: false,
+    isFirstLogin: false,
     level: 1,
     experience: 0,
     coins: 0,
-    items: [], // Inventory items
-    achievements: [], // Completed achievements
+    items: [], 
+    achievements: [], 
     lastLogin: null,
     settings: {
       soundEnabled: true,
@@ -31,7 +32,7 @@ export const GlobalProvider = ({ children }) => {
     }
   });
 
-  // Load user data from storage when provider mounts
+  // Load user data from server when provider mounts
   useEffect(() => {
     console.log('GlobalProvider initialized with username:', userData.username);
     
@@ -41,7 +42,12 @@ export const GlobalProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         
         // If no token exists, don't try to fetch user data
-        if (!token) return;
+        if (!token) {
+          console.log('No token found, skipping user data fetch');
+          return;
+        }
+        
+        console.log('Fetching user data from API');
         
         // Get data from the server
         const response = await fetch(`${API_URL}/users/me`, {
@@ -52,16 +58,37 @@ export const GlobalProvider = ({ children }) => {
           }
         });
         
+        const responseData = await response.json();
+        
         if (!response.ok) {
-          throw new Error('Failed to load user data');
+          console.error('API error:', responseData.error || 'Unknown error');
+          throw new Error(responseData.error || 'Failed to load user data');
         }
         
-        const serverUserData = await response.json();
-        if (serverUserData) {
+        // The API returns { success: true, data: userData }
+        if (responseData.success && responseData.data) {
+          const serverUserData = responseData.data;
           console.log('User data loaded:', serverUserData);
+          
+          // Update the user data with server data
+          setUserData(prev => ({
+            ...prev,
+            username: serverUserData.username || prev.username,
+            hasSelectedPet: serverUserData.hasSelectedPet || false,
+            // Add other fields from serverUserData as needed
+          }));
+          
+          // Set isFirstLogin based on hasSelectedPet
+          if (!serverUserData.hasSelectedPet) {
+            console.log('First-time user detected - will route to pet selection');
+          } else {
+            console.log('Returning user - will route to main menu');
+          }
+        } else {
+          console.warn('Unexpected response format:', responseData);
         }
       } catch (error) {
-        console.error('Failed to load user data', error);
+        console.error('Failed to load user data:', error.message);
       }
     };
 
@@ -69,53 +96,56 @@ export const GlobalProvider = ({ children }) => {
     if (userData.username) {
       loadUserData();
     }
-  }, [API_URL]);
+  }, [API_URL, userData.username]);
 
-  // Save user data to storage whenever it changes
-  useEffect(() => {
-    const saveUserData = async () => {
-      // by using try-catch, we can prevent the app from crashing if saving fails
-      try {
-        // Don't save if there's no username (user not logged in)
-        if (!userData.username) return;
-        
-        // Get token from localStorage
-        const token = localStorage.getItem('token');
-        
-        // If no token exists, don't try to save user data
-        if (!token) return;
-        
-        // Save data to the server
-        // const response = await fetch(`${API_URL}/auth/me`, {
-        //   method: 'PUT',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': `Bearer ${token}`
-        //   },
-        //   body: JSON.stringify(userData)
-        // });
-
-        // if (!response.ok) {
-        //   throw new Error('Failed to save user data');
-        // }
-      } catch (error) {
-        console.error('Failed to save user data', error);
+  // Select a pet and update server
+  const selectPet = async (petData) => {
+    try {
+      // Update local state first for immediate feedback
+      setUserData(prev => ({ 
+        ...prev, 
+        pet: petData,
+        hasSelectedPet: true,
+        isFirstLogin: false 
+      }));
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      // If no token exists, don't try to save pet selection
+      if (!token) {
+        console.log('No token found, skipping server update for pet selection');
+        return;
       }
-    };
-
-    if (userData.username) {
-      saveUserData();
+      
+      console.log('Updating pet selection on server');
+      
+      // Update server
+      const response = await fetch(`${API_URL}/users/pet-selection`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('Failed to update pet selection:', responseData.error || 'Unknown error');
+        throw new Error(responseData.error || 'Failed to update pet selection');
+      }
+      
+      console.log('Pet selection updated successfully:', responseData);
+    } catch (error) {
+      console.error('Error updating pet selection:', error.message);
+      // We don't revert local state to maintain good UX even if server update fails
     }
-  }, [userData, API_URL]);
+  };
 
   // Update user data functions
   const updateUsername = (name) => {
     setUserData(prev => ({ ...prev, username: name }));
-  };
-
-  // Select a pet and store it in the user data
-  const selectPet = (petData) => {
-    setUserData(prev => ({ ...prev, pet: petData }));
   };
 
   // Update the user's level
@@ -146,21 +176,24 @@ export const GlobalProvider = ({ children }) => {
   const resetUserData = () => {
     // Clear token from localStorage
     localStorage.removeItem('token');
+    localStorage.removeItem('username');
     
-    // setUserData({
-    //   username: '',
-    //   pet: null,
-    //   level: 1,
-    //   experience: 0,
-    //   coins: 0,
-    //   items: [],
-    //   achievements: [],
-    //   lastLogin: null,
-    //   settings: {
-    //     soundEnabled: true,
-    //     notificationsEnabled: true,
-    //   }
-    // });
+    setUserData({
+      username: '',
+      pet: null,
+      hasSelectedPet: false,
+      isFirstLogin: false,
+      level: 1,
+      experience: 0,
+      coins: 0,
+      items: [],
+      achievements: [],
+      lastLogin: null,
+      settings: {
+        soundEnabled: true,
+        notificationsEnabled: true,
+      }
+    });
   };
 
   // Values to be provided by the context
@@ -173,7 +206,11 @@ export const GlobalProvider = ({ children }) => {
     addCoins,
     addItem,
     updateSettings,
-    resetUserData
+    resetUserData,
+    isFirstLogin: !userData.hasSelectedPet,
+    setPet: (petData) => {
+      setUserData(prev => ({ ...prev, pet: petData }));
+    }
   };
 
   // Make context accessible outside React

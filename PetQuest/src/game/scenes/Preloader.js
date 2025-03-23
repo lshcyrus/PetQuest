@@ -12,7 +12,7 @@ export class Preloader extends Scene {
     init() {
         // Check if this is a first-time login before showing any background
         const globalContext = getGlobalContext();
-        const isFirstLogin = globalContext?.isFirstLogin || !localStorage.getItem('petquest_has_selected_pet');
+        const isFirstLogin = globalContext ? !globalContext.userData.hasSelectedPet : true;
         
         // Get the game canvas dimensions
         const { width, height } = this.scale;
@@ -107,22 +107,18 @@ export class Preloader extends Scene {
         // Create pet animations
         this.createPetAnimations();
         
-        // Check if the user has selected a pet
-        const hasSelectedPet = localStorage.getItem('petquest_has_selected_pet') === 'true';
-        console.log("Has selected pet:", hasSelectedPet);
-        
-        // Update global context
+        // Get global context to check if user has selected a pet
         const globalContext = getGlobalContext();
-        if (globalContext) {
-            globalContext.isFirstLogin = !hasSelectedPet;
-        }
+        const isFirstLogin = globalContext ? !globalContext.userData.hasSelectedPet : true;
+        
+        console.log("Is first login:", isFirstLogin);
         
         // Fade out the current scene
         this.cameras.main.fadeOut(400, 0, 0, 0);
         
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
             // Start appropriate scene based on pet selection status
-            if (!hasSelectedPet) {
+            if (isFirstLogin) {
                 console.log('Starting FirstLogin scene');
                 this.scene.start('FirstLogin');
             } else {
@@ -131,7 +127,7 @@ export class Preloader extends Scene {
             }
             
             // Let the React component know the scene is changing
-            EventBus.emit('scene-changing', hasSelectedPet ? 'MainMenu' : 'FirstLogin');
+            EventBus.emit('scene-changing', isFirstLogin ? 'FirstLogin' : 'MainMenu');
         });
     }
 

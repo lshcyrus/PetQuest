@@ -25,44 +25,83 @@ router.get('/', protect, async (req, res) => {
 
 // @route   GET api/users/me
 // @desc    Get current user profile
-// @access  Private                     get the profile of the currently authenticated user
+// @access  Private
 router.get('/me', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password'); // fetches the current user's details from the database, excluding the password
+    console.log('Accessing /users/me route, user ID:', req.user._id.toString());
+    
+    const user = await User.findById(req.user._id).select('-password');
+    
     if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
+      console.log('User not found in /me route for ID:', req.user._id);
+      return res.status(404).json({ 
+        success: false,
+        msg: 'User not found' 
+      });
     }
-    res.json(user);
+    
+    console.log('User found, returning profile for:', user.username);
+    
+    res.json({
+      success: true,
+      data: user
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error in /users/me route:', err);
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: err.message
+    });
   }
 });
 
-// @route   GET api/users/pet-selection
+// @route   PUT api/users/pet-selection
 // @desc    Update user's pet selection status
 // @access  Private
 router.put('/pet-selection', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    console.log('Accessing /pet-selection route, user ID:', req.user._id.toString());
+    
+    const user = await User.findById(req.user._id);
+    
     if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
+      console.log('User not found in /pet-selection route for ID:', req.user._id);
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
     
     // Update the pet selection status
     user.hasSelectedPet = true;
     
     await user.save();
+    console.log('Updated hasSelectedPet status for user:', user.username);
     
     res.json({
       success: true,
       data: {
-        hasSelectedPet: user.hasSelectedPet
+        hasSelectedPet: user.hasSelectedPet,
+        username: user.username
       }
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error in /pet-selection route:', err);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: err.message
+    });
   }
 });
 

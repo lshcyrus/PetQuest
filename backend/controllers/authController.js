@@ -89,16 +89,33 @@ exports.logout = async (req, res, next) => {
   });
 };
 
-// Helper function to get token from model, create cookie and send response, 
-// keep the data in 7 days
+// Helper function to get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
-  // Create token
-  const token = user.getSignedJwtToken();
-  
-  res.status(statusCode).json({
-    success: true,
-    token,
-    username: user.username,
-    hasSelectedPet: user.hasSelectedPet
-  });
+  try {
+    // Create token
+    const token = user.getSignedJwtToken();
+    
+    // Send back user data without password
+    const userData = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      hasSelectedPet: user.hasSelectedPet || false,
+      createdAt: user.createdAt
+    };
+    
+    console.log('Login successful for user:', userData.username);
+    
+    res.status(statusCode).json({
+      success: true,
+      token,
+      data: userData
+    });
+  } catch (error) {
+    console.error('Error in sendTokenResponse:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error generating authentication token'
+    });
+  }
 };
