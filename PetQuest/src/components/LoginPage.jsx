@@ -20,9 +20,16 @@ const LoginPage = ({ onLogin }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!username || !password) {
-            setError('Please enter both username and password');
-            return;
+        if (isRegister) {
+            if (!username || !password || !email) {
+                setError('Please enter both username, password, and email');
+                return;
+            }
+        } else {
+            if (!email || !password) {
+                setError('Please enter both email and password');
+                return;
+            }
         }
 
         if (isRegister) {
@@ -39,13 +46,13 @@ const LoginPage = ({ onLogin }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ email, password }),
             });
             
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
+                throw new Error(data.message || 'Login failed. Please check your credentials.');
             }
             
             // Store token in localStorage if needed
@@ -133,13 +140,26 @@ const LoginPage = ({ onLogin }) => {
                     <div className="login-panel-background"></div>
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <input
-                                className='username-input'
-                                type="text"
-                                placeholder="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                            />
+                            {
+                                isRegister ? (
+                                    <input
+                                        className='username-input'
+                                        type="text"
+                                        placeholder="Username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                    />
+                                ) : (
+                                    <input
+                                        className='username-input'
+                                        style={{ fontSize: '18px' }}
+                                        type="text"
+                                        placeholder="Email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                    />
+                                )
+                            }
                         </div>
                         <div className="form-group">
                             <input

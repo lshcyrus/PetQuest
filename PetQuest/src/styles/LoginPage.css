@@ -46,7 +46,7 @@
 }
 
 .form-group .username-input {
-    width: 45%;
+    width: 52%;
     padding: clamp(0.7rem, 2vw, 0.6rem);
     margin: 0rem 6rem;
     border: none;
