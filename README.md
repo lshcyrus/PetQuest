@@ -8,6 +8,8 @@ Backend Application: MongoDB
 
 - When testing, make sure to run frontend and backend separately (in 2 terminals)
 
+- Install Node.js in your machine
+
 # Frontend
 ```
 cd PetQuest
