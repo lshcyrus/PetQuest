@@ -1,17 +1,21 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import '../styles/LoginPage.css';
 import { useGlobalContext } from '../provider/globalContext';
 
 const LoginPage = ({ onLogin }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [email, setEmail] = useState('');
+    const [showEmailModal, setShowEmailModal] = useState(false);
     const [error, setError] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isRegister, setIsRegister] = useState(false);
     
     // Access the global context
     const { updateUsername } = useGlobalContext();
+    const API_URL = import.meta.env.VITE_API_URL;
+    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -22,28 +26,100 @@ const LoginPage = ({ onLogin }) => {
         }
 
         if (isRegister) {
-            // Registration logic here
-            // For now, we'll just simulate registration
-            console.log('Registering new user:', username);
+            setShowEmailModal(true);
+            return;
         }
 
-        setIsLoggingIn(true);
-        const loginBox = document.querySelector('.login-box');
-        loginBox.classList.add('fade-out');
+        try {
+            setIsLoggingIn(true);
+            
+            // Login logic
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Login failed');
+            }
+            
+            // Store token in localStorage if needed
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+            
+            // Update username in the global context
+            updateUsername(username);
+            
+            const loginBox = document.querySelector('.login-box');
+            loginBox.classList.add('fade-out');
+            
+            setTimeout(() => {
+                onLogin(username);
+            }, 500);
+            
+        } catch (err) {
+            setError(err.message || 'An error occurred');
+            setIsLoggingIn(false);
+        }
+    };
 
-        // Update username in the global context
-        updateUsername(username);
+    const handleRegistration = async () => {
+        if (!email || !email.includes('@')) {
+            setError('Please enter a valid email address');
+            return;
+        }
 
-        setTimeout(() => {
-            onLogin(username);
-        }, 500);
+        try {
+            setIsLoggingIn(true);
+            
+            // Registration logic
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password, email }),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+            
+            console.log('Registration successful');
+            
+            // Update username in the global context
+            updateUsername(username);
+            
+            // Add fade-out animations
+            const emailModal = document.querySelector('.email-modal-overlay');
+            emailModal.classList.add('fade-out');
+            const loginBox = document.querySelector('.login-box');
+            loginBox.classList.add('fade-out');
+            
+            setTimeout(() => {
+                onLogin(username);
+            }, 500);
+            
+        } catch (err) {
+            setError(err.message || 'An error occurred');
+            setIsLoggingIn(false);
+            setShowEmailModal(false);
+        }
     };
 
     const toggleMode = () => {
         setIsRegister(!isRegister);
         setError('');
         setPassword('');
-        setConfirmPassword('');
+        setShowEmailModal(false);
     };
 
     return (
@@ -100,8 +176,65 @@ const LoginPage = ({ onLogin }) => {
                     </form>
                 </div>
             </div>
+
+            {showEmailModal && (
+                <div 
+                    className="email-modal-overlay" 
+                    onClick={(e) => {
+                        // Close modal when clicking on the overlay background, not the modal itself
+                        if (e.target.className === "email-modal-overlay") {
+                            setShowEmailModal(false);
+                            setError('');
+                        }
+                    }}
+                >
+                    <div className="email-modal">
+                        <h2>Registration</h2>
+                        <p>Please provide your email address to complete registration</p>
+                        <div className="form-group">
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleRegistration();
+                                    }
+                                }}
+                                autoFocus
+                            />
+                        </div>
+                        {error && <div className="error-message">{error}</div>}
+                        <div className="modal-buttons">
+                            <button 
+                                type="button" 
+                                className="cancel-button"
+                                onClick={() => {
+                                    setShowEmailModal(false);
+                                    setError('');
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="submit-button"
+                                onClick={handleRegistration}
+                            >
+                                Complete Registration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
+};
+
+LoginPage.propTypes = {
+    onLogin: PropTypes.func.isRequired
 };
 
 export default LoginPage;

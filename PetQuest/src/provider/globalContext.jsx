@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { setGlobalContextRef } from '../utils/contextBridge';
 
 // Create the context but don't export it directly
@@ -11,6 +11,8 @@ export const useGlobalContext = () => {
 
 // Provider component
 export const GlobalProvider = ({ children }) => {
+  const API_URL = import.meta.env.VITE_API_URL;
+  
   // State for user data
   const [userData, setUserData] = useState({
     username: '',
@@ -29,21 +31,30 @@ export const GlobalProvider = ({ children }) => {
 
   // Load user data from storage when app starts
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       try {
-        // const storedUserData = localStorage.getItem('userData');
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        
+        // If no token exists, don't try to fetch user data
+        if (!token) return;
         
         // Get data from the server
-        const storedUserData = fetch('https://petquest.com/api/auth/user', {
+        const response = await fetch(`${API_URL}/users/me`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           }
-        })
-          .then(response => response.json())
-
-        if (storedUserData) {
-          setUserData(JSON.parse(storedUserData));
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to load user data');
+        }
+        
+        const userData = await response.json();
+        if (userData) {
+          setUserData(userData);
         }
       } catch (error) {
         console.error('Failed to load user data', error);
@@ -51,24 +62,35 @@ export const GlobalProvider = ({ children }) => {
     };
 
     loadUserData();
-  }, []);
+  }, [API_URL]);
 
   // Save user data to storage whenever it changes
   useEffect(() => {
-    const saveUserData = () => {
+    const saveUserData = async () => {
       // by using try-catch, we can prevent the app from crashing if saving fails
       try {
-        // localStorage.setItem('userData', JSON.stringify(userData));
-
+        // Don't save if there's no username (user not logged in)
+        if (!userData.username) return;
+        
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        
+        // If no token exists, don't try to save user data
+        if (!token) return;
+        
         // Save data to the server
-        fetch('https://petquest.com/api/auth/me', {
-          method: 'POST',
+        const response = await fetch(`${API_URL}/users/update`, {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'token': 'user-token',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(userData)
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save user data');
+        }
       } catch (error) {
         console.error('Failed to save user data', error);
       }
@@ -77,7 +99,7 @@ export const GlobalProvider = ({ children }) => {
     if (userData.username) {
       saveUserData();
     }
-  }, [userData]);
+  }, [userData, API_URL]);
 
   // Update user data functions
   const updateUsername = (name) => {
@@ -115,6 +137,9 @@ export const GlobalProvider = ({ children }) => {
   };
 
   const resetUserData = () => {
+    // Clear token from localStorage
+    localStorage.removeItem('token');
+    
     setUserData({
       username: '',
       pet: null,

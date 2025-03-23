@@ -301,3 +301,157 @@ input {
         transform: translateX(-50%);
     }
 }
+
+/* Email Modal Styles */
+.email-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.email-modal {
+  /* background-image: url('/assets/login-window.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat; */
+  width: 90%;
+  max-width: 500px;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.email-modal h2 {
+  color: white;
+  font-size: clamp(20px, 4vw, 28px);
+  margin-bottom: 10px;
+  font-family: 'Pixelify Sans', sans-serif;
+  text-align: center;
+  margin-bottom: 5%;
+}
+
+.email-modal p {
+  color: white;
+  font-size: clamp(16px, 3vw, 20px);
+  margin-bottom: 20px;
+  font-family: 'Pixelify Sans', sans-serif;
+  text-align: center;
+  max-width: 80%;
+  margin-bottom: 10%;
+}
+
+.email-modal .form-group {
+  position: static;
+  width: 70%;
+  max-width: 300px;
+  margin-bottom: 20px;
+  transform: none;
+}
+
+.email-modal input {
+  width: 100%;
+  padding: 10px;
+  font-size: clamp(16px, 2vw, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: transparent;
+  color: white;
+  outline: none;
+}
+
+.email-modal .error-message {
+  position: static;
+  transform: none;
+  margin: 10px 0;
+  width: 80%;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
+.modal-buttons button {
+  padding: 10px 15px;
+  font-size: clamp(14px, 2vw, 18px);
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-family: 'Pixelify Sans', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.modal-buttons button:hover {
+  color: #ae6af6;
+}
+
+.cancel-button {
+  background-color: transparent;
+}
+
+.submit-button {
+  background-color: transparent;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive adjustments for smaller devices */
+@media (max-width: 480px) {
+  .email-modal {
+    width: 95%;
+    padding: 15px;
+  }
+  
+  .email-modal h2 {
+    margin-top: -5%;
+  }
+  
+  .email-modal p {
+    margin-bottom: 8%;
+  }
+  
+  .modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+/* Responsive adjustments for larger devices */
+@media (min-width: 768px) {
+  .email-modal {
+    max-width: 600px;
+  }
+  
+  .email-modal .form-group {
+    max-width: 350px;
+  }
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
