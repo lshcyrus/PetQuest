@@ -15,6 +15,8 @@ const LoginPage = ({ onLogin }) => {
     // Access the global context
     const { updateUsername } = useGlobalContext();
 
+    const API_URL = 'http://localhost:5000';
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -36,7 +38,7 @@ const LoginPage = ({ onLogin }) => {
             }
 
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+                const response = await fetch(`${API_URL}/api/auth/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -66,13 +68,13 @@ const LoginPage = ({ onLogin }) => {
         } else {
             // Login logic
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        email: username, // Using username field for email during login
+                        email, // Using email for login
                         password
                     }),
                 });
@@ -110,6 +112,7 @@ const LoginPage = ({ onLogin }) => {
     const toggleMode = () => {
         setIsRegister(!isRegister);
         setError('');
+        setEmail('');
         setPassword('');
         setConfirmPassword('');
     };
@@ -134,17 +137,15 @@ const LoginPage = ({ onLogin }) => {
                             />
                         </div>
                         
-                        {isRegister && (
-                            <div className="form-group">
-                                <input
-                                    className='email-input'
-                                    type="email"
-                                    placeholder="Email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                />
-                            </div>
-                        )}
+                        <div className="form-group">
+                            <input
+                                className='email-input'
+                                type="email"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
                         
                         <div className="form-group">
                             <input
