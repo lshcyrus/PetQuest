@@ -138,7 +138,7 @@ cd ../PetQuest
 npm run dev
 ```
 
-7. Open your browser to `http://localhost:5173`
+7. Open your browser to `http://localhost:8080` (Default)
 
 ## Implementation Details
 
