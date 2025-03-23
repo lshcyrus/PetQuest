@@ -3,13 +3,35 @@ ReactJS + PhaserJS
 
 Use Git bash if you are on Windows OS
 
+When testing, make sure to run frontend and backend separately (in 2 terminals)
+
 # Frontend
-/PetQuest
+```
+cd PetQuest
+```
+
+Setting up frontend (Game User Interface, Game Logic, ...)
+```
+npm install
+```
+
+Start frontend 
+
 ```
 cd PetQuest && npm run dev
 ```
+
 # Backend
-/backend
 ```
-cd backend && npm start
+cd backend
+```
+
+Setting up backend (Game Data, User Data, Database schemas, ...)
+```
+npm install
+```
+
+Start backend
+```
+npm start
 ```
