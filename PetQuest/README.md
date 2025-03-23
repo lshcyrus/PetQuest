@@ -1,7 +1,5 @@
 # PetQuest
 
-![screenshot](screenshot.png)
-
 ## About PetQuest
 
 PetQuest is an interactive pet companion game built with Phaser 3 and React. Players select a virtual pet at first login, which becomes their companion throughout their journey. The game features a responsive design that works on both desktop and mobile devices.
