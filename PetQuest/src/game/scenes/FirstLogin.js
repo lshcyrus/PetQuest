@@ -4,6 +4,7 @@
 */
 
 import { Scene } from 'phaser';
+import Phaser from 'phaser';
 import { EventBus } from '../EventBus';
 import { getGlobalContext } from '../../utils/contextBridge';
 import { isMobileDevice, createTouchButton } from '../../utils/touchUtils';
@@ -278,24 +279,40 @@ export class FirstLogin extends Scene {
         // Stats container
         this.statsContainer = this.add.container(width / 2, height * 0.78);
         
+        // Stats panel background for landscape mode
+        this.statsPanel = this.add.rectangle(0, 0, 300, 180, 0x000000, 0.7)
+            .setOrigin(0.5)
+            .setStrokeStyle(2, 0xffffff);
+        this.statsContainer.add(this.statsPanel);
+        
+        // Stats title
+        const statsTitle = this.add.text(0, -75, 'PET STATS', {
+            fontFamily: '"Pixelify Sans", cursive',
+            fontSize: '22px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        this.statsContainer.add(statsTitle);
+        
         // Create stat bars
         const statNames = ['Health', 'Attack', 'Defense', 'Speed'];
         this.statBars = {};
         
         statNames.forEach((stat, index) => {
-            const yOffset = index * 25;
-            const x = 0;
+            const yOffset = index * 30;
+            const x = -30;
             const y = yOffset - 40;
             
             // Label
-            const label = this.add.text(x - 150, y, stat, {
+            const label = this.add.text(x - 100, y, stat, {
                 fontFamily: '"Pixelify Sans", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
             
             // Bar background
-            const barBg = this.add.rectangle(x, y, 200, 15, 0x333333)
+            const barBg = this.add.rectangle(x, y, 140, 15, 0x333333)
                 .setOrigin(0, 0.5);
                 
             // Bar fill
@@ -303,7 +320,7 @@ export class FirstLogin extends Scene {
                 .setOrigin(0, 0.5);
                 
             // Value text
-            const valueText = this.add.text(x + 210, y, '', {
+            const valueText = this.add.text(x + 150, y, '', {
                 fontFamily: '"Pixelify Sans", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
@@ -408,7 +425,7 @@ export class FirstLogin extends Scene {
                 // Animate the bar fill
                 this.tweens.add({
                     targets: bar.fill,
-                    width: value * 2, // Scale to fit the 200px bar
+                    width: value * 1.4, // Scale to fit the 140px bar
                     duration: 400,
                     ease: 'Power2'
                 });
@@ -478,43 +495,72 @@ export class FirstLogin extends Scene {
         const isPortrait = height > width;
         if (isPortrait) {
             this.setupPortraitLayout();
+            // Adjust description text word wrap for portrait
+            this.descriptionText.setWordWrapWidth(width * 0.8);
         } else {
             this.setupLandscapeLayout();
+            // Adjust description text word wrap for landscape
+            this.descriptionText.setWordWrapWidth(width * 0.5);
         }
+        
+        // Update current pet info to adjust stat bars
+        this.updatePetInfo();
     }
     
     setupPortraitLayout() {
         const { width, height } = this.scale;
         
-        // Reposition elements for portrait orientation
+        // Header at the top
         this.headerText.setPosition(width / 2, 60);
         this.promptText.setPosition(width / 2, 110);
+        
+        // Pet in the center
         this.petContainer.setPosition(width / 2, height * 0.35);
         this.petName.setPosition(width / 2, height * 0.5);
         this.pageIndicator.setPosition(width / 2, height * 0.54);
-        this.infoPanel.setPosition(width / 2, height * 0.72);
-        this.descriptionText.setPosition(width / 2, height * 0.63);
-        this.statsContainer.setPosition(width / 2, height * 0.75);
-        this.confirmButton.setPosition(width / 2, height * 0.87);
+        
+        // Navigation arrows
         this.leftArrow.setPosition(width / 2 - 180, height * 0.35);
         this.rightArrow.setPosition(width / 2 + 180, height * 0.35);
+        
+        // Description at the bottom
+        this.infoPanel.setSize(width * 0.9, height * 0.2);
+        this.infoPanel.setPosition(width / 2, height * 0.72);
+        this.descriptionText.setPosition(width / 2, height * 0.68);
+        
+        // Stats stay below description in portrait mode
+        this.statsContainer.setPosition(width / 2, height * 0.75);
+        
+        // Confirm button at bottom right
+        this.confirmButton.setPosition(width * 0.75, height * 0.87);
     }
     
     setupLandscapeLayout() {
         const { width, height } = this.scale;
         
-        // Default layout for landscape orientation
-        this.headerText.setPosition(width / 2, 80);
-        this.promptText.setPosition(width / 2, 140);
-        this.petContainer.setPosition(width / 2, height * 0.4);
-        this.petName.setPosition(width / 2, height * 0.55);
-        this.pageIndicator.setPosition(width / 2, height * 0.59);
-        this.infoPanel.setPosition(width / 2, height * 0.75);
-        this.descriptionText.setPosition(width / 2, height * 0.68);
-        this.statsContainer.setPosition(width / 2, height * 0.78);
-        this.confirmButton.setPosition(width / 2, height * 0.88);
-        this.leftArrow.setPosition(width / 2 - 250, height * 0.4);
-        this.rightArrow.setPosition(width / 2 + 250, height * 0.4);
+        // Header at the top
+        this.headerText.setPosition(width / 2, height * 0.1);
+        this.promptText.setPosition(width / 2, height * 0.17);
+        
+        // Pet in the center
+        this.petContainer.setPosition(width / 2, height * 0.45);
+        this.petName.setPosition(width / 2, height * 0.65);
+        this.pageIndicator.setPosition(width / 2, height * 0.7);
+        
+        // Navigation arrows
+        this.leftArrow.setPosition(width / 2 - 250, height * 0.45);
+        this.rightArrow.setPosition(width / 2 + 250, height * 0.45);
+        
+        // Stats on the left side
+        this.statsContainer.setPosition(width * 0.1, height * 0.5);
+        
+        // Description at the bottom
+        this.infoPanel.setSize(width * 0.6, height * 0.2);
+        this.infoPanel.setPosition(width / 2, height * 0.85);
+        this.descriptionText.setPosition(width / 2, height * 0.85);
+        
+        // Confirm button at bottom right
+        this.confirmButton.setPosition(width * 0.9, height * 0.9);
     }
     
     setupMobileUI() {

@@ -38,7 +38,9 @@ function App() {
         <div id="app" className='main-menu-fade-in'>
             {!isLoggedIn ? (
                 <LoginPage onLogin={handleLogin} />
-            ) : (
+            ) 
+            :
+            (
                 <PhaserGame 
                     ref={phaserRef} 
                     currentActiveScene={currentScene} 

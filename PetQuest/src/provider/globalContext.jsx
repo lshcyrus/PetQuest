@@ -31,7 +31,17 @@ export const GlobalProvider = ({ children }) => {
   useEffect(() => {
     const loadUserData = () => {
       try {
-        const storedUserData = localStorage.getItem('userData');
+        // const storedUserData = localStorage.getItem('userData');
+        
+        // Get data from the server
+        const storedUserData = fetch('https://petquest.com/api/auth/user', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+          .then(response => response.json())
+
         if (storedUserData) {
           setUserData(JSON.parse(storedUserData));
         }
@@ -46,8 +56,19 @@ export const GlobalProvider = ({ children }) => {
   // Save user data to storage whenever it changes
   useEffect(() => {
     const saveUserData = () => {
+      // by using try-catch, we can prevent the app from crashing if saving fails
       try {
-        localStorage.setItem('userData', JSON.stringify(userData));
+        // localStorage.setItem('userData', JSON.stringify(userData));
+
+        // Save data to the server
+        fetch('https://petquest.com/api/auth/me', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'token': 'user-token',
+          },
+          body: JSON.stringify(userData)
+        });
       } catch (error) {
         console.error('Failed to save user data', error);
       }
@@ -63,14 +84,17 @@ export const GlobalProvider = ({ children }) => {
     setUserData(prev => ({ ...prev, username: name }));
   };
 
+  // Select a pet and store it in the user data
   const selectPet = (petData) => {
     setUserData(prev => ({ ...prev, pet: petData }));
   };
 
+  // Update the user's level
   const updateLevel = (newLevel) => {
     setUserData(prev => ({ ...prev, level: newLevel }));
   };
 
+  // Add experience points to the user
   const addExperience = (amount) => {
     setUserData(prev => ({ ...prev, experience: prev.experience + amount }));
   };
