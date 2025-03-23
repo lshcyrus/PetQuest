@@ -1,9 +1,12 @@
 # PetQuest
-ReactJS + PhaserJS
+Frontend Framework: ReactJS + PhaserJS
 
-Use Git bash if you are on Windows OS
+Backend Application: MongoDB
 
-When testing, make sure to run frontend and backend separately (in 2 terminals)
+# Guidelines
+- Use Git bash if you are on Windows OS
+
+- When testing, make sure to run frontend and backend separately (in 2 terminals)
 
 # Frontend
 ```
