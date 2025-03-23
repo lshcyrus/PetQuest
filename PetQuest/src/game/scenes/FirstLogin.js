@@ -50,13 +50,11 @@ export class FirstLogin extends Scene {
         ];
     }
 
-    init(data) {
-        // Get username from previous scene or context
+    init() {
+        // Get username from context
         const globalContext = getGlobalContext();
         if (globalContext) {
             this.username = globalContext.userData.username || 'Player';
-        } else {
-            this.username = data.username || 'Player';
         }
     }
 

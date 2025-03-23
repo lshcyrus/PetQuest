@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { setGlobalContextRef } from '../utils/contextBridge';
 
 // Create the context but don't export it directly
@@ -15,7 +16,7 @@ export const GlobalProvider = ({ children }) => {
   
   // State for user data
   const [userData, setUserData] = useState({
-    username: '',
+    username: localStorage.getItem('username') || '',
     pet: null, // Will store the chosen pet object
     level: 1,
     experience: 0,
@@ -61,7 +62,10 @@ export const GlobalProvider = ({ children }) => {
       }
     };
 
-    loadUserData();
+    // Only attempt to load user data if username exists
+    if (userData.username) {
+      loadUserData();
+    }
   }, [API_URL]);
 
   // Save user data to storage whenever it changes
@@ -179,6 +183,10 @@ export const GlobalProvider = ({ children }) => {
       {children}
     </GlobalContext.Provider>
   );
+};
+
+GlobalProvider.propTypes = {
+  children: PropTypes.node.isRequired
 };
 
 // Export the provider instead of the context directly

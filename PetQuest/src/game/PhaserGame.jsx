@@ -10,7 +10,7 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene },
     const containerRef = useRef();
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const globalContext = useGlobalContext();
+    const { userData } = useGlobalContext();
 
     // toggleFullscreen function
     const toggleFullscreen = () => {

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import '../styles/LoginPage.css';
-import { useGlobalContext } from '../provider/globalContext';
 
 const LoginPage = ({ onLogin }) => {
     const [username, setUsername] = useState('');
@@ -12,8 +11,6 @@ const LoginPage = ({ onLogin }) => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isRegister, setIsRegister] = useState(false);
     
-    // Access the global context
-    const { updateUsername } = useGlobalContext();
     const API_URL = import.meta.env.VITE_API_URL;
     
 
@@ -60,14 +57,14 @@ const LoginPage = ({ onLogin }) => {
                 localStorage.setItem('token', data.token);
             }
             
-            // Update username in the global context
-            updateUsername(username);
+            // Store username for the App component
+            localStorage.setItem('username', data.username || username);
             
             const loginBox = document.querySelector('.login-box');
             loginBox.classList.add('fade-out');
             
             setTimeout(() => {
-                onLogin(username);
+                onLogin(data.username || username);
             }, 500);
             
         } catch (err) {
@@ -101,9 +98,6 @@ const LoginPage = ({ onLogin }) => {
             }
             
             console.log('Registration successful');
-            
-            // Update username in the global context
-            updateUsername(username);
             
             // Add fade-out animations
             const emailModal = document.querySelector('.email-modal-overlay');
