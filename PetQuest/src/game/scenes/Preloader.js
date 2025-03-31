@@ -109,7 +109,35 @@ export class Preloader extends Scene {
         
         // Get global context to check if user has selected a pet
         const globalContext = getGlobalContext();
-        const isFirstLogin = globalContext ? !globalContext.userData.hasSelectedPet : true;
+        
+        // Check if user has selected a pet and if the pet data is valid
+        let isFirstLogin = true;
+        
+        if (globalContext) {
+            console.log("User data from global context:", globalContext.userData);
+            
+            if (globalContext.userData.hasSelectedPet && globalContext.userData.selectedPet) {
+                const pet = globalContext.userData.selectedPet;
+                console.log("Selected pet data:", pet);
+                
+                // Check if pet has the required key field for rendering
+                if (!pet.key) {
+                    console.warn("Pet is missing key field, adding default value");
+                    // Add default key to ensure it can be rendered
+                    pet.key = "fire_dragon";
+                    globalContext.updateUserData({
+                        selectedPet: pet
+                    });
+                }
+                
+                isFirstLogin = false;
+            } else {
+                console.log("User has not selected a pet yet");
+                isFirstLogin = true;
+            }
+        } else {
+            console.warn("Global context not available");
+        }
         
         console.log("Is first login:", isFirstLogin);
         

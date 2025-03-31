@@ -7,25 +7,30 @@ const gameLogic = require('../utils/gameLogic');
 // @access  Private
 exports.createPet = async (req, res, next) => {
   try {
+    console.log('Create pet request received:', req.body);
     req.body.owner = req.user.id;
     
     // Check if user already has a pet
     const existingPet = await Pet.findOne({ owner: req.user.id });
     
     if (existingPet) {
+      console.log('User already has a pet:', existingPet._id);
       return res.status(400).json({
         success: false,
         error: 'You already have a pet'
       });
     }
     
+    console.log('Creating pet with data:', req.body);
     const pet = await Pet.create(req.body);
+    console.log('Pet created:', pet._id);
     
     // Update user with the selected pet
     const updatedUser = await User.findByIdAndUpdate(req.user.id, {
       hasSelectedPet: true,
       selectedPet: pet._id
     }, { new: true }).select('-password');
+    console.log('User updated with pet:', updatedUser._id);
     
     res.status(201).json({
       success: true,
@@ -35,6 +40,7 @@ exports.createPet = async (req, res, next) => {
       }
     });
   } catch (err) {
+    console.error('Error creating pet:', err.message);
     next(err);
   }
 };
@@ -139,7 +145,7 @@ exports.feedPet = async (req, res, next) => {
     }
     
     // Get item details
-    const Item = require('../models/Item');
+    const Item = require('../models/itemModel');
     const item = await Item.findById(itemId);
     
     if (!item) {
@@ -224,7 +230,7 @@ exports.playWithPet = async (req, res, next) => {
       }
       
       // Get item details
-      const Item = require('../models/Item');
+      const Item = require('../models/itemModel');
       const item = await Item.findById(itemId);
       
       if (!item) {

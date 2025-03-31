@@ -465,7 +465,9 @@ export class FirstLogin extends Scene {
 
             const API_URL = import.meta.env.VITE_API_URL;
             
-            // Create a new pet on the server with the selected type
+            console.log('Sending pet data to server:', { name: petData.name, key: petData.key });
+            
+            // Create a new pet on the server with the selected name and key
             const response = await fetch(`${API_URL}/pets`, {
                 method: 'POST',
                 headers: {
@@ -474,37 +476,93 @@ export class FirstLogin extends Scene {
                 },
                 body: JSON.stringify({
                     name: petData.name,
-                    species: petData.key.includes('dragon') ? 'dragon' : 'cat'
+                    key: petData.key, // Send the key to the backend
+                    species: "dragon" // Always include a default species for backward compatibility
                 })
             });
             
             const responseData = await response.json();
             
             if (!response.ok) {
-                console.error('Failed to create pet:', responseData.error || 'Unknown error');
+                console.error('Failed to create pet. Status:', response.status);
+                console.error('Response data:', responseData);
+                
+                // If the user already has a pet, we can try to get it
+                if (responseData.error === 'You already have a pet') {
+                    console.log('User already has a pet, fetching existing pets');
+                    
+                    // Get user's pets
+                    const petsResponse = await fetch(`${API_URL}/pets`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const petsData = await petsResponse.json();
+                    
+                    if (petsResponse.ok && petsData.success && petsData.data && petsData.data.length > 0) {
+                        console.log('Found existing pets:', petsData.data);
+                        
+                        // Use the first pet
+                        let existingPet = petsData.data[0];
+                        
+                        // Add the frontend stats to the backend pet data
+                        existingPet.key = existingPet.key || petData.key; // Use existing key or fallback to selected one
+                        existingPet.stats = petData.stats;
+                        
+                        // Update the global context with the existing pet
+                        globalContext.updateUserData({
+                            selectedPet: existingPet,
+                            hasSelectedPet: true,
+                            isFirstLogin: false
+                        });
+                        
+                        console.log('Updated global context with existing pet:', existingPet);
+                        return;
+                    } else {
+                        console.error('Failed to fetch existing pets:', petsData);
+                    }
+                }
+                
                 return;
             }
             
             console.log('Pet created successfully:', responseData.data);
             
-            // Update the global context with the created pet data
+            // Get the created pet data from the server response
+            let createdPet;
             if (responseData.data.pet) {
-                globalContext.updateUserData({
-                    selectedPet: responseData.data.pet,
-                    hasSelectedPet: true,
-                    isFirstLogin: false
-                });
+                createdPet = responseData.data.pet;
+                console.log('Pet data from server (nested):', createdPet);
             } else if (responseData.data) {
-                // Handle the case where the pet is directly in data
+                createdPet = responseData.data;
+                console.log('Pet data from server (direct):', createdPet);
+            } else {
+                console.error('No pet data found in response:', responseData);
+                return;
+            }
+            
+            // Add the frontend data to the backend pet for rendering
+            if (createdPet) {
+                // Add the frontend stats to the backend pet data
+                // The key is already included in the pet data from the server
+                createdPet.stats = petData.stats;
+                
+                // Update the global context
                 globalContext.updateUserData({
-                    selectedPet: responseData.data,
+                    selectedPet: createdPet,
                     hasSelectedPet: true,
                     isFirstLogin: false
                 });
+                
+                console.log('Updated global context with pet:', createdPet);
             }
             
         } catch (error) {
             console.error('Error creating pet:', error.message);
+            console.error('Error stack:', error.stack);
         }
     }
     

@@ -1,5 +1,6 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import Phaser from 'phaser';
 import { getGlobalContext } from '../../utils/contextBridge';
 
 export class MainMenu extends Scene {
@@ -17,7 +18,7 @@ export class MainMenu extends Scene {
         const globalContext = getGlobalContext();
         if (globalContext) {
             this.username = globalContext.userData.username || 'Player';
-            this.petData = globalContext.userData.pet;
+            this.petData = globalContext.userData.selectedPet;
             
             // Log which pet is being loaded
             if (this.petData) {
@@ -56,7 +57,7 @@ export class MainMenu extends Scene {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
         const centerY = height * 0.5;
-
+        
         this.background = this.add.image(centerX, centerY, 'background');
         this.scaleToFit(this.background);
         this.background.setDepth(0);
@@ -66,7 +67,6 @@ export class MainMenu extends Scene {
     setupUI() {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
-        const centerY = height * 0.5;
         
         // Welcome message - set to much larger size
         const welcomeText = this.add.text(
@@ -157,8 +157,15 @@ export class MainMenu extends Scene {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
         
-        // Use the selected pet from global context if available
-        const petKey = this.petData?.key || 'fire_dragon';
+        let petKey = 'fire_dragon'; // Default pet
+        
+        // Get pet key from server data if available
+        if (this.petData && this.petData.key) {
+            console.log('Pet data from server:', this.petData);
+            petKey = this.petData.key;
+        }
+        
+        console.log('Using pet key:', petKey);
         
         // Create pet sprite with the correct key
         this.pet = this.add.sprite(centerX, height * 0.8, petKey);
@@ -231,7 +238,7 @@ export class MainMenu extends Scene {
 
     // Helper method to calculate responsive font sizes
     getResponsiveFontSize(baseSize, unit = 'px') {
-        const { width, height } = this.scale;
+        const { width } = this.scale;
         const baseWidth = 1280; // Base design width
         const scaleFactor = Math.min(width / baseWidth, 1.5); // Limit scaling to 150%
         const minScale = 0.5; // Minimum scale factor to ensure text isn't too small
@@ -284,7 +291,7 @@ export class MainMenu extends Scene {
             .setInteractive()
             .setAlpha(0.001);
             
-        touchArea.on('pointerdown', (pointer) => {
+        touchArea.on('pointerdown', () => {
             // Handle touch input
         });
     }
