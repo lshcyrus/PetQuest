@@ -3,6 +3,7 @@ import { LevelTransition } from './scenes/LevelTransition';
 import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
 import { FirstLogin } from './scenes/FirstLogin';
+import { Quests } from './scenes/Quests';
 import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { initOrientationHandling } from '../utils/orientationHandler';
@@ -39,6 +40,7 @@ const config = {
         Preloader,
         FirstLogin,
         MainMenu,
+        Quests,
         LevelTransition,
         GameOver
     ]
