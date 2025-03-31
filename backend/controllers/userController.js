@@ -91,8 +91,10 @@ exports.login = async (req, res) => {
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');// Finds the user by their ID,
-    // select('-password') part excludes the password field from the returned user data
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .populate('selectedPet');
+    
     res.json(user);
   } catch (err) {
     console.error(err.message);

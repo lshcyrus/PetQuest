@@ -442,8 +442,8 @@ export class FirstLogin extends Scene {
         if (globalContext) {
             console.log(`Selected pet: ${selectedPet.name}`);
 
-            // Save selected pet to global context and update server
-            globalContext.selectPet(selectedPet);
+            // Create the pet on the server first
+            this.createAndSelectPet(selectedPet, globalContext);
         }
         
         // Transition to next scene with fade
@@ -453,6 +453,59 @@ export class FirstLogin extends Scene {
             // Go to the main menu
             this.scene.start('MainMenu', { firstLogin: true });
         });
+    }
+
+    async createAndSelectPet(petData, globalContext) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.log('No token found, cannot create pet');
+                return;
+            }
+
+            const API_URL = import.meta.env.VITE_API_URL;
+            
+            // Create a new pet on the server with the selected type
+            const response = await fetch(`${API_URL}/pets`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: petData.name,
+                    species: petData.key.includes('dragon') ? 'dragon' : 'cat'
+                })
+            });
+            
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                console.error('Failed to create pet:', responseData.error || 'Unknown error');
+                return;
+            }
+            
+            console.log('Pet created successfully:', responseData.data);
+            
+            // Update the global context with the created pet data
+            if (responseData.data.pet) {
+                globalContext.updateUserData({
+                    selectedPet: responseData.data.pet,
+                    hasSelectedPet: true,
+                    isFirstLogin: false
+                });
+            } else if (responseData.data) {
+                // Handle the case where the pet is directly in data
+                globalContext.updateUserData({
+                    selectedPet: responseData.data,
+                    hasSelectedPet: true,
+                    isFirstLogin: false
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error creating pet:', error.message);
+        }
     }
     
     getStatColor(stat) {

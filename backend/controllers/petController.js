@@ -21,9 +21,18 @@ exports.createPet = async (req, res, next) => {
     
     const pet = await Pet.create(req.body);
     
+    // Update user with the selected pet
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, {
+      hasSelectedPet: true,
+      selectedPet: pet._id
+    }, { new: true }).select('-password');
+    
     res.status(201).json({
       success: true,
-      data: pet
+      data: {
+        pet,
+        user: updatedUser
+      }
     });
   } catch (err) {
     next(err);
@@ -260,6 +269,60 @@ exports.playWithPet = async (req, res, next) => {
       success: true,
       data: pet,
       levelUp: levelUpResult.leveledUp
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Select a pet as the user's chosen pet
+// @route   PUT /api/pets/:id/select
+// @access  Private
+exports.selectPet = async (req, res, next) => {
+  try {
+    const petId = req.params.id;
+    
+    // Validate pet ID
+    if (!petId || petId === 'undefined') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pet ID provided'
+      });
+    }
+    
+    const pet = await Pet.findById(petId);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to select this pet'
+      });
+    }
+    
+    // Update user with the selected pet
+    const user = await User.findByIdAndUpdate(
+      req.user.id, 
+      {
+        hasSelectedPet: true,
+        selectedPet: pet._id
+      },
+      { new: true }
+    ).select('-password');
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+        pet
+      }
     });
   } catch (err) {
     next(err);

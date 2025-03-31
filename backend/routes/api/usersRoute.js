@@ -30,7 +30,9 @@ router.get('/me', protect, async (req, res) => {
   try {
     console.log('Accessing /users/me route, user ID:', req.user._id.toString());
     
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('selectedPet');
     
     if (!user) {
       console.log('User not found in /me route for ID:', req.user._id);
@@ -55,47 +57,6 @@ router.get('/me', protect, async (req, res) => {
         error: 'Invalid user ID format'
       });
     }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Server error',
-      message: err.message
-    });
-  }
-});
-
-// @route   PUT api/users/pet-selection
-// @desc    Update user's pet selection status
-// @access  Private
-router.put('/pet-selection', protect, async (req, res) => {
-  try {
-    console.log('Accessing /pet-selection route, user ID:', req.user._id.toString());
-    
-    const user = await User.findById(req.user._id);
-    
-    if (!user) {
-      console.log('User not found in /pet-selection route for ID:', req.user._id);
-      return res.status(404).json({ 
-        success: false,
-        error: 'User not found' 
-      });
-    }
-    
-    // Update the pet selection status
-    user.hasSelectedPet = true;
-    
-    await user.save();
-    console.log('Updated hasSelectedPet status for user:', user.username);
-    
-    res.json({
-      success: true,
-      data: {
-        hasSelectedPet: user.hasSelectedPet,
-        username: user.username
-      }
-    });
-  } catch (err) {
-    console.error('Error in /pet-selection route:', err);
     
     res.status(500).json({
       success: false,
