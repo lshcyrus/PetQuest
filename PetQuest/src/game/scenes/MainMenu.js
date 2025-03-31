@@ -74,7 +74,7 @@ export class MainMenu extends Scene {
             height * 0.05, 
             `Welcome back, ${this.username}!`, 
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: this.getResponsiveFontSize(4, 'em'),
                 color: '#ffffff',
                 stroke: '#000000',
@@ -118,7 +118,7 @@ export class MainMenu extends Scene {
             buttonY,
             'START GAME',
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: this.getResponsiveFontSize(3, 'rem'),
                 color: '#ffffff',
                 stroke: '#000000',
@@ -195,14 +195,29 @@ export class MainMenu extends Scene {
         
         // Add pet name display if we have pet data
         if (this.petData) {
-            this.petNameText = this.add.text(centerX, height * 0.7, this.petData.name, {
-                fontFamily: '"Pixelify Sans", cursive',
+            // Create a container for pet name and rename button
+            this.petNameContainer = this.add.container(centerX, height * 0.7);
+            this.petNameContainer.setDepth(1);
+            
+            // Add pet name text
+            this.petNameText = this.add.text(0, 0, this.petData.name, {
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '28px',
                 color: '#ffffff',
                 stroke: '#000000', 
                 strokeThickness: 4,
                 align: 'center'
-            }).setOrigin(0.5).setDepth(1);
+            }).setOrigin(0.5);
+            
+            // Add rename button
+            const renameButton = this.add.text(80, 0, '✏️', {
+                fontSize: '24px'
+            }).setOrigin(0.5)
+              .setInteractive({ useHandCursor: true })
+              .on('pointerdown', () => this.showRenameDialog());
+            
+            // Add to container
+            this.petNameContainer.add([this.petNameText, renameButton]);
         }
     }
 
@@ -294,5 +309,173 @@ export class MainMenu extends Scene {
         touchArea.on('pointerdown', () => {
             // Handle touch input
         });
+    }
+
+    // Show dialog to rename pet
+    showRenameDialog() {
+        const { width, height } = this.scale;
+        
+        // Try to create the DOM input element
+        try {
+            // Create a semi-transparent background
+            const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.7)
+                .setOrigin(0)
+                .setDepth(10)
+                .setInteractive(); // Block interactions below
+                
+            // Create dialog box
+            const dialogWidth = Math.min(width * 0.8, 400);
+            const dialogHeight = 200;
+            const dialogX = width / 2;
+            const dialogY = height / 2;
+            
+            const dialog = this.add.rectangle(dialogX, dialogY, dialogWidth, dialogHeight, 0x333333)
+                .setStrokeStyle(2, 0xffffff)
+                .setDepth(11);
+                
+            // Add title
+            const title = this.add.text(dialogX, dialogY - 70, 'Rename Your Pet', {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '24px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5)
+              .setDepth(11);
+              
+            // Add input field
+            const input = this.add.dom(dialogX, dialogY, 'input')
+                .setOrigin(0.5)
+                .setDepth(11);
+                
+            // Style input
+            const inputElement = input.node;
+            inputElement.style.width = '250px';
+            inputElement.style.height = '36px';
+            inputElement.style.fontSize = '20px';
+            inputElement.style.padding = '4px 10px';
+            inputElement.style.borderRadius = '5px';
+            inputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            inputElement.style.color = 'white';
+            inputElement.style.border = '2px solid #4a9e2f';
+            inputElement.maxLength = 20;
+            inputElement.value = this.petData.name;
+            inputElement.focus();
+            
+            // Add buttons
+            const buttonY = dialogY + 50;
+            
+            // Cancel button
+            const cancelButton = this.add.rectangle(dialogX - 70, buttonY, 120, 40, 0x880000)
+                .setStrokeStyle(2, 0xffffff)
+                .setInteractive({ useHandCursor: true })
+                .setDepth(11);
+                
+            const cancelText = this.add.text(dialogX - 70, buttonY, 'CANCEL', {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff'
+            }).setOrigin(0.5)
+              .setDepth(11);
+              
+            // Close dialog when cancel is clicked
+            cancelButton.on('pointerdown', () => {
+                overlay.destroy();
+                dialog.destroy();
+                title.destroy();
+                input.destroy();
+                cancelButton.destroy();
+                cancelText.destroy();
+                confirmButton.destroy();
+                confirmText.destroy();
+            });
+            
+            // Confirm button
+            const confirmButton = this.add.rectangle(dialogX + 70, buttonY, 120, 40, 0x008800)
+                .setStrokeStyle(2, 0xffffff)
+                .setInteractive({ useHandCursor: true })
+                .setDepth(11);
+                
+            const confirmText = this.add.text(dialogX + 70, buttonY, 'SAVE', {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff'
+            }).setOrigin(0.5)
+              .setDepth(11);
+              
+            // Handle rename when confirm is clicked
+            confirmButton.on('pointerdown', async () => {
+                const newName = inputElement.value.trim();
+                
+                if (newName && newName !== this.petData.name) {
+                    await this.renamePet(newName);
+                }
+                
+                // Close dialog
+                overlay.destroy();
+                dialog.destroy();
+                title.destroy();
+                input.destroy();
+                cancelButton.destroy();
+                cancelText.destroy();
+                confirmButton.destroy();
+                confirmText.destroy();
+            });
+        } catch (error) {
+            console.error('Error creating DOM input for rename dialog:', error);
+            // Fallback to simple prompt
+            this.showFallbackRenameDialog();
+        }
+    }
+    
+    // Fallback rename dialog using browser prompt
+    showFallbackRenameDialog() {
+        const newName = prompt('Enter new name for your pet:', this.petData.name);
+        if (newName && newName.trim() && newName.trim() !== this.petData.name) {
+            this.renamePet(newName.trim());
+        }
+    }
+    
+    // Send request to rename pet
+    async renamePet(newName) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token || !this.petData || !this.petData._id) {
+                console.error('Cannot rename pet: missing token or pet ID');
+                return;
+            }
+            
+            const API_URL = import.meta.env.VITE_API_URL;
+            
+            // Send rename request to server
+            const response = await fetch(`${API_URL}/pets/${this.petData._id}/rename`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: newName })
+            });
+            
+            const responseData = await response.json();
+            
+            if (response.ok && responseData.success) {
+                console.log('Pet renamed successfully:', responseData.data);
+                
+                // Update pet name in UI
+                this.petData.name = newName;
+                this.petNameText.setText(newName);
+                
+                // Update global context
+                const globalContext = getGlobalContext();
+                if (globalContext && globalContext.userData.selectedPet) {
+                    globalContext.userData.selectedPet.name = newName;
+                }
+            } else {
+                console.error('Failed to rename pet:', responseData.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error renaming pet:', error.message);
+        }
     }
 }

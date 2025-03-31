@@ -25,6 +25,11 @@ exports.validatePetCreation = [ // ************************** changeable
     .withMessage('Invalid pet species')
 ];
 
+exports.validatePetRename = [
+  body('name').trim().isLength({ min: 1, max: 20 })
+    .withMessage('Pet name must be between 1 and 20 characters')
+];
+
 // Defines a middleware function to handle validation results
 exports.validateResults = (req, res, next) => {
   const errors = validationResult(req);

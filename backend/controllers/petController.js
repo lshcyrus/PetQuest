@@ -334,3 +334,53 @@ exports.selectPet = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Rename pet
+// @route   PUT /api/pets/:id/rename
+// @access  Private
+exports.renamePet = async (req, res, next) => {
+  try {
+    console.log('Rename pet request received for pet ID:', req.params.id);
+    console.log('New name:', req.body.name);
+    
+    // Validate request body
+    if (!req.body.name || req.body.name.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet name is required'
+      });
+    }
+    
+    // Get pet
+    const pet = await Pet.findById(req.params.id);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to rename this pet'
+      });
+    }
+    
+    // Update pet name
+    pet.name = req.body.name.trim();
+    await pet.save();
+    
+    console.log('Pet renamed successfully:', pet.name);
+    
+    res.status(200).json({
+      success: true,
+      data: pet
+    });
+  } catch (err) {
+    console.error('Error renaming pet:', err.message);
+    next(err);
+  }
+};

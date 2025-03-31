@@ -30,6 +30,9 @@ const config = {
         activePointers: 3, // Support multi-touch
         smoothFactor: 0.2, // Smooth touch movement
     },
+    dom: {
+        createContainer: true // Enable DOM element support
+    },
     render: {
         antialias: true,
         roundPixels: true,

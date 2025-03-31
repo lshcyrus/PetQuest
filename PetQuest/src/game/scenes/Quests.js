@@ -53,7 +53,7 @@ export class Quests extends Scene
             height * 0.1,
             'Available Quests',
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: this.getResponsiveFontSize(4, 'em'),
                 color: '#ffffff',
                 stroke: '#000000',
@@ -101,7 +101,7 @@ export class Quests extends Scene
             
             // Quest title
             const titleText = this.add.text(-width * 0.35, cardY - 40, quest.title, {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ffffff',
                 stroke: '#000000',
@@ -110,7 +110,7 @@ export class Quests extends Scene
             
             // Quest description
             const descText = this.add.text(-width * 0.35, cardY, quest.description, {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#cccccc',
                 wordWrap: { width: width * 0.6 }
@@ -118,14 +118,14 @@ export class Quests extends Scene
             
             // Quest reward
             const rewardText = this.add.text(-width * 0.35, cardY + 40, `Reward: ${quest.reward}`, {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
                 color: '#ffd700'
             }).setOrigin(0, 0.5);
             
             // Level requirement
             const levelText = this.add.text(width * 0.35, cardY - 40, `Level ${quest.level}`, {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '20px',
                 color: '#4a9e2f'
             }).setOrigin(1, 0.5);
@@ -176,7 +176,7 @@ export class Quests extends Scene
             
         // Button text
         const buttonText = this.add.text(0, 0, 'BACK', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '24px',
             color: '#ffffff',
             stroke: '#000000',

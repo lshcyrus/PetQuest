@@ -61,7 +61,7 @@ export class Preloader extends Scene {
             height / 2 + barHeight + 20,
             'Loading...',
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ffffff'
             }
@@ -93,7 +93,7 @@ export class Preloader extends Scene {
 
         WebFontLoader.load({
             google: {
-                families: ['Pixelify Sans:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']
+                families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']
             },
             active: () => {
                 this.fontsLoaded = true;

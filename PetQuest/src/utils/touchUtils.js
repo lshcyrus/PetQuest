@@ -111,7 +111,7 @@ export const createTouchButton = (scene, x, y, text, style = {}, callback) => {
   
   // Default style with mobile-friendly properties
   const defaultStyle = {
-    fontFamily: '"Pixelify Sans", cursive',
+    fontFamily: '"Silkscreen", cursive',
     fontSize: isMobile ? '24px' : '18px',
     color: '#ffffff',
     padding: {
