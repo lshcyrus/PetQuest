@@ -86,10 +86,11 @@ export class Preloader extends Scene {
         this.load.setPath('assets');
 
         this.load.image('logo', 'logo.png');
+        this.load.image('battle_background', 'backgrounds/battle_background.png');
 
         this.load.spritesheet('fire_dragon', 'fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
-
         this.load.spritesheet('ice_dragon', 'ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
+        this.load.spritesheet('enemy_dragon', 'enemy_dragon/enemy_dragon.png', { frameWidth: 512, frameHeight: 512 });
 
         WebFontLoader.load({
             google: {
@@ -175,6 +176,16 @@ export class Preloader extends Scene {
             this.anims.create({
                 key: 'ice_dragon_idle',
                 frames: this.anims.generateFrameNumbers('ice_dragon', { start: 0, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+        }
+        
+        // Create animations for enemy dragon
+        if (!this.anims.exists('enemy_dragon_idle')) {
+            this.anims.create({
+                key: 'enemy_dragon_idle',
+                frames: this.anims.generateFrameNumbers('enemy_dragon', { start: 0, end: 3 }),
                 frameRate: 6,
                 repeat: -1
             });
