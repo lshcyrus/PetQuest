@@ -128,14 +128,7 @@ export class LevelSelector extends Scene {
         const enemyName = biome.enemyNames[Math.floor(Math.random() * biome.enemyNames.length)];
 
         // Generate rewards, scaled by difficulty
-        const rewardItems = ['Health Potion', 'Attack Boost', 'Defense Boost', 'Energy Crystal'];
-        const numRewards = difficulty >= 3 ? 2 : 1; // More rewards for Hard/Expert
-        const rewards = [];
-        const availableRewards = [...rewardItems];
-        for (let i = 0; i < numRewards && availableRewards.length > 0; i++) {
-            const rewardIndex = Math.floor(Math.random() * availableRewards.length);
-            rewards.push(availableRewards.splice(rewardIndex, 1)[0]);
-        }
+        const rewards = this.generateLevelRewards(difficulty);
         // Coins: 50 + 50 * difficulty
         const coins = 50 + 50 * difficulty;
         rewards.push(`${coins} Coins`);
@@ -144,7 +137,7 @@ export class LevelSelector extends Scene {
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
         // Generate enemy
-        this.enemy = EnemyGenerator.generateRandomEnemy(difficulty);
+        this.enemy = EnemyGenerator.generateRandomEnemy(difficulty, biome.background);
 
         return {
             id,
@@ -156,6 +149,60 @@ export class LevelSelector extends Scene {
             background: biome.background
         };
     }
+
+    generateLevelRewards(difficulty) {
+        const rewards = [];
+       
+        // Reward count based on difficulty (1-3)
+        const rewardCount = Math.min(3, Math.ceil(difficulty / 2));
+       
+        // Common rewards
+        const commonRewards = [
+          "Health Potion",
+          "Attack Boost",
+          "Defense Boost",
+          "Gold Coins",
+          "Pet Treat"
+        ];
+       
+        // Uncommon rewards (difficulty >= 3)
+        const uncommonRewards = [
+          "Ability Scroll",
+          "Stat Enhancement",
+          "Rare Pet Food",
+          "Crafting Material"
+        ];
+       
+        // Rare rewards (difficulty >= 5)
+        const rareRewards = [
+          "Legendary Equipment",
+          "Pet Evolution Stone",
+          "Powerful Ability",
+          "Stat Multiplier"
+        ];
+       
+        for (let i = 0; i < rewardCount; i++) {
+          // Determine reward rareness
+          let reward;
+          const rareness = Math.random();
+         
+          if (difficulty >= 4 && rareness > 0.7) {
+            // 30% chance for rare reward in high difficulty
+            reward = rareRewards[Math.floor(Math.random() * rareRewards.length)];
+          } else if (difficulty >= 3 && rareness > 0.4) {
+            // 30% chance for uncommon reward in medium difficulty
+            reward = uncommonRewards[Math.floor(Math.random() * uncommonRewards.length)];
+          } else {
+            // Common reward
+            reward = commonRewards[Math.floor(Math.random() * commonRewards.length)];
+          }
+         
+          rewards.push(reward);
+        }
+       
+        return rewards;
+      }
+    
 
     // Set up background
     setupBackground() {
