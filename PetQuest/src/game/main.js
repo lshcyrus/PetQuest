@@ -6,6 +6,7 @@ import { FirstLogin } from './scenes/FirstLogin';
 import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { initOrientationHandling } from '../utils/orientationHandler';
+import { LevelSelector } from './scenes/LevelSelector';
 
 const config = {
     type: Phaser.AUTO,
@@ -40,6 +41,7 @@ const config = {
         FirstLogin,
         MainMenu,
         LevelTransition,
+        LevelSelector,
         GameOver
     ]
 };
