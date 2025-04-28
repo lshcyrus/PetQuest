@@ -31,11 +31,11 @@ export class LevelSelector extends Scene {
     preload() {
         console.log('LevelSelector preloading assets');
         // Load possible backgrounds
-        this.load.image('forest', '../public/assets/forest.png');
-        this.load.image('iceland', '../public/assets/iceland.png');
-        this.load.image('desert', '../public/assets/desert.png');
+        this.load.image('forest', '/assets/forest.png');
+        this.load.image('iceland', '/assets/iceland.png');
+        this.load.image('desert', '/assets/desert.png');
         // Load default background for difficulty selection
-        this.load.image('background', '../public/assets/background.png');
+        this.load.image('background', '/assets/background.png');
     }
 
     // Create scene elements
