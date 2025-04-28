@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { BattleScene } from './scenes/BattleScene';
 import { initOrientationHandling } from '../utils/orientationHandler';
+import { LevelSelector } from './scenes/LevelSelector';
 
 const config = {
     type: Phaser.AUTO,
@@ -47,6 +48,7 @@ const config = {
         Quests,
         BattleScene,
         LevelTransition,
+        LevelSelector,
         GameOver
     ]
 };
