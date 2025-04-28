@@ -58,7 +58,7 @@ export class LevelTransition extends Scene {
 
         // Add level text with animation
         const levelText = this.add.text(centerX, centerY, `Level ${this.level}`, {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '96px',  // Large size
             color: '#ffffff',
             stroke: '#000000', 

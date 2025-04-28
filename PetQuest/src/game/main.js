@@ -3,8 +3,10 @@ import { LevelTransition } from './scenes/LevelTransition';
 import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
 import { FirstLogin } from './scenes/FirstLogin';
+import { Quests } from './scenes/Quests';
 import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
+import { BattleScene } from './scenes/BattleScene';
 import { initOrientationHandling } from '../utils/orientationHandler';
 import { LevelSelector } from './scenes/LevelSelector';
 
@@ -30,6 +32,9 @@ const config = {
         activePointers: 3, // Support multi-touch
         smoothFactor: 0.2, // Smooth touch movement
     },
+    dom: {
+        createContainer: true // Enable DOM element support
+    },
     render: {
         antialias: true,
         roundPixels: true,
@@ -40,6 +45,8 @@ const config = {
         Preloader,
         FirstLogin,
         MainMenu,
+        Quests,
+        BattleScene,
         LevelTransition,
         LevelSelector,
         GameOver

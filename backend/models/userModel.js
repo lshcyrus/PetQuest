@@ -34,6 +34,11 @@ const UserSchema = new mongoose.Schema({ // Define the User Schema
     type: Boolean,
     default: false
   },
+  selectedPet: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Pet',
+    default: null
+  },
   //////////////////////////////////////////////////////////////////////////////
   // changable for futher game development
   currency: {

@@ -17,8 +17,17 @@ exports.validateLogin = [
 exports.validatePetCreation = [ // ************************** changeable
   body('name').trim().isLength({ min: 1 })
     .withMessage('Pet name is required'),
-  body('species').isIn(['dog', 'cat', 'dragon', 'phoenix', 'unicorn'])
+  body('key').optional() // Make key optional, it has a default in the schema
+    .isString()
+    .withMessage('Invalid pet key format'),
+  body('species').optional() // Make species optional, it has a default in the schema
+    .isIn(['dog', 'cat', 'dragon', 'phoenix', 'unicorn'])
     .withMessage('Invalid pet species')
+];
+
+exports.validatePetRename = [
+  body('name').trim().isLength({ min: 1, max: 20 })
+    .withMessage('Pet name must be between 1 and 20 characters')
 ];
 
 // Defines a middleware function to handle validation results

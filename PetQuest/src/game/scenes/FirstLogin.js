@@ -152,7 +152,7 @@ export class FirstLogin extends Scene {
         
         // Welcome header
         this.headerText = this.add.text(width / 2, 80, `Welcome, ${this.username}!`, {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '48px',
             color: '#ffffff', 
             stroke: '#000000',
@@ -162,7 +162,7 @@ export class FirstLogin extends Scene {
         
         // Selection prompt
         this.promptText = this.add.text(width / 2, 140, 'Choose your pet companion:', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '32px',
             color: '#ffffff',
             stroke: '#000000', 
@@ -219,7 +219,7 @@ export class FirstLogin extends Scene {
         
         // Add pet name below the sprite
         this.petName = this.add.text(width / 2, height * 0.55, '', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '36px',
             color: '#ffffff',
             stroke: '#000000',
@@ -229,7 +229,7 @@ export class FirstLogin extends Scene {
 
         // Add indicator for navigation
         this.pageIndicator = this.add.text(width / 2, height * 0.59, '', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '24px',
             color: '#ffffff',
             align: 'center'
@@ -266,13 +266,54 @@ export class FirstLogin extends Scene {
             height * 0.68, 
             '', 
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '20px',
                 color: '#ffffff',
                 align: 'center',
                 wordWrap: { width: panelWidth - 40 }
             }
         ).setOrigin(0.5);
+        
+        // Add name input label
+        this.nameLabel = this.add.text(
+            width / 2 - 150,
+            height * 0.64,
+            'Name your pet:',
+            {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '22px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        ).setOrigin(0, 0.5);
+        
+        // Create custom name input field
+        // Use DOM Element since Phaser doesn't have native input fields
+        try {
+            this.nameInput = this.add.dom(width / 2 + 50, height * 0.64, 'input')
+                .setOrigin(0, 0.5)
+                .setScale(1)
+                .setInteractive();
+                
+            // Style the input field
+            const inputElement = this.nameInput.node;
+            inputElement.style.width = '200px';
+            inputElement.style.height = '36px';
+            inputElement.style.fontSize = '20px';
+            inputElement.style.padding = '4px 10px';
+            inputElement.style.borderRadius = '5px';
+            inputElement.style.border = '2px solid #4a9e2f';
+            inputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            inputElement.style.color = 'white';
+            inputElement.style.outline = 'none';
+            inputElement.maxLength = 20; // Limit name length
+        } catch (error) {
+            console.error('Error creating DOM input element:', error);
+            
+            // Fallback: Use Phaser text as input
+            this.createFallbackInput(width / 2 + 50, height * 0.64);
+        }
         
         // Stats container
         this.statsContainer = this.add.container(width / 2, height * 0.78);
@@ -285,7 +326,7 @@ export class FirstLogin extends Scene {
         
         // Stats title
         const statsTitle = this.add.text(0, -75, 'PET STATS', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '22px',
             color: '#ffffff',
             stroke: '#000000',
@@ -304,7 +345,7 @@ export class FirstLogin extends Scene {
             
             // Label
             const label = this.add.text(x - 100, y, stat, {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
@@ -319,7 +360,7 @@ export class FirstLogin extends Scene {
                 
             // Value text
             const valueText = this.add.text(x + 150, y, '', {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
@@ -350,7 +391,7 @@ export class FirstLogin extends Scene {
             
         // Button text
         const buttonText = this.add.text(0, 0, 'CONFIRM', {
-            fontFamily: '"Pixelify Sans", cursive',
+            fontFamily: '"Silkscreen", cursive',
             fontSize: '28px',
             color: '#ffffff',
             stroke: '#000000',
@@ -410,6 +451,12 @@ export class FirstLogin extends Scene {
         // Update pet name
         this.petName.setText(currentPet.name);
         
+        // Set default name in the input field if it's empty
+        const inputElement = this.nameInput.node;
+        if (!inputElement.value) {
+            inputElement.value = currentPet.name;
+        }
+        
         // Update description
         this.descriptionText.setText(currentPet.description);
         
@@ -437,13 +484,19 @@ export class FirstLogin extends Scene {
     confirmPetSelection() {
         const selectedPet = this.pets[this.selectedPetIndex];
         
+        // Get custom name from input field
+        const customName = this.nameInput.node.value.trim();
+        
+        // Validate name - if empty, use default pet name
+        const petName = customName || selectedPet.name;
+        
         // Get global context
         const globalContext = getGlobalContext();
         if (globalContext) {
-            console.log(`Selected pet: ${selectedPet.name}`);
+            console.log(`Selected pet: ${selectedPet.key} with name: ${petName}`);
 
-            // Save selected pet to global context and update server
-            globalContext.selectPet(selectedPet);
+            // Create the pet on the server first
+            this.createAndSelectPet(selectedPet, petName, globalContext);
         }
         
         // Transition to next scene with fade
@@ -453,6 +506,120 @@ export class FirstLogin extends Scene {
             // Go to the main menu
             this.scene.start('MainMenu', { firstLogin: true });
         });
+    }
+
+    async createAndSelectPet(petData, customName, globalContext) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.log('No token found, cannot create pet');
+                return;
+            }
+
+            const API_URL = import.meta.env.VITE_API_URL;
+            
+            console.log('Sending pet data to server:', { 
+                name: customName, 
+                key: petData.key 
+            });
+            
+            // Create a new pet on the server with the selected name and key
+            const response = await fetch(`${API_URL}/pets`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: customName,
+                    key: petData.key, // Send the key to the backend
+                    species: "dragon" // Always include a default species for backward compatibility
+                })
+            });
+            
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                console.error('Failed to create pet. Status:', response.status);
+                console.error('Response data:', responseData);
+                
+                // If the user already has a pet, we can try to get it
+                if (responseData.error === 'You already have a pet') {
+                    console.log('User already has a pet, fetching existing pets');
+                    
+                    // Get user's pets
+                    const petsResponse = await fetch(`${API_URL}/pets`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const petsData = await petsResponse.json();
+                    
+                    if (petsResponse.ok && petsData.success && petsData.data && petsData.data.length > 0) {
+                        console.log('Found existing pets:', petsData.data);
+                        
+                        // Use the first pet
+                        let existingPet = petsData.data[0];
+                        
+                        // Add the frontend stats to the backend pet data
+                        existingPet.key = existingPet.key || petData.key; // Use existing key or fallback to selected one
+                        existingPet.stats = petData.stats;
+                        
+                        // Update the global context with the existing pet
+                        globalContext.updateUserData({
+                            selectedPet: existingPet,
+                            hasSelectedPet: true,
+                            isFirstLogin: false
+                        });
+                        
+                        console.log('Updated global context with existing pet:', existingPet);
+                        return;
+                    } else {
+                        console.error('Failed to fetch existing pets:', petsData);
+                    }
+                }
+                
+                return;
+            }
+            
+            console.log('Pet created successfully:', responseData.data);
+            
+            // Get the created pet data from the server response
+            let createdPet;
+            if (responseData.data.pet) {
+                createdPet = responseData.data.pet;
+                console.log('Pet data from server (nested):', createdPet);
+            } else if (responseData.data) {
+                createdPet = responseData.data;
+                console.log('Pet data from server (direct):', createdPet);
+            } else {
+                console.error('No pet data found in response:', responseData);
+                return;
+            }
+            
+            // Add the frontend data to the backend pet for rendering
+            if (createdPet) {
+                // Add the frontend stats to the backend pet data
+                // The key is already included in the pet data from the server
+                createdPet.stats = petData.stats;
+                
+                // Update the global context
+                globalContext.updateUserData({
+                    selectedPet: createdPet,
+                    hasSelectedPet: true,
+                    isFirstLogin: false
+                });
+                
+                console.log('Updated global context with pet:', createdPet);
+            }
+            
+        } catch (error) {
+            console.error('Error creating pet:', error.message);
+            console.error('Error stack:', error.stack);
+        }
     }
     
     getStatColor(stat) {
@@ -514,16 +681,20 @@ export class FirstLogin extends Scene {
         this.leftArrow.setPosition(width / 2 - 180, height * 0.35);
         this.rightArrow.setPosition(width / 2 + 180, height * 0.35);
         
+        // Name input
+        this.nameLabel.setPosition(width / 2 - 150, height * 0.62);
+        this.nameInput.setPosition(width / 2 + 50, height * 0.62);
+        
         // Description at the bottom
-        this.infoPanel.setSize(width * 0.9, height * 0.2);
-        this.infoPanel.setPosition(width / 2, height * 0.72);
-        this.descriptionText.setPosition(width / 2, height * 0.68);
+        this.infoPanel.setSize(width * 0.9, height * 0.25);
+        this.infoPanel.setPosition(width / 2, height * 0.75);
+        this.descriptionText.setPosition(width / 2, height * 0.7);
         
         // Stats stay below description in portrait mode
-        this.statsContainer.setPosition(width / 2, height * 0.75);
+        this.statsContainer.setPosition(width / 2, height * 0.8);
         
         // Confirm button at bottom right
-        this.confirmButton.setPosition(width * 0.75, height * 0.87);
+        this.confirmButton.setPosition(width * 0.75, height * 0.92);
     }
     
     setupLandscapeLayout() {
@@ -542,11 +713,15 @@ export class FirstLogin extends Scene {
         this.leftArrow.setPosition(width / 2 - 250, height * 0.45);
         this.rightArrow.setPosition(width / 2 + 250, height * 0.45);
         
+        // Name input - position above description
+        this.nameLabel.setPosition(width / 2 - 200, height * 0.74);
+        this.nameInput.setPosition(width / 2 + 30, height * 0.74);
+        
         // Stats on the left side
         this.statsContainer.setPosition(width * 0.1, height * 0.5);
         
         // Description at the bottom
-        this.infoPanel.setSize(width * 0.6, height * 0.2);
+        this.infoPanel.setSize(width * 0.6, height * 0.25);
         this.infoPanel.setPosition(width / 2, height * 0.85);
         this.descriptionText.setPosition(width / 2, height * 0.85);
         
@@ -583,5 +758,113 @@ export class FirstLogin extends Scene {
             const direction = swipeDistance > 0 ? -1 : 1;
             this.navigatePets(direction);
         }
+    }
+
+    createFallbackInput(x, y) {
+        // Create a background rectangle for the input field
+        const inputBg = this.add.rectangle(x, y, 200, 36, 0x000000, 0.7)
+            .setOrigin(0, 0.5)
+            .setStrokeStyle(2, 0x4a9e2f);
+        
+        // Create text for the input
+        const currentPet = this.pets[this.selectedPetIndex];
+        this.nameInput = this.add.text(x + 10, y, currentPet.name, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '20px',
+            color: '#ffffff',
+            fixedWidth: 180
+        }).setOrigin(0, 0.5);
+        
+        // Make interactive to allow "typing"
+        inputBg.setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => this.showVirtualKeyboard());
+        
+        // Override the node property to match DOM interface
+        this.nameInput.node = {
+            value: currentPet.name,
+            style: {}
+        };
+    }
+    
+    showVirtualKeyboard() {
+        const { width, height } = this.scale;
+        
+        // Create overlay
+        const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.7)
+            .setOrigin(0)
+            .setDepth(100)
+            .setInteractive();
+            
+        // Create dialog
+        const dialog = this.add.rectangle(width / 2, height / 2, 400, 180, 0x333333)
+            .setStrokeStyle(2, 0xffffff)
+            .setDepth(101);
+            
+        // Title
+        const title = this.add.text(width / 2, height / 2 - 60, 'Enter Pet Name', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '24px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5)
+          .setDepth(101);
+          
+        // Input field
+        const inputBg = this.add.rectangle(width / 2, height / 2, 300, 40, 0x000000)
+            .setStrokeStyle(2, 0x4a9e2f)
+            .setDepth(101);
+            
+        const inputText = this.add.text(width / 2, height / 2, this.nameInput.node.value, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '20px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5)
+          .setDepth(101);
+          
+        // Buttons
+        const okButton = this.add.rectangle(width / 2 + 80, height / 2 + 60, 120, 40, 0x008800)
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(101);
+            
+        const okText = this.add.text(width / 2 + 80, height / 2 + 60, 'OK', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5)
+          .setDepth(101);
+          
+        const cancelButton = this.add.rectangle(width / 2 - 80, height / 2 + 60, 120, 40, 0x880000)
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(101);
+            
+        const cancelText = this.add.text(width / 2 - 80, height / 2 + 60, 'CANCEL', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5)
+          .setDepth(101);
+          
+        // Handle input - add virtual keyboard or use prompt in simple cases
+        const newName = prompt('Enter your pet name:', this.nameInput.node.value);
+        if (newName && newName.trim()) {
+            // Update the value
+            this.nameInput.node.value = newName.trim().substring(0, 20);
+            this.nameInput.setText(this.nameInput.node.value);
+        }
+        
+        // Remove dialog immediately since we used prompt
+        overlay.destroy();
+        dialog.destroy();
+        title.destroy();
+        inputBg.destroy();
+        inputText.destroy();
+        okButton.destroy();
+        okText.destroy();
+        cancelButton.destroy();
+        cancelText.destroy();
     }
 }

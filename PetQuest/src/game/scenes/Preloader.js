@@ -61,7 +61,7 @@ export class Preloader extends Scene {
             height / 2 + barHeight + 20,
             'Loading...',
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ffffff'
             }
@@ -86,14 +86,15 @@ export class Preloader extends Scene {
         this.load.setPath('assets');
 
         this.load.image('logo', 'logo.png');
+        this.load.image('battle_background', 'backgrounds/battle_background.png');
 
         this.load.spritesheet('fire_dragon', 'fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
-
         this.load.spritesheet('ice_dragon', 'ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
+        this.load.spritesheet('enemy_dragon', 'enemy_dragon/enemy_dragon.png', { frameWidth: 512, frameHeight: 512 });
 
         WebFontLoader.load({
             google: {
-                families: ['Pixelify Sans:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']
+                families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']
             },
             active: () => {
                 this.fontsLoaded = true;
@@ -109,7 +110,35 @@ export class Preloader extends Scene {
         
         // Get global context to check if user has selected a pet
         const globalContext = getGlobalContext();
-        const isFirstLogin = globalContext ? !globalContext.userData.hasSelectedPet : true;
+        
+        // Check if user has selected a pet and if the pet data is valid
+        let isFirstLogin = true;
+        
+        if (globalContext) {
+            console.log("User data from global context:", globalContext.userData);
+            
+            if (globalContext.userData.hasSelectedPet && globalContext.userData.selectedPet) {
+                const pet = globalContext.userData.selectedPet;
+                console.log("Selected pet data:", pet);
+                
+                // Check if pet has the required key field for rendering
+                if (!pet.key) {
+                    console.warn("Pet is missing key field, adding default value");
+                    // Add default key to ensure it can be rendered
+                    pet.key = "fire_dragon";
+                    globalContext.updateUserData({
+                        selectedPet: pet
+                    });
+                }
+                
+                isFirstLogin = false;
+            } else {
+                console.log("User has not selected a pet yet");
+                isFirstLogin = true;
+            }
+        } else {
+            console.warn("Global context not available");
+        }
         
         console.log("Is first login:", isFirstLogin);
         
@@ -147,6 +176,16 @@ export class Preloader extends Scene {
             this.anims.create({
                 key: 'ice_dragon_idle',
                 frames: this.anims.generateFrameNumbers('ice_dragon', { start: 0, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+        }
+        
+        // Create animations for enemy dragon
+        if (!this.anims.exists('enemy_dragon_idle')) {
+            this.anims.create({
+                key: 'enemy_dragon_idle',
+                frames: this.anims.generateFrameNumbers('enemy_dragon', { start: 0, end: 3 }),
                 frameRate: 6,
                 repeat: -1
             });

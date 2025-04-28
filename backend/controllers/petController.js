@@ -7,25 +7,40 @@ const gameLogic = require('../utils/gameLogic');
 // @access  Private
 exports.createPet = async (req, res, next) => {
   try {
+    console.log('Create pet request received:', req.body);
     req.body.owner = req.user.id;
     
     // Check if user already has a pet
     const existingPet = await Pet.findOne({ owner: req.user.id });
     
     if (existingPet) {
+      console.log('User already has a pet:', existingPet._id);
       return res.status(400).json({
         success: false,
         error: 'You already have a pet'
       });
     }
     
+    console.log('Creating pet with data:', req.body);
     const pet = await Pet.create(req.body);
+    console.log('Pet created:', pet._id);
+    
+    // Update user with the selected pet
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, {
+      hasSelectedPet: true,
+      selectedPet: pet._id
+    }, { new: true }).select('-password');
+    console.log('User updated with pet:', updatedUser._id);
     
     res.status(201).json({
       success: true,
-      data: pet
+      data: {
+        pet,
+        user: updatedUser
+      }
     });
   } catch (err) {
+    console.error('Error creating pet:', err.message);
     next(err);
   }
 };
@@ -130,7 +145,7 @@ exports.feedPet = async (req, res, next) => {
     }
     
     // Get item details
-    const Item = require('../models/Item');
+    const Item = require('../models/itemModel');
     const item = await Item.findById(itemId);
     
     if (!item) {
@@ -215,7 +230,7 @@ exports.playWithPet = async (req, res, next) => {
       }
       
       // Get item details
-      const Item = require('../models/Item');
+      const Item = require('../models/itemModel');
       const item = await Item.findById(itemId);
       
       if (!item) {
@@ -262,6 +277,110 @@ exports.playWithPet = async (req, res, next) => {
       levelUp: levelUpResult.leveledUp
     });
   } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Select a pet as the user's chosen pet
+// @route   PUT /api/pets/:id/select
+// @access  Private
+exports.selectPet = async (req, res, next) => {
+  try {
+    const petId = req.params.id;
+    
+    // Validate pet ID
+    if (!petId || petId === 'undefined') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid pet ID provided'
+      });
+    }
+    
+    const pet = await Pet.findById(petId);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to select this pet'
+      });
+    }
+    
+    // Update user with the selected pet
+    const user = await User.findByIdAndUpdate(
+      req.user.id, 
+      {
+        hasSelectedPet: true,
+        selectedPet: pet._id
+      },
+      { new: true }
+    ).select('-password');
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+        pet
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Rename pet
+// @route   PUT /api/pets/:id/rename
+// @access  Private
+exports.renamePet = async (req, res, next) => {
+  try {
+    console.log('Rename pet request received for pet ID:', req.params.id);
+    console.log('New name:', req.body.name);
+    
+    // Validate request body
+    if (!req.body.name || req.body.name.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet name is required'
+      });
+    }
+    
+    // Get pet
+    const pet = await Pet.findById(req.params.id);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to rename this pet'
+      });
+    }
+    
+    // Update pet name
+    pet.name = req.body.name.trim();
+    await pet.save();
+    
+    console.log('Pet renamed successfully:', pet.name);
+    
+    res.status(200).json({
+      success: true,
+      data: pet
+    });
+  } catch (err) {
+    console.error('Error renaming pet:', err.message);
     next(err);
   }
 };

@@ -16,7 +16,7 @@ export class GameOver extends Scene
 
         this.add.text(512, 384, 'Game Over', {
             fontFamily: 'Arial Black', 
-            fontSize: 88,  // Increased from 64 to 88
+            fontSize: 88, 
             color: '#ffffff',
             stroke: '#000000', 
             strokeThickness: 8,

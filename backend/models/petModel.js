@@ -11,10 +11,16 @@ const petSchema = new mongoose.Schema({
         required: [true, "Please enter pet name"],
         trim: true
     },
+    // Make species optional with a default value
     species: {
         type: String,
-        required: true,
-        enum: ["dog", "cat", "dragon"]
+        required: false,
+        default: "dragon",
+        enum: ["dog", "cat", "dragon", "phoenix", "unicorn"]
+    },
+    key: {
+        type: String,
+        default: "fire_dragon" // Default pet type key for frontend rendering
     },
     level: {
         type: Number,

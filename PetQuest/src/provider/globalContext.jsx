@@ -17,7 +17,7 @@ export const GlobalProvider = ({ children }) => {
   // State for user data - only get username from localStorage initially
   const [userData, setUserData] = useState({
     username: localStorage.getItem('username') || '',
-    pet: null, 
+    selectedPet: null, 
     hasSelectedPet: false,
     isFirstLogin: false,
     level: 1,
@@ -75,6 +75,7 @@ export const GlobalProvider = ({ children }) => {
             ...prev,
             username: serverUserData.username || prev.username,
             hasSelectedPet: serverUserData.hasSelectedPet || false,
+            selectedPet: serverUserData.selectedPet || null,
             // Add other fields from serverUserData as needed
           }));
           
@@ -101,13 +102,11 @@ export const GlobalProvider = ({ children }) => {
   // Select a pet and update server
   const selectPet = async (petData) => {
     try {
-      // Update local state first for immediate feedback
-      setUserData(prev => ({ 
-        ...prev, 
-        pet: petData,
-        hasSelectedPet: true,
-        isFirstLogin: false 
-      }));
+      // Validate pet data
+      if (!petData || !petData._id) {
+        console.error('Invalid pet data: Missing pet ID');
+        return;
+      }
       
       // Get token from localStorage
       const token = localStorage.getItem('token');
@@ -118,10 +117,10 @@ export const GlobalProvider = ({ children }) => {
         return;
       }
       
-      console.log('Updating pet selection on server');
+      console.log('Updating pet selection on server for pet ID:', petData._id);
       
       // Update server
-      const response = await fetch(`${API_URL}/users/pet-selection`, {
+      const response = await fetch(`${API_URL}/pets/${petData._id}/select`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -135,6 +134,14 @@ export const GlobalProvider = ({ children }) => {
         console.error('Failed to update pet selection:', responseData.error || 'Unknown error');
         throw new Error(responseData.error || 'Failed to update pet selection');
       }
+      
+      // Update local state with data from server
+      setUserData(prev => ({ 
+        ...prev, 
+        selectedPet: responseData.data.pet,
+        hasSelectedPet: true,
+        isFirstLogin: false 
+      }));
       
       console.log('Pet selection updated successfully:', responseData);
     } catch (error) {
@@ -180,7 +187,7 @@ export const GlobalProvider = ({ children }) => {
     
     setUserData({
       username: '',
-      pet: null,
+      selectedPet: null,
       hasSelectedPet: false,
       isFirstLogin: false,
       level: 1,
@@ -209,7 +216,10 @@ export const GlobalProvider = ({ children }) => {
     resetUserData,
     isFirstLogin: !userData.hasSelectedPet,
     setPet: (petData) => {
-      setUserData(prev => ({ ...prev, pet: petData }));
+      setUserData(prev => ({ ...prev, selectedPet: petData }));
+    },
+    updateUserData: (updatedData) => {
+      setUserData(prev => ({ ...prev, ...updatedData }));
     }
   };
 
