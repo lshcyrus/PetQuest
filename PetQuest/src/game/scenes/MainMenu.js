@@ -225,52 +225,133 @@ export class MainMenu extends Scene {
         // Create pet using the Pet class
         this.pet = new Pet(this, this.petData, centerX, height * 0.5);
         // Calculate pet scale based on screen size
-        const baseScale = Math.min(width, height) * 0.0012;
+        const baseScale = Math.min(width, height) * 0.002;
         // Create the sprite
         this.pet.create(baseScale, 1);
         // Create interactive name display with rename button
         this.pet.createInteractiveNameDisplay(-height * 0.13, () => this.showRenameDialog());
-        // --- Pet Stats Panel ---
-        this.createPetStatsPanel(centerX, height * 0.65);
+        // --- Custom Panels ---
+        this.createLeftStatsPanel();
+        this.createRightAttributesPanel();
     }
 
-    createPetStatsPanel(x, y) {
-        // Remove old panel if exists
-        if (this.petStatsPanel) this.petStatsPanel.destroy();
-        // Panel container
-        this.petStatsPanel = this.add.container(x, y);
-        // Stat config
+    // Create left panel for stats and level
+    createLeftStatsPanel() {
+        if (this.leftStatsPanel) this.leftStatsPanel.destroy();
+        const { width, height } = this.scale;
+        const panelWidth = Math.min(260, width * 0.28);
+        const panelX = panelWidth * 0.5 + 10;
+        const panelY = height * 0.5;
+        this.leftStatsPanel = this.add.container(panelX, panelY);
+        // Panel background
+        const bg = this.add.rectangle(0, 0, panelWidth, 220, 0x222233, 0.7)
+            .setOrigin(0.5)
+            .setStrokeStyle(2, 0xffffff);
+        this.leftStatsPanel.add(bg);
+        // Title
+        const title = this.add.text(0, -90, 'PET STATS', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '22px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        this.leftStatsPanel.add(title);
+        // Level
+        const level = (this.petData.level !== undefined) ? this.petData.level : '-';
+        const levelText = this.add.text(-panelWidth/2 + 16, -60, `Level: ${level}`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '18px',
+            color: '#ffff88',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0, 0.5);
+        this.leftStatsPanel.add(levelText);
+        // Stats
         const statConfig = [
-            { key: 'hp', label: 'HP', color: 0x55ff55, max: 5000 },
-            { key: 'sp', label: 'SP', color: 0x3399ff, max: 1000 },
-            { key: 'atk', label: 'ATK', color: 0xff5555, max: 400 },
-            { key: 'def', label: 'DEF', color: 0xff9900, max: 400 }
+            { key: 'hp', label: 'HP', max: 5000 },
+            { key: 'sp', label: 'SP', max: 1000 },
+            { key: 'atk', label: 'ATK', max: 400 },
+            { key: 'def', label: 'DEF', max: 400 }
         ];
         const stats = this.petData.stats || {};
-        this.petStatsBars = {};
         statConfig.forEach((stat, i) => {
-            const yOffset = i * 32;
-            // Label
-            const label = this.add.text(-120, yOffset, stat.label, {
+            const yOffset = -30 + i * 36;
+            const value = stats[stat.key] !== undefined ? stats[stat.key] : '-';
+            const statText = this.add.text(-panelWidth/2 + 16, yOffset, `${stat.label}: ${value}`, {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
-                color: '#ffffff'
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 2
             }).setOrigin(0, 0.5);
-            // Bar background
-            const barBg = this.add.rectangle(-30, yOffset, 140, 16, 0x333333).setOrigin(0, 0.5);
-            // Bar fill
-            const value = stats[stat.key] || 0;
-            const barWidth = Math.max(0, Math.min(1, value / stat.max)) * 140;
-            const barFill = this.add.rectangle(-30, yOffset, barWidth, 16, stat.color).setOrigin(0, 0.5);
-            // Value text
-            const valueText = this.add.text(120, yOffset, `${value}`, {
+            this.leftStatsPanel.add(statText);
+        });
+    }
+
+    // Create right panel for attributes
+    createRightAttributesPanel() {
+        if (this.rightAttributesPanel) this.rightAttributesPanel.destroy();
+        const { width, height } = this.scale;
+        const panelWidth = Math.min(260, width * 0.28);
+        const panelX = width - panelWidth * 0.5 - 10;
+        const panelY = height * 0.5;
+        this.rightAttributesPanel = this.add.container(panelX, panelY);
+        // Panel background
+        const bg = this.add.rectangle(0, 0, panelWidth, 220, 0x233322, 0.7)
+            .setOrigin(0.5)
+            .setStrokeStyle(2, 0xffffff);
+        this.rightAttributesPanel.add(bg);
+        // Title
+        const title = this.add.text(0, -90, 'ATTRIBUTES', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '22px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        this.rightAttributesPanel.add(title);
+        // Attributes
+        const attributes = this.petData.attributes || {};
+        const attrConfig = [
+            { key: 'happiness', label: 'Happiness', color: 0xffe066 },
+            { key: 'hunger', label: 'Hunger', color: 0x66b3ff },
+            { key: 'cleanliness', label: 'Cleanliness', color: 0x99ff99 },
+            { key: 'stamina', label: 'Stamina', color: 0xff99cc }
+        ];
+        let shown = false;
+        attrConfig.forEach((attr, i) => {
+            if (attributes[attr.key] !== undefined) {
+                shown = true;
+                const yOffset = -60 + i * 48; // More vertical space for label+bar
+                // Label
+                const label = this.add.text(-panelWidth/2 + 16, yOffset, attr.label, {
+                    fontFamily: '"Silkscreen", cursive',
+                    fontSize: '18px',
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }).setOrigin(0, 0.5);
+                // Bar background (below label)
+                const barY = yOffset + 18; // 18px below label
+                const barBg = this.add.rectangle(-panelWidth/2 + 16, barY, 180, 16, 0x333333).setOrigin(0, 0.5);
+                // Bar fill
+                const value = Math.max(0, Math.min(100, attributes[attr.key]));
+                const barWidth = (value / 100) * 180;
+                const barFill = this.add.rectangle(-panelWidth/2 + 16, barY, barWidth, 16, attr.color).setOrigin(0, 0.5);
+                this.rightAttributesPanel.add([label, barBg, barFill]);
+            }
+        });
+        if (!shown) {
+            const noAttr = this.add.text(0, 0, 'No attributes', {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
-                color: '#ffffff'
-            }).setOrigin(1, 0.5);
-            this.petStatsPanel.add([label, barBg, barFill, valueText]);
-            this.petStatsBars[stat.key] = { barFill, valueText, stat };
-        });
+                color: '#cccccc',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            this.rightAttributesPanel.add(noAttr);
+        }
     }
 
     // Scale background to fit screen

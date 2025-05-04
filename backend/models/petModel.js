@@ -38,13 +38,13 @@ const petSchema = new mongoose.Schema({
         },
         hunger: {
             type: Number,
-            default: 100
+            default: 50
         },
         cleanliness: {
             type: Number,
-            default: 100    
+            default: 50    
         },
-        energy: {
+        stamina: {
             type: Number,
             default: 100
         }
@@ -82,8 +82,8 @@ petSchema.methods.updateStats = function() {
       this.attributes.health = Math.max(0, this.attributes.health - 5);
     }
     
-    // Update energy recovery
-    this.attributes.energy = Math.min(100, this.attributes.energy + (hoursSinceLastInteraction * 15));
+    // Update stamina recovery
+    this.attributes.stamina = Math.min(100, this.attributes.stamina + (hoursSinceLastInteraction * 15));
     
     // Update timestamps
     this.lastFed = now;

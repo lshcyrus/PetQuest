@@ -88,8 +88,8 @@ exports.startQuest = async (req, res, next) => {
     // Update pet stats
     await pet.updateStats();
     
-    // Reduce energy
-    pet.attributes.energy -= quest.requirements.energyCost;
+    // Reduce stamina
+    pet.attributes.stamina -= quest.requirements.energyCost;
     
     // Set quest completion time
     const questEndTime = new Date(Date.now() + quest.duration * 60 * 1000);

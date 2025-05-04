@@ -29,7 +29,7 @@ const ItemSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    energy: {
+    stamina: {
       type: Number,
       default: 0
     },

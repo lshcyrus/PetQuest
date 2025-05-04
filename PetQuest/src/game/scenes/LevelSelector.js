@@ -20,8 +20,7 @@ export class LevelSelector extends Scene {
             key: 'fire_dragon',
             name: 'Ember',
             hp: 80,
-            stamina: 50,
-            energy: 70,
+            stamina: 100,
             level: 1
         };
         this.username = data.username || 'Player';
@@ -362,7 +361,6 @@ export class LevelSelector extends Scene {
         const stats = [
             { name: 'HP', value: this.pet.hp },
             { name: 'Stamina', value: this.pet.stamina },
-            { name: 'Energy', value: this.pet.energy },
             { name: 'Level', value: this.pet.level }
         ];
 
@@ -537,9 +535,9 @@ export class LevelSelector extends Scene {
         console.log('Starting level:', this.generatedLevel.name);
 
         // Validate pet
-        if (this.pet.stamina < 10 || this.pet.energy < 10) {
-            console.warn('Pet too tired or low energy');
-            this.showError('Your pet is too tired or low on energy!');
+        if (this.pet.stamina < 10) {
+            console.warn('Pet too tired');
+            this.showError('Your pet is too tired!');
             return;
         }
 
