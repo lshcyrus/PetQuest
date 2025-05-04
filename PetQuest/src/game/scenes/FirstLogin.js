@@ -14,28 +14,28 @@ export class FirstLogin extends Scene {
         super('FirstLogin');
         this.selectedPetIndex = 0;
         this.pets = [
-            {
-                key: 'fire_dragon',
-                name: 'Ember',
-                description: 'A fiery dragon with a brave heart. Strong against ice enemies but weak to water.',
-                stats: {
-                    health: 80,
-                    attack: 90,
-                    defense: 60,
-                    speed: 70
-                }
-            },
-            {
-                key: 'ice_dragon',
-                name: 'Frosty',
-                description: 'A frosty dragon with a cool demeanor. Strong against nature enemies but weak to fire.',
-                stats: {
-                    health: 100,
-                    attack: 60,
-                    defense: 90,
-                    speed: 50
-                }
-            },
+            // {
+            //     key: 'fire_dragon',
+            //     name: 'Ember',
+            //     description: 'A fiery dragon with a brave heart. Strong against ice enemies but weak to water.',
+            //     stats: {
+            //         health: 80,
+            //         attack: 90,
+            //         defense: 60,
+            //         speed: 70
+            //     }
+            // },
+            // {
+            //     key: 'ice_dragon',
+            //     name: 'Frosty',
+            //     description: 'A frosty dragon with a cool demeanor. Strong against nature enemies but weak to fire.',
+            //     stats: {
+            //         health: 100,
+            //         attack: 60,
+            //         defense: 90,
+            //         speed: 50
+            //     }
+            // },
             // {
             //     key: 'nature_fox',
             //     name: 'Leafy',
@@ -47,6 +47,61 @@ export class FirstLogin extends Scene {
             //         speed: 90
             //     }
             // }
+            {
+                key: 'badger',
+                name: 'Badger',
+                description: 'A badger with a sharp sense of smell.',
+                stats: {
+                    hp: 100,
+                    sp: 100,    
+                    atk: 90,
+                    def: 50
+                }
+            },
+            {
+                key: 'dino_rex',
+                name: 'Dino Rex',
+                description: 'A dinosaur that can run fast.',
+                stats: {
+                    hp: 200,
+                    sp: 50,    
+                    atk: 50,
+                    def: 60
+                }
+            },
+            {
+                key: 'dino_tri',
+                name: 'Dino Tri',
+                description: 'A dinosaur that is acutally cuter than the other ones.',
+                stats: {
+                    hp: 150,
+                    sp: 100,    
+                    atk: 100,
+                    def: 50
+                }
+            },
+            {
+                key: 'frogger',
+                name: 'Frogger',
+                description: 'A frog that can jump high.',
+                stats: {
+                    hp: 100,
+                    sp: 100,    
+                    atk: 50,
+                    def: 60
+                }
+            },
+            {
+                key: 'pengu',
+                name: 'Pengu',
+                description: 'A penguin that can swim in the water.',
+                stats: {
+                    hp: 70,
+                    sp: 130,    
+                    atk: 60,
+                    def: 50
+                }
+            }
         ];
     }
 
@@ -60,22 +115,28 @@ export class FirstLogin extends Scene {
 
     preload() {
         // Preload pet spritesheets if not already loaded
-        if (!this.textures.exists('fire_dragon')) {
-            this.load.spritesheet('fire_dragon', 'assets/fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
-        }
+        // if (!this.textures.exists('fire_dragon')) {
+        //     this.load.spritesheet('fire_dragon', 'assets/fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
+        // }
 
-        if (!this.textures.exists('ice_dragon')) {
-            this.load.spritesheet('ice_dragon', 'assets/ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
-        }
+        // if (!this.textures.exists('ice_dragon')) {
+        //     this.load.spritesheet('ice_dragon', 'assets/ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
+        // }
         
         // if (!this.textures.exists('nature_fox')) {
         //     this.load.spritesheet('nature_fox', 'assets/nature_fox/nature_fox.png', { frameWidth: 640, frameHeight: 400 });
         // }
 
-        // Always ensure we have the arrow image (used for navigation)
-        if (!this.textures.exists('arrow')) {
-            this.load.image('arrow', 'assets/ui/arrow.png');
-        }
+
+        this.load.spritesheet('badger', 'assets/Pet_Badger/badger_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('dino_rex', 'assets/Pet_Dino Rex/dino_rex_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('dino_tri', 'assets/Pet_Dino Tri/dino_tri_idle.png', { frameWidth: 384, frameHeight: 128 });
+        this.load.spritesheet('frogger', 'assets/Pet_Frogger/frogger_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('pengu', 'assets/Pet_Pengu/pengu_idle.png', { frameWidth: 128, frameHeight: 128 });
+
+        this.load.image('arrow-left', 'assets/UI/arrow-left.png');
+        this.load.image('arrow-right', 'assets/UI/arrow-right.png');
+        
     }
 
     create() {
@@ -122,11 +183,12 @@ export class FirstLogin extends Scene {
     createPetAnimations() {
         // Create animations for each pet type
         this.pets.forEach(pet => {
-            // Only create the animation if it doesn't already exist
+            
+            
             if (!this.anims.exists(`${pet.key}_idle`)) {
                 this.anims.create({
                     key: `${pet.key}_idle`,
-                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 3 }),
+                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 5 }),
                     frameRate: 6,
                     repeat: -1
                 });
@@ -137,11 +199,9 @@ export class FirstLogin extends Scene {
     setupBackground() {
         const { width, height } = this.scale;
         
-        // Use a background image that fits the pet selection theme
         this.background = this.add.image(width / 2, height / 2, 'first-time-pet-selection');
         this.scaleToFit(this.background);
         
-        // Add a semi-transparent overlay for better text readability
         this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.5)
             .setOrigin(0.5)
             .setDepth(0);
@@ -180,33 +240,29 @@ export class FirstLogin extends Scene {
         // Create pet sprites
         this.petSprites = [];
          
-        // Add navigation arrows - using clear visual style for better UX
-        const arrowOffset = 250;
+        // Add navigation arrows
+        const arrowOffset = 300;
         
         // Left arrow
-        this.leftArrow = this.add.image(width / 2 - arrowOffset, height * 0.4, 'arrow')
-            .setScale(1.25)
-            .setAngle(-45)
+        this.leftArrow = this.add.image(width / 2 - arrowOffset, height * 0.4, 'arrow-left')
+            .setScale(3)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.navigatePets(-1));
         
         // Right arrow
-        this.rightArrow = this.add.image(width / 2 + arrowOffset, height * 0.4, 'arrow')
-            .setScale(1.25)
-            .setAngle(45)
-            .setFlipX(true)
+        this.rightArrow = this.add.image(width / 2 + arrowOffset, height * 0.4, 'arrow-right')
+            .setScale(3)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.navigatePets(1));
             
         // Create pet sprites and animations
         this.pets.forEach((pet, index) => {
-            const sprite = this.add.sprite(0, 0, pet.key);
+            const sprite = this.add.sprite(0, 0, pet.key);  
             
-            // Play the animation - we already created all animations in createPetAnimations()
+            // Play the animation
             sprite.play(`${pet.key}_idle`);
             
-            // Scale appropriately
-            const scale = 0.5;
+            const scale = 1.2;
             sprite.setScale(scale);
             
             // Hide all except the first one
@@ -625,10 +681,11 @@ export class FirstLogin extends Scene {
     getStatColor(stat) {
         // Different colors for different stats
         switch(stat.toLowerCase()) {
-            case 'health': return 0xff5555;
-            case 'attack': return 0xff9900;
-            case 'defense': return 0x3399ff;
-            case 'speed': return 0x55ff55;
+            case 'hp': return 0xff5555;
+            case 'sp': return 0x55ff55;
+            case 'atk': return 0xff9900;
+            case 'def': return 0x3399ff;
+            
             default: return 0xffffff;
         }
     }
