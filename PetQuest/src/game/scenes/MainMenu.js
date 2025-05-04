@@ -191,6 +191,7 @@ export class MainMenu extends Scene {
         // --- Custom Panels ---
         this.createLeftStatsPanel();
         this.createRightAttributesPanel();
+        this.setupInteractionButtons();
     }
 
     // Create left panel for stats and level
@@ -569,5 +570,184 @@ export class MainMenu extends Scene {
         } catch (error) {
             console.error('Error renaming pet:', error.message);
         }
+    }
+
+    // Add this new function to set up interaction buttons
+    setupInteractionButtons() {
+        const { width, height } = this.scale;
+        const buttonSize = Math.min(width * 0.12, 70); // Size of the button
+        const buttonSpacing = buttonSize * 1.3; // Spacing between buttons
+        const totalWidth = 5 * buttonSize + 4 * (buttonSpacing - buttonSize);
+        const startX = (width - totalWidth) / 2 + buttonSize / 2;
+        const bottomY = height - buttonSize / 2 - 20; // Position from bottom
+
+        const buttons = [
+            { key: 'feed', icon: 'feed_icon', handler: this.handleFeed, anim: 'eat' },
+            { key: 'play', icon: 'play_icon', handler: this.handlePlay, anim: 'play' },
+            { key: 'train', icon: 'train_icon', handler: this.handleTrain, anim: 'train' },
+            { key: 'medicine', icon: 'medicine_icon', handler: this.handleMedicine, anim: 'heal' },
+            { key: 'outdoor', icon: 'outdoor_icon', handler: this.handleOutdoor, anim: 'idle' } // Example: idle anim for outdoor
+        ];
+
+        this.interactionButtons = [];
+
+        buttons.forEach((btnConfig, index) => {
+            const buttonX = startX + index * buttonSpacing;
+            // Use a placeholder graphic if icon texture is missing
+            const button = this.add.sprite(buttonX, bottomY, 'ui_icons', btnConfig.icon + '.png')
+                .setDisplaySize(buttonSize, buttonSize)
+                .setInteractive({ useHandCursor: true })
+                .setDepth(5);
+
+            // Fallback if sprite texture fails (optional, good for debugging)
+             if (!this.textures.exists('ui_icons')) {
+                 console.warn(`Texture 'ui_icons' not found for button ${btnConfig.key}. Using placeholder.`);
+                 const placeholder = this.add.graphics({ fillStyle: { color: 0xcccccc } });
+                 placeholder.fillRect(buttonX - buttonSize / 2, bottomY - buttonSize / 2, buttonSize, buttonSize);
+                 button.setTexture(placeholder.generateTexture(btnConfig.key + '_placeholder', buttonSize, buttonSize));
+                 placeholder.destroy();
+             } else if (!this.textures.get('ui_icons').has(btnConfig.icon + '.png')) {
+                 console.warn(`Icon '${btnConfig.icon}.png' not found in 'ui_icons' atlas for button ${btnConfig.key}. Using placeholder.`);
+                 const placeholder = this.add.graphics({ fillStyle: { color: 0xcccccc } });
+                 placeholder.fillRect(buttonX - buttonSize / 2, bottomY - buttonSize / 2, buttonSize, buttonSize);
+                 // Create a simple text label as fallback icon
+                 const fallbackText = this.add.text(buttonX, bottomY, btnConfig.key.substring(0,1).toUpperCase(), { fontSize: `${buttonSize*0.6}px`, color: '#000000'}).setOrigin(0.5);
+                 const container = this.add.container(0,0, [placeholder, fallbackText]);
+                 button.setTexture(container.generateTexture(btnConfig.key + '_placeholder', buttonSize, buttonSize));
+                 container.destroy(); // Clean up container after generating texture
+             }
+
+
+            button.on('pointerdown', () => {
+                // Simple feedback animation
+                this.tweens.add({
+                    targets: button,
+                    scale: 0.9,
+                    duration: 100,
+                    yoyo: true,
+                    onComplete: () => {
+                        if (this.pet && typeof this.pet.playAnimation === 'function') {
+                            this.pet.playAnimation(btnConfig.anim); // Play pet animation
+                        } else {
+                            console.warn(`Pet or playAnimation method not available for animation: ${btnConfig.anim}`);
+                        }
+                        btnConfig.handler.call(this); // Call the specific handler
+                    }
+                });
+            });
+
+            this.interactionButtons.push(button);
+        });
+    }
+
+    // Add handler functions for each button
+    async handleFeed() {
+        console.log('Feed button clicked');
+        // TODO: Call API to update pet stamina
+        // Example: await this.updatePetInteraction('feed');
+        // TODO: Update UI (stamina bar in right panel)
+    }
+
+    async handlePlay() {
+        console.log('Play button clicked');
+        // TODO: Call API to update pet happiness
+        // Example: await this.updatePetInteraction('play');
+        // TODO: Update UI (happiness bar in right panel)
+    }
+
+    async handleTrain() {
+        console.log('Train button clicked');
+        // TODO: Call API to update pet EXP
+        // Example: await this.updatePetInteraction('train');
+        // TODO: Update UI (EXP bar, level text in left panel)
+    }
+
+    async handleMedicine() {
+        console.log('Medicine button clicked');
+        // TODO: Call API to update pet HP
+        // Example: await this.updatePetInteraction('medicine');
+        // TODO: Update UI (HP text in left panel)
+    }
+
+    async handleOutdoor() {
+        console.log('Outdoor button clicked');
+        // TODO: Call API to apply buff/debuff
+        // Example: await this.updatePetInteraction('outdoor');
+        // TODO: Update UI (potentially show buff icon?)
+    }
+
+    // Example generic function to call backend (adapt as needed)
+    async updatePetInteraction(action) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token || !this.petData || !this.petData._id) {
+                console.error(`Cannot perform ${action}: missing token or pet ID`);
+                return;
+            }
+
+            const API_URL = import.meta.env.VITE_API_URL;
+            const response = await fetch(`${API_URL}/pets/${this.petData._id}/${action}`, {
+                method: 'POST', // Or PUT, depending on your API design
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+                // Add body if needed: body: JSON.stringify({ /* data */ })
+            });
+
+            const responseData = await response.json();
+
+            if (response.ok && responseData.success) {
+                console.log(`Pet ${action} successful:`, responseData.data);
+
+                // --- Update Local State & UI ---
+                // Option 1: Refetch user data via context
+                const globalContext = getGlobalContext();
+                if (globalContext && globalContext.fetchUserData) {
+                     await globalContext.fetchUserData(); // Assuming context has a function to refresh data
+                     // Update local petData reference
+                     this.petData = globalContext.userData.selectedPet;
+                     // Refresh UI panels
+                     this.refreshUI();
+                } else {
+                     // Option 2: Manually update local petData and UI elements
+                     this.petData = responseData.data; // Assuming API returns updated pet
+                     this.refreshUI();
+                }
+
+
+            } else {
+                console.error(`Failed to ${action} pet:`, responseData.error || 'Unknown error');
+                // TODO: Show error message to user?
+            }
+        } catch (error) {
+            console.error(`Error during pet ${action}:`, error.message);
+             // TODO: Show error message to user?
+        }
+    }
+
+    // Helper function to refresh UI elements after data change
+    refreshUI() {
+        if (!this.petData) return;
+
+        // Refresh EXP Bar
+        const exp = this.petData.experience || 0;
+        const nextLevelXP = (this.petData.level || 1) * (this.petData.level || 1) * 100;
+        const expBarWidth = Math.min(this.scale.width * 0.4, 260);
+        const fillWidth = Math.max(0, Math.min(1, exp / nextLevelXP)) * expBarWidth;
+        this.expBarFill.setSize(fillWidth, this.expBarFill.height);
+        this.expBarText.setText(`EXP: ${exp}/${nextLevelXP}`);
+
+        // Refresh Panels (recreate them with new data)
+        this.createLeftStatsPanel();
+        this.createRightAttributesPanel();
+
+        // Update Pet Name display if it changed (though unlikely from interactions)
+        if (this.pet && this.pet.data.name !== this.petData.name) {
+            this.pet.setName(this.petData.name);
+        }
+         // Update Pet data reference within the Pet instance itself
+         if (this.pet) {
+            this.pet.data = this.petData;
+         }
     }
 }
