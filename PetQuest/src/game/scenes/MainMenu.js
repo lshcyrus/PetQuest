@@ -397,7 +397,9 @@ export class MainMenu extends Scene {
     // Show dialog to rename pet
     showRenameDialog() {
         const { width, height } = this.scale;
-        
+        const centerX = width / 2;
+        const centerY = height / 2;
+
         // Try to create the DOM input element
         try {
             // Create a semi-transparent background
@@ -405,32 +407,34 @@ export class MainMenu extends Scene {
                 .setOrigin(0)
                 .setDepth(10)
                 .setInteractive(); // Block interactions below
-                
-            // Create dialog box
+
+            // Create dialog box dimensions
             const dialogWidth = Math.min(width * 0.8, 400);
             const dialogHeight = 200;
-            const dialogX = width / 2;
-            const dialogY = height / 2;
-            
-            const dialog = this.add.rectangle(dialogX, dialogY, dialogWidth, dialogHeight, 0x333333)
+            const dialogTopLeftX = centerX - dialogWidth / 2;
+            const dialogTopLeftY = centerY - dialogHeight / 2;
+
+            const dialog = this.add.rectangle(dialogTopLeftX, dialogTopLeftY, dialogWidth, dialogHeight, 0x333333)
                 .setStrokeStyle(2, 0xffffff)
+                .setOrigin(0, 0) // Set origin to top-left
                 .setDepth(11);
-                
-            // Add title
-            const title = this.add.text(dialogX, dialogY - 70, 'Rename Your Pet', {
+
+            // Add title (Positioned relative to dialog top-center)
+            const titleY = dialogTopLeftY + 30; // 30px padding from top
+            const title = this.add.text(centerX, titleY, 'Rename Your Pet', {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ffffff',
                 stroke: '#000000',
                 strokeThickness: 4
-            }).setOrigin(0.5)
+            }).setOrigin(0.5, 0) // Center horizontally, align top vertically
               .setDepth(11);
-              
-            // Add input field
-            const input = this.add.dom(dialogX, dialogY, 'input')
-                .setOrigin(0.5)
+
+            // Add input field (Positioned relative to dialog center)
+            const inputY = centerY; // Vertically centered within the dialog space
+            const input = this.add.dom(centerX - 40, inputY, 'input')
                 .setDepth(11);
-                
+
             // Style input
             const inputElement = input.node;
             inputElement.style.width = '250px';
@@ -441,26 +445,30 @@ export class MainMenu extends Scene {
             inputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
             inputElement.style.color = 'white';
             inputElement.style.border = '2px solid #4a9e2f';
+            inputElement.style.textAlign = 'center'; // Add this line
             inputElement.maxLength = 20;
             inputElement.value = this.pet.data.name;
             inputElement.focus();
-            
-            // Add buttons
-            const buttonY = dialogY + 50;
-            
+
+            // Add buttons (Positioned relative to dialog bottom-center)
+            const buttonY = dialogTopLeftY + dialogHeight - 30; // 50px padding from bottom
+            const buttonSpacing = 70; // Spacing from center
+
             // Cancel button
-            const cancelButton = this.add.rectangle(dialogX - 70, buttonY, 120, 40, 0x880000)
+            const cancelButtonX = centerX - buttonSpacing;
+            const cancelButton = this.add.rectangle(cancelButtonX, buttonY, 120, 40, 0x880000)
                 .setStrokeStyle(2, 0xffffff)
                 .setInteractive({ useHandCursor: true })
+                .setOrigin(0.5, 0.5) // Center the rectangle itself
                 .setDepth(11);
-                
-            const cancelText = this.add.text(dialogX - 70, buttonY, 'CANCEL', {
+
+            const cancelText = this.add.text(cancelButtonX, buttonY, 'CANCEL', {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
                 color: '#ffffff'
-            }).setOrigin(0.5)
+            }).setOrigin(0.5, 0.5) // Center text on the button
               .setDepth(11);
-              
+
             // Close dialog when cancel is clicked
             cancelButton.on('pointerdown', () => {
                 overlay.destroy();
@@ -472,28 +480,30 @@ export class MainMenu extends Scene {
                 confirmButton.destroy();
                 confirmText.destroy();
             });
-            
+
             // Confirm button
-            const confirmButton = this.add.rectangle(dialogX + 70, buttonY, 120, 40, 0x008800)
+            const confirmButtonX = centerX + buttonSpacing;
+            const confirmButton = this.add.rectangle(confirmButtonX, buttonY, 120, 40, 0x008800)
                 .setStrokeStyle(2, 0xffffff)
                 .setInteractive({ useHandCursor: true })
+                .setOrigin(0.5, 0.5) // Center the rectangle itself
                 .setDepth(11);
-                
-            const confirmText = this.add.text(dialogX + 70, buttonY, 'SAVE', {
+
+            const confirmText = this.add.text(confirmButtonX, buttonY, 'SAVE', {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
                 color: '#ffffff'
-            }).setOrigin(0.5)
+            }).setOrigin(0.5, 0.5) // Center text on the button
               .setDepth(11);
-              
+
             // Handle rename when confirm is clicked
             confirmButton.on('pointerdown', async () => {
                 const newName = inputElement.value.trim();
-                
+
                 if (newName && newName !== this.pet.data.name) {
                     await this.renamePet(newName);
                 }
-                
+
                 // Close dialog
                 overlay.destroy();
                 dialog.destroy();
