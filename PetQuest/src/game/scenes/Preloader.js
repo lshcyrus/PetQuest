@@ -105,6 +105,27 @@ export class Preloader extends Scene {
         this.load.image('pet_addHealth', 'UI/pet_addHealth.png');
         this.load.image('pet_outdoor', 'UI/pet_outdoor.png');
 
+        // Load play, train, outdoor spritesheets for each pet with correct frame sizes
+        const petActionSheets = [
+            // dino_rex
+            { key: 'dino_rex_play', path: 'Pet_Dino Rex/dino_rex_play.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_rex_train', path: 'Pet_Dino Rex/dino_rex_train.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_rex_outdoor', path: 'Pet_Dino Rex/dino_rex_outdoor.png', frameWidth: 384, frameHeight: 128 },
+            // badger
+            { key: 'badger_play', path: 'Pet_Badger/badger_play.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'badger_train', path: 'Pet_Badger/badger_train.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'badger_outdoor', path: 'Pet_Badger/badger_outdoor.png', frameWidth: 128, frameHeight: 128 },
+            // dino_tri (example, update as needed)
+            // { key: 'dino_tri_play', path: 'Pet_Dino Tri/dino_tri_play.png', frameWidth: 384, frameHeight: 128 },
+            // { key: 'dino_tri_train', path: 'Pet_Dino Tri/dino_tri_train.png', frameWidth: 384, frameHeight: 128 },
+            // { key: 'dino_tri_outdoor', path: 'Pet_Dino Tri/dino_tri_outdoor.png', frameWidth: 384, frameHeight: 128 },
+            // frogger (add if available)
+            // pengu (add if available)
+        ];
+        petActionSheets.forEach(sheet => {
+            this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
+        });
+
         WebFontLoader.load({
             google: {
                 families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']

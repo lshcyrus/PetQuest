@@ -586,7 +586,7 @@ export class MainMenu extends Scene {
             { key: 'play', icon: 'pet_play', handler: this.handlePlay, anim: 'play', label: 'Play' },
             { key: 'train', icon: 'pet_train', handler: this.handleTrain, anim: 'train', label: 'Train' },
             { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'heal', label: 'Medicine' },
-            { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'idle', label: 'Outdoor' }
+            { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'outdoor', label: 'Outdoor' }
         ];
 
         this.interactionButtons = [];

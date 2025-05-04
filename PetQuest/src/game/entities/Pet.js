@@ -242,13 +242,14 @@ export class Pet {
                 if (!scene.anims.exists(animKey)) {
                     scene.anims.create({
                         key: animKey,
-                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
-                        frameRate: 8,
-                        repeat: 0
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 8 }),
+                        frameRate: 10,
+                        duration: 3000,
+                        repeat: -1
                     });
                 }
                 this.sprite.play(animKey);
-                playIdle(900);
+                playIdle(3000);
                 break;
             }
             case 'train': {
@@ -256,13 +257,14 @@ export class Pet {
                 if (!scene.anims.exists(animKey)) {
                     scene.anims.create({
                         key: animKey,
-                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
-                        frameRate: 8,
-                        repeat: 0
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 8 }),
+                        frameRate: 10,
+                        duration: 3000,
+                        repeat: -1
                     });
                 }
                 this.sprite.play(animKey);
-                playIdle(900);
+                playIdle(3000);
                 break;
             }
             case 'outdoor': {
@@ -270,13 +272,14 @@ export class Pet {
                 if (!scene.anims.exists(animKey)) {
                     scene.anims.create({
                         key: animKey,
-                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
-                        frameRate: 16, // Faster framerate
-                        repeat: 0
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 8 }),
+                        frameRate: 20, // Faster framerate
+                        duration: 3000,
+                        repeat: -1
                     });
                 }
                 this.sprite.play(animKey);
-                playIdle(700);
+                playIdle(3000);
                 break;
             }
             case 'feed': {
