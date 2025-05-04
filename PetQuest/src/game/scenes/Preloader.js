@@ -88,6 +88,13 @@ export class Preloader extends Scene {
         this.load.image('logo', 'logo.png');
         this.load.image('battle_background', 'backgrounds/battle_background.png');
 
+        // New pets
+        this.load.spritesheet('badger', 'Pet_Badger/badger_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('dino_rex', 'Pet_Dino Rex/dino_rex_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('dino_tri', 'Pet_Dino Tri/dino_tri_idle.png', { frameWidth: 384, frameHeight: 128 });
+        this.load.spritesheet('frogger', 'Pet_Frogger/frogger_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('pengu', 'Pet_Pengu/pengu_idle.png', { frameWidth: 128, frameHeight: 128 });
+
         this.load.spritesheet('fire_dragon', 'fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
         this.load.spritesheet('ice_dragon', 'ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
         this.load.spritesheet('enemy_dragon', 'enemy_dragon/enemy_dragon.png', { frameWidth: 512, frameHeight: 512 });
