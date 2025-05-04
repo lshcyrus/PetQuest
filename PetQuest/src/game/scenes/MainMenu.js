@@ -84,90 +84,29 @@ export class MainMenu extends Scene {
         )
         welcomeText.setOrigin(0.5, 0);
         
-        // Create a button for starting the game
+        // Remove start game button
+        // Move battle button to bottom right and make it start the game
         const buttonWidth = Math.min(width * 0.4, 200);
         const buttonHeight = 60;
-        const buttonX = centerX;
-        const buttonY = height * 0.6;
-        
-        // Draw start game button
-        const button = this.add.graphics();
-        button.fillRoundedRect(
-            buttonX - buttonWidth/2, 
-            buttonY - buttonHeight/2, 
-            buttonWidth, 
-            buttonHeight, 
-            16
-        );
-        button.strokeRoundedRect(
-            buttonX - buttonWidth/2, 
-            buttonY - buttonHeight/2, 
-            buttonWidth, 
-            buttonHeight, 
-            16
-        );
-        button.setInteractive(new Phaser.Geom.Rectangle(
-            buttonX - buttonWidth/2,
-            buttonY - buttonHeight/2,
-            buttonWidth,
-            buttonHeight
-        ), Phaser.Geom.Rectangle.Contains);
-        
-        // Button text - much larger size
-        const buttonText = this.add.text(
-            buttonX,
-            buttonY,
-            'START GAME',
-            {
-                fontFamily: '"Silkscreen", cursive',
-                fontSize: this.getResponsiveFontSize(3, 'rem'),
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: Math.min(8, Math.max(4, width / 100))
-            }
-        )
-        buttonText.setOrigin(0.5);
-        
-        // Button text animation
-        this.tweens.add({
-            targets: buttonText,
-            scale: 1.1,
-            yoyo: true,
-            repeat: -1,
-            duration: 1000,
-            ease: 'Sine.easeInOut'
-        });
-        
-        button.on('pointerdown', () => {
-            // Add click animation
-            this.tweens.add({
-                targets: buttonText,
-                scale: 0.9,
-                duration: 100,
-                yoyo: true,
-                onComplete: () => this.changeScene()
-            });
-        });
-        
-        // Draw battle button (below start game button)
-        const battleButtonY = buttonY + buttonHeight + 30;
+        const battleButtonX = width - buttonWidth / 2 - 30;
+        const battleButtonY = height - buttonHeight / 2 - 30;
         const battleButton = this.add.graphics();
         battleButton.fillRoundedRect(
-            buttonX - buttonWidth/2, 
+            battleButtonX - buttonWidth/2, 
             battleButtonY - buttonHeight/2, 
             buttonWidth, 
             buttonHeight, 
             16
         );
         battleButton.strokeRoundedRect(
-            buttonX - buttonWidth/2, 
+            battleButtonX - buttonWidth/2, 
             battleButtonY - buttonHeight/2, 
             buttonWidth, 
             buttonHeight, 
             16
         );
         battleButton.setInteractive(new Phaser.Geom.Rectangle(
-            buttonX - buttonWidth/2,
+            battleButtonX - buttonWidth/2,
             battleButtonY - buttonHeight/2,
             buttonWidth,
             buttonHeight
@@ -175,12 +114,12 @@ export class MainMenu extends Scene {
         
         // Battle button text
         const battleButtonText = this.add.text(
-            buttonX,
+            battleButtonX,
             battleButtonY,
             'BATTLE',
             {
                 fontFamily: '"Silkscreen", cursive',
-                fontSize: this.getResponsiveFontSize(3, 'rem'),
+                fontSize: this.getResponsiveFontSize(2, 'rem'),
                 color: '#ff5555',
                 stroke: '#000000',
                 strokeThickness: Math.min(8, Math.max(4, width / 100))
@@ -205,12 +144,12 @@ export class MainMenu extends Scene {
                 scale: 0.9,
                 duration: 100,
                 yoyo: true,
-                onComplete: () => this.startBattle()
+                onComplete: () => this.changeScene()
             });
         });
         
         // Store UI elements
-        this.ui = { welcomeText, button, buttonText, battleButton, battleButtonText };
+        this.ui = { welcomeText, battleButton, battleButtonText };
     }
 
     // method for setting up the pet sprite
@@ -320,10 +259,17 @@ export class MainMenu extends Scene {
             { key: 'stamina', label: 'Stamina', color: 0xff99cc }
         ];
         let shown = false;
+        // Calculate panel height based on number of shown attributes (always show space for all 4)
+        const attrRowHeight = 48;
+        const attrCount = attrConfig.filter(attr => attributes[attr.key] !== undefined).length || 4;
+        const topPadding = 56; // More space below the title
+        const panelHeight = topPadding + attrRowHeight * attrCount;
+        bg.height = panelHeight;
         attrConfig.forEach((attr, i) => {
             if (attributes[attr.key] !== undefined) {
                 shown = true;
-                const yOffset = -60 + i * 48; // More vertical space for label+bar
+                // Add extra top padding for the first row
+                const yOffset = -panelHeight/2 + topPadding + i * attrRowHeight;
                 // Label
                 const label = this.add.text(-panelWidth/2 + 16, yOffset, attr.label, {
                     fontFamily: '"Silkscreen", cursive',
@@ -332,8 +278,8 @@ export class MainMenu extends Scene {
                     stroke: '#000000',
                     strokeThickness: 2
                 }).setOrigin(0, 0.5);
-                // Bar background (below label)
-                const barY = yOffset + 18; // 18px below label
+                // Bar background (with padding above bar)
+                const barY = yOffset + 24; // 24px below label (18px label + 6px padding)
                 const barBg = this.add.rectangle(-panelWidth/2 + 16, barY, 180, 16, 0x333333).setOrigin(0, 0.5);
                 // Bar fill
                 const value = Math.max(0, Math.min(100, attributes[attr.key]));
@@ -602,15 +548,5 @@ export class MainMenu extends Scene {
         } catch (error) {
             console.error('Error renaming pet:', error.message);
         }
-    }
-
-    startBattle() {
-        // Add scene transition effect
-        this.cameras.main.fadeOut(500, 0, 0, 0);
-        
-        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-            // Start the battle scene
-            this.scene.start('BattleScene');
-        });
     }
 }

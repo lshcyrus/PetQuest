@@ -6,7 +6,6 @@ import { FirstLogin } from './scenes/FirstLogin';
 import { Quests } from './scenes/Quests';
 import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
-import { BattleScene } from './scenes/BattleScene';
 import { initOrientationHandling } from '../utils/orientationHandler';
 import { LevelSelector } from './scenes/LevelSelector';
 
@@ -46,7 +45,6 @@ const config = {
         FirstLogin,
         MainMenu,
         Quests,
-        BattleScene,
         LevelTransition,
         LevelSelector,
         GameOver
