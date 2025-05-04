@@ -161,10 +161,29 @@ export class MainMenu extends Scene {
             return;
         }
         console.log('Setting up pet with data:', this.petData);
+        // Experience bar above pet
+        const exp = this.petData.experience || 0;
+        const nextLevelXP = (this.petData.level || 1) * (this.petData.level || 1) * 100;
+        const expBarY = height * 0.7; // Above the pet name
+        const expBarWidth = Math.min(width * 0.4, 260);
+        const expBarX = width * 0.5 - expBarWidth / 2;
+        // Bar background
+        this.expBarBg = this.add.rectangle(expBarX, expBarY, expBarWidth, 14, 0x333366).setOrigin(0, 0.5);
+        // Bar fill
+        const fillWidth = Math.max(0, Math.min(1, exp / nextLevelXP)) * expBarWidth;
+        this.expBarFill = this.add.rectangle(expBarX, expBarY, fillWidth, 14, 0x44e0ff).setOrigin(0, 0.5);
+        // Exp text
+        this.expBarText = this.add.text(width * 0.5, expBarY, `EXP: ${exp}/${nextLevelXP}`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '16px',
+            color: '#88ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5, 0.5);
         // Create pet using the Pet class
         this.pet = new Pet(this, this.petData, centerX, height * 0.5);
         // Calculate pet scale based on screen size
-        const baseScale = Math.min(width, height) * 0.002;
+        const baseScale = Math.min(width, height) * 0.0025;
         // Create the sprite
         this.pet.create(baseScale, 1);
         // Create interactive name display with rename button
@@ -182,11 +201,6 @@ export class MainMenu extends Scene {
         const panelX = panelWidth * 0.5 + 10;
         const panelY = height * 0.5;
         this.leftStatsPanel = this.add.container(panelX, panelY);
-        // Panel background
-        const bg = this.add.rectangle(0, 0, panelWidth, 220, 0x222233, 0.7)
-            .setOrigin(0.5)
-            .setStrokeStyle(2, 0xffffff);
-        this.leftStatsPanel.add(bg);
         // Title
         const title = this.add.text(0, -90, 'PET STATS', {
             fontFamily: '"Silkscreen", cursive',
@@ -236,11 +250,7 @@ export class MainMenu extends Scene {
         const panelX = width - panelWidth * 0.5 - 10;
         const panelY = height * 0.5;
         this.rightAttributesPanel = this.add.container(panelX, panelY);
-        // Panel background
-        const bg = this.add.rectangle(0, 0, panelWidth, 220, 0x233322, 0.7)
-            .setOrigin(0.5)
-            .setStrokeStyle(2, 0xffffff);
-        this.rightAttributesPanel.add(bg);
+        // No background
         // Title
         const title = this.add.text(0, -90, 'ATTRIBUTES', {
             fontFamily: '"Silkscreen", cursive',
@@ -259,17 +269,18 @@ export class MainMenu extends Scene {
             { key: 'stamina', label: 'Stamina', color: 0xff99cc }
         ];
         let shown = false;
-        // Calculate panel height based on number of shown attributes (always show space for all 4)
+        // Calculate panel height based on number of shown attributes (always show at least 1 row)
         const attrRowHeight = 48;
-        const attrCount = attrConfig.filter(attr => attributes[attr.key] !== undefined).length || 4;
-        const topPadding = 56; // More space below the title
-        const panelHeight = topPadding + attrRowHeight * attrCount;
-        bg.height = panelHeight;
+        const shownAttrCount = attrConfig.filter(attr => attributes[attr.key] !== undefined).length;
+        const attrCount = Math.max(shownAttrCount, 1); // Always at least 1 row
+        const topPadding = 56;
+        const bottomPadding = 32;
+        const panelHeight = topPadding + 40 + attrRowHeight * attrCount + bottomPadding;
         attrConfig.forEach((attr, i) => {
             if (attributes[attr.key] !== undefined) {
                 shown = true;
                 // Add extra top padding for the first row
-                const yOffset = -panelHeight/2 + topPadding + i * attrRowHeight;
+                const yOffset = -panelHeight/2 + 40 + topPadding + i * attrRowHeight;
                 // Label
                 const label = this.add.text(-panelWidth/2 + 16, yOffset, attr.label, {
                     fontFamily: '"Silkscreen", cursive',

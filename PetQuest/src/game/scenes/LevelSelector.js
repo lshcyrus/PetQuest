@@ -354,7 +354,7 @@ export class LevelSelector extends Scene {
         this.petStatusContainer = this.add.container(width * 0.15, height * 0.2).setDepth(2);
 
         this.petStatusContainer.add(
-            this.add.rectangle(0, 0, 150, 120, 0x000000, 0.7)
+            this.add.rectangle(0, 0, 150, 160, 0x000000, 0.7)
                 .setStrokeStyle(2, 0xffffff)
         );
 
@@ -390,6 +390,22 @@ export class LevelSelector extends Scene {
 
             this.petStatusContainer.add([label, value]);
         });
+        // Experience
+        const exp = this.pet.experience || 0;
+        const nextLevelXP = (this.pet.level || 1) * (this.pet.level || 1) * 100;
+        const expText = this.add.text(-60, 55, `EXP: ${exp}/${nextLevelXP}`, {
+            fontFamily: '"Pixelify Sans", cursive',
+            fontSize: '14px',
+            color: '#88ffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0, 0.5);
+        this.petStatusContainer.add(expText);
+        // Experience bar
+        const expBarBg = this.add.rectangle(-60, 75, 80, 8, 0x333366).setOrigin(0, 0.5);
+        const expBarWidth = Math.max(0, Math.min(1, exp / nextLevelXP)) * 80;
+        const expBarFill = this.add.rectangle(-60, 75, expBarWidth, 8, 0x44e0ff).setOrigin(0, 0.5);
+        this.petStatusContainer.add([expBarBg, expBarFill]);
     }
 
     // Show generated level details

@@ -6,40 +6,36 @@
  * @returns {Object} - Updated pet and level up status
  */
 exports.checkLevelUp = (pet) => {
-    // Calculate required XP for next level (formula: level^2 * 100)
-    const requiredXP = pet.level * pet.level * 100;
-    
-    // Check if pet has enough XP to level up
-    if (pet.experience >= requiredXP) {
-      // Level up
-      pet.level += 1;
-      pet.experience -= requiredXP;
-      
-      // Increase pet stats (use atk, def, hp, sp)
-      pet.stats.atk += Math.floor(Math.random() * 5) + 1;
-      pet.stats.def += Math.floor(Math.random() * 5) + 1;
-      pet.stats.hp += Math.floor(Math.random() * 20) + 10;
-      pet.stats.sp += Math.floor(Math.random() * 10) + 5;
-      
-      return {
-        pet,
-        leveledUp: true
-      };
+    let leveledUp = false;
+    let levelsGained = 0;
+    let requiredXP = pet.level * pet.level * 100;
+    while (pet.experience >= requiredXP) {
+        pet.level += 1;
+        pet.experience -= requiredXP;
+        levelsGained += 1;
+        leveledUp = true;
+        // Increase pet stats (use atk, def, hp, sp)
+        pet.stats.atk += Math.floor(Math.random() * 5) + 1;
+        pet.stats.def += Math.floor(Math.random() * 5) + 1;
+        pet.stats.hp += Math.floor(Math.random() * 20) + 10;
+        pet.stats.sp += Math.floor(Math.random() * 10) + 5;
+        requiredXP = pet.level * pet.level * 100;
     }
-    
     return {
-      pet,
-      leveledUp: false
+        pet,
+        leveledUp,
+        levelsGained,
+        nextLevelXP: requiredXP
     };
-  };
+};
   
-  /**
-   * Calculate success chance for a quest based on pet stats
-   * @param {Object} pet - Pet mongoose document
-   * @param {Object} quest - Quest mongoose document
-   * @returns {Boolean} - Whether the quest was successful
-   */
-  exports.calculateQuestSuccess = (pet, quest) => {
+/**
+ * Calculate success chance for a quest based on pet stats
+ * @param {Object} pet - Pet mongoose document
+ * @param {Object} quest - Quest mongoose document
+ * @returns {Boolean} - Whether the quest was successful
+ */
+exports.calculateQuestSuccess = (pet, quest) => {
     // Base success chance
     let successChance = 70;
     
@@ -80,4 +76,4 @@ exports.checkLevelUp = (pet) => {
     
     // Roll for success
     return Math.random() * 100 <= successChance;
-  };
+};

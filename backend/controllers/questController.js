@@ -210,13 +210,19 @@ exports.completeQuest = async (req, res, next) => {
         }
       }
       
-      // Check for level up
+      // Always check for level up after exp gain
       const levelUpResult = gameLogic.checkLevelUp(pet);
       pet = levelUpResult.pet;
+      var levelUpInfo = levelUpResult;
     } else {
       // Failed quest - partial rewards
       pet.experience += Math.floor(quest.rewards.experience * 0.25);
       user.currency.coins += Math.floor(quest.rewards.coins * 0.1);
+      
+      // Always check for level up after exp gain
+      const levelUpResult = gameLogic.checkLevelUp(pet);
+      pet = levelUpResult.pet;
+      var levelUpInfo = levelUpResult;
     }
     
     // Clear active quest
@@ -239,7 +245,11 @@ exports.completeQuest = async (req, res, next) => {
           experience: success ? quest.rewards.experience : Math.floor(quest.rewards.experience * 0.25),
           coins: success ? quest.rewards.coins : Math.floor(quest.rewards.coins * 0.1),
           items: success ? quest.rewards.items.filter(i => Math.random() * 100 <= i.chance).map(i => i.item) : []
-        }
+        },
+        exp: pet.experience,
+        nextLevelXP: levelUpInfo.nextLevelXP,
+        leveledUp: levelUpInfo.leveledUp,
+        levelsGained: levelUpInfo.levelsGained
       }
     });
   } catch (err) {
