@@ -211,4 +211,145 @@ export class Pet {
             this.nameContainer.destroy();
         }
     }
+    
+    /**
+     * Play a specific animation or visual effect for the pet
+     * @param {string} action - One of: 'play', 'train', 'outdoor', 'feed', 'medicine'
+     */
+    playAnimation(action) {
+        if (!this.sprite) return;
+        const petKey = this.data.key;
+        const scene = this.scene;
+        // Helper to restore idle after anim
+        const playIdle = (delay = 600) => {
+            scene.time.delayedCall(delay, () => {
+                this.sprite.play(`${petKey}_idle`);
+                this.sprite.clearTint();
+            });
+        };
+        // Remove any overlays from previous effects
+        if (this._effectOverlay) {
+            this._effectOverlay.destroy();
+            this._effectOverlay = null;
+        }
+        if (this._effectText) {
+            this._effectText.destroy();
+            this._effectText = null;
+        }
+        switch (action) {
+            case 'play': {
+                const animKey = `${petKey}_play`;
+                if (!scene.anims.exists(animKey)) {
+                    scene.anims.create({
+                        key: animKey,
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
+                        frameRate: 8,
+                        repeat: 0
+                    });
+                }
+                this.sprite.play(animKey);
+                playIdle(900);
+                break;
+            }
+            case 'train': {
+                const animKey = `${petKey}_train`;
+                if (!scene.anims.exists(animKey)) {
+                    scene.anims.create({
+                        key: animKey,
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
+                        frameRate: 8,
+                        repeat: 0
+                    });
+                }
+                this.sprite.play(animKey);
+                playIdle(900);
+                break;
+            }
+            case 'outdoor': {
+                const animKey = `${petKey}_outdoor`;
+                if (!scene.anims.exists(animKey)) {
+                    scene.anims.create({
+                        key: animKey,
+                        frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
+                        frameRate: 16, // Faster framerate
+                        repeat: 0
+                    });
+                }
+                this.sprite.play(animKey);
+                playIdle(700);
+                break;
+            }
+            case 'feed': {
+                // Animate food icon moving to mouth, bounce, and heart effect
+                const food = scene.add.image(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2, 'pet_feed')
+                    .setDisplaySize(32, 32)
+                    .setDepth(this.sprite.depth + 1);
+                this._effectOverlay = food;
+                scene.tweens.add({
+                    targets: food,
+                    y: this.sprite.y,
+                    duration: 400,
+                    onComplete: () => {
+                        // Bounce effect
+                        scene.tweens.add({
+                            targets: this.sprite,
+                            scale: this.sprite.scale * 1.08,
+                            yoyo: true,
+                            duration: 120,
+                            onComplete: () => {
+                                // Heart effect
+                                const heart = scene.add.text(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2 - 24, '❤', {
+                                    fontSize: '32px', color: '#ff88cc', stroke: '#000', strokeThickness: 3
+                                }).setOrigin(0.5).setDepth(this.sprite.depth + 2);
+                                this._effectText = heart;
+                                scene.tweens.add({
+                                    targets: heart,
+                                    y: heart.y - 30,
+                                    alpha: 0,
+                                    duration: 600,
+                                    onComplete: () => { heart.destroy(); }
+                                });
+                                food.destroy();
+                            }
+                        });
+                    }
+                });
+                playIdle(900);
+                break;
+            }
+            case 'medicine': {
+                // Medicine icon drops, pet tints, +HP text
+                const med = scene.add.image(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2, 'pet_addHealth')
+                    .setDisplaySize(32, 32)
+                    .setDepth(this.sprite.depth + 1);
+                this._effectOverlay = med;
+                scene.tweens.add({
+                    targets: med,
+                    y: this.sprite.y,
+                    duration: 400,
+                    onComplete: () => {
+                        this.sprite.setTint(0x88ff88);
+                        // +HP text
+                        const hpText = scene.add.text(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2 - 24, '+HP', {
+                            fontSize: '24px', color: '#88ff88', stroke: '#000', strokeThickness: 3
+                        }).setOrigin(0.5).setDepth(this.sprite.depth + 2);
+                        this._effectText = hpText;
+                        scene.tweens.add({
+                            targets: hpText,
+                            y: hpText.y - 30,
+                            alpha: 0,
+                            duration: 600,
+                            onComplete: () => { hpText.destroy(); }
+                        });
+                        med.destroy();
+                    }
+                });
+                playIdle(900);
+                break;
+            }
+            default:
+                // Fallback to idle
+                this.sprite.play(`${petKey}_idle`);
+        }
+    }
 } 
