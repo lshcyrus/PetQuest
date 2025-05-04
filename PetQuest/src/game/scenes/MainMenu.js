@@ -582,10 +582,10 @@ export class MainMenu extends Scene {
         const bottomY = height - buttonSize / 2 - 20; // Position from bottom
 
         const buttons = [
-            { key: 'feed', icon: 'pet_feed', handler: this.handleFeed, anim: 'eat', label: 'Feed' },
+            { key: 'feed', icon: 'pet_feed', handler: this.handleFeed, anim: 'feed', label: 'Feed' },
             { key: 'play', icon: 'pet_play', handler: this.handlePlay, anim: 'play', label: 'Play' },
             { key: 'train', icon: 'pet_train', handler: this.handleTrain, anim: 'train', label: 'Train' },
-            { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'heal', label: 'Medicine' },
+            { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'medicine', label: 'Medicine' },
             { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'outdoor', label: 'Outdoor' }
         ];
 
