@@ -99,6 +99,12 @@ export class Preloader extends Scene {
         this.load.spritesheet('ice_dragon', 'ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
         this.load.spritesheet('enemy_dragon', 'enemy_dragon/enemy_dragon.png', { frameWidth: 512, frameHeight: 512 });
 
+        this.load.image('pet_feed', 'UI/pet_feed.png');
+        this.load.image('pet_play', 'UI/pet_play.png');
+        this.load.image('pet_train', 'UI/pet_train.png');
+        this.load.image('pet_addHealth', 'UI/pet_addHealth.png');
+        this.load.image('pet_outdoor', 'UI/pet_outdoor.png');
+
         WebFontLoader.load({
             google: {
                 families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']

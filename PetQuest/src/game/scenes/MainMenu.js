@@ -582,41 +582,42 @@ export class MainMenu extends Scene {
         const bottomY = height - buttonSize / 2 - 20; // Position from bottom
 
         const buttons = [
-            { key: 'feed', icon: 'feed_icon', handler: this.handleFeed, anim: 'eat' },
-            { key: 'play', icon: 'play_icon', handler: this.handlePlay, anim: 'play' },
-            { key: 'train', icon: 'train_icon', handler: this.handleTrain, anim: 'train' },
-            { key: 'medicine', icon: 'medicine_icon', handler: this.handleMedicine, anim: 'heal' },
-            { key: 'outdoor', icon: 'outdoor_icon', handler: this.handleOutdoor, anim: 'idle' } // Example: idle anim for outdoor
+            { key: 'feed', icon: 'pet_feed', handler: this.handleFeed, anim: 'eat', label: 'Feed' },
+            { key: 'play', icon: 'pet_play', handler: this.handlePlay, anim: 'play', label: 'Play' },
+            { key: 'train', icon: 'pet_train', handler: this.handleTrain, anim: 'train', label: 'Train' },
+            { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'heal', label: 'Medicine' },
+            { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'idle', label: 'Outdoor' }
         ];
 
         this.interactionButtons = [];
+        this.interactionButtonLabels = [];
 
         buttons.forEach((btnConfig, index) => {
             const buttonX = startX + index * buttonSpacing;
-            // Use a placeholder graphic if icon texture is missing
-            const button = this.add.sprite(buttonX, bottomY, 'ui_icons', btnConfig.icon + '.png')
+            const button = this.add.sprite(buttonX, bottomY, btnConfig.icon)
                 .setDisplaySize(buttonSize, buttonSize)
                 .setInteractive({ useHandCursor: true })
                 .setDepth(5);
 
-            // Fallback if sprite texture fails (optional, good for debugging)
-             if (!this.textures.exists('ui_icons')) {
-                 console.warn(`Texture 'ui_icons' not found for button ${btnConfig.key}. Using placeholder.`);
-                 const placeholder = this.add.graphics({ fillStyle: { color: 0xcccccc } });
-                 placeholder.fillRect(buttonX - buttonSize / 2, bottomY - buttonSize / 2, buttonSize, buttonSize);
-                 button.setTexture(placeholder.generateTexture(btnConfig.key + '_placeholder', buttonSize, buttonSize));
-                 placeholder.destroy();
-             } else if (!this.textures.get('ui_icons').has(btnConfig.icon + '.png')) {
-                 console.warn(`Icon '${btnConfig.icon}.png' not found in 'ui_icons' atlas for button ${btnConfig.key}. Using placeholder.`);
-                 const placeholder = this.add.graphics({ fillStyle: { color: 0xcccccc } });
-                 placeholder.fillRect(buttonX - buttonSize / 2, bottomY - buttonSize / 2, buttonSize, buttonSize);
-                 // Create a simple text label as fallback icon
-                 const fallbackText = this.add.text(buttonX, bottomY, btnConfig.key.substring(0,1).toUpperCase(), { fontSize: `${buttonSize*0.6}px`, color: '#000000'}).setOrigin(0.5);
-                 const container = this.add.container(0,0, [placeholder, fallbackText]);
-                 button.setTexture(container.generateTexture(btnConfig.key + '_placeholder', buttonSize, buttonSize));
-                 container.destroy(); // Clean up container after generating texture
-             }
+            // Create label (hidden by default)
+            const label = this.add.text(buttonX, bottomY - buttonSize / 2 - 10, btnConfig.label, {
+                fontFamily: 'Silkscreen, cursive',
+                fontSize: `${Math.round(buttonSize * 0.35)}px`,
+                color: '#fff',
+                stroke: '#000',
+                strokeThickness: 3,
+                backgroundColor: 'rgba(0,0,0,0.7)'
+            })
+            .setOrigin(0.5, 1)
+            .setAlpha(0)
+            .setDepth(10);
 
+            button.on('pointerover', () => {
+                label.setAlpha(1);
+            });
+            button.on('pointerout', () => {
+                label.setAlpha(0);
+            });
 
             button.on('pointerdown', () => {
                 // Simple feedback animation
@@ -637,6 +638,7 @@ export class MainMenu extends Scene {
             });
 
             this.interactionButtons.push(button);
+            this.interactionButtonLabels.push(label);
         });
     }
 

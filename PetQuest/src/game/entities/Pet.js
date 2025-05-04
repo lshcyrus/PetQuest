@@ -96,38 +96,41 @@ export class Pet {
     /**
      * Create an interactive name display with a rename button
      * @param {number} [offsetY=-50] - Y offset from the pet
-     * @param {Function} [onRename=null] - Callback when rename button is clicked
-     * @returns {Phaser.GameObjects.Container} Container with name and button
+     * @param {Function} [onRename=null] - Callback when rename is triggered
+     * @returns {Phaser.GameObjects.Container} Container with name
      */
     createInteractiveNameDisplay(offsetY = -50, onRename = null) {
-        // Create container for pet name and rename button
+        // Create container for pet name
         this.nameContainer = this.scene.add.container(this.x, this.y + offsetY);
         this.nameContainer.setDepth(1);
-        
-        // Add pet name text
+
+        // Add pet name text (interactive)
         this.nameText = this.scene.add.text(0, 0, this.data.name, {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '28px',
             color: '#ffffff',
-            stroke: '#000000', 
+            stroke: '#000000',
             strokeThickness: 4,
             align: 'center'
-        }).setOrigin(0.5);
-        
-        // Add rename button
-        const renameButton = this.scene.add.text(80, 0, '✏️', {
-            fontSize: '24px'
         }).setOrigin(0.5)
           .setInteractive({ useHandCursor: true });
-          
+
         // Add rename functionality if provided
         if (onRename) {
-            renameButton.on('pointerdown', onRename);
+            this.nameText.on('pointerdown', onRename);
         }
-        
+
+        // Add hover color effect
+        this.nameText.on('pointerover', () => {
+            this.nameText.setColor('#ffe066'); // Highlight color (yellow)
+        });
+        this.nameText.on('pointerout', () => {
+            this.nameText.setColor('#ffffff'); // Default color
+        });
+
         // Add to container
-        this.nameContainer.add([this.nameText, renameButton]);
-        
+        this.nameContainer.add([this.nameText]);
+
         return this.nameContainer;
     }
     
