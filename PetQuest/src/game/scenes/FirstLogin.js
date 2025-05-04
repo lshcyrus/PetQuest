@@ -14,39 +14,6 @@ export class FirstLogin extends Scene {
         super('FirstLogin');
         this.selectedPetIndex = 0;
         this.pets = [
-            // {
-            //     key: 'fire_dragon',
-            //     name: 'Ember',
-            //     description: 'A fiery dragon with a brave heart. Strong against ice enemies but weak to water.',
-            //     stats: {
-            //         health: 80,
-            //         attack: 90,
-            //         defense: 60,
-            //         speed: 70
-            //     }
-            // },
-            // {
-            //     key: 'ice_dragon',
-            //     name: 'Frosty',
-            //     description: 'A frosty dragon with a cool demeanor. Strong against nature enemies but weak to fire.',
-            //     stats: {
-            //         health: 100,
-            //         attack: 60,
-            //         defense: 90,
-            //         speed: 50
-            //     }
-            // },
-            // {
-            //     key: 'nature_fox',
-            //     name: 'Leafy',
-            //     description: 'A swift forest fox with keen senses. Strong against water enemies but weak to fire.',
-            //     stats: {
-            //         health: 70,
-            //         attack: 75,
-            //         defense: 65,
-            //         speed: 90
-            //     }
-            // }
             {
                 key: 'badger',
                 name: 'Badger',
@@ -115,24 +82,14 @@ export class FirstLogin extends Scene {
 
     preload() {
         // Preload pet spritesheets if not already loaded
-        // if (!this.textures.exists('fire_dragon')) {
-        //     this.load.spritesheet('fire_dragon', 'assets/fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
-        // }
-
-        // if (!this.textures.exists('ice_dragon')) {
-        //     this.load.spritesheet('ice_dragon', 'assets/ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
-        // }
-        
-        // if (!this.textures.exists('nature_fox')) {
-        //     this.load.spritesheet('nature_fox', 'assets/nature_fox/nature_fox.png', { frameWidth: 640, frameHeight: 400 });
-        // }
-
-
         this.load.spritesheet('badger', 'assets/Pet_Badger/badger_idle.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('dino_rex', 'assets/Pet_Dino Rex/dino_rex_idle.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('dino_tri', 'assets/Pet_Dino Tri/dino_tri_idle.png', { frameWidth: 384, frameHeight: 128 });
         this.load.spritesheet('frogger', 'assets/Pet_Frogger/frogger_idle.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('pengu', 'assets/Pet_Pengu/pengu_idle.png', { frameWidth: 128, frameHeight: 128 });
+
+        // Load the GIF background
+        this.load.image('pet-selection-bg', 'assets/backgrounds/pet-selection.gif');
 
         this.load.image('arrow-left', 'assets/UI/arrow-left.png');
         this.load.image('arrow-right', 'assets/UI/arrow-right.png');
@@ -188,7 +145,7 @@ export class FirstLogin extends Scene {
             if (!this.anims.exists(`${pet.key}_idle`)) {
                 this.anims.create({
                     key: `${pet.key}_idle`,
-                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 5 }),
+                    frames: this.anims.generateFrameNumbers(pet.key, { start: 0, end: 4 }),
                     frameRate: 6,
                     repeat: -1
                 });
@@ -199,7 +156,8 @@ export class FirstLogin extends Scene {
     setupBackground() {
         const { width, height } = this.scale;
         
-        this.background = this.add.image(width / 2, height / 2, 'first-time-pet-selection');
+        // Use the loaded GIF as the background image
+        this.background = this.add.image(width / 2, height / 2, 'pet-selection-bg');
         this.scaleToFit(this.background);
         
         this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.5)

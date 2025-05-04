@@ -183,7 +183,7 @@ export class MainMenu extends Scene {
         // Create pet using the Pet class
         this.pet = new Pet(this, this.petData, centerX, height * 0.5);
         // Calculate pet scale based on screen size
-        const baseScale = Math.min(width, height) * 0.0025;
+        const baseScale = Math.min(width, height) * 0.002;
         // Create the sprite
         this.pet.create(baseScale, 1);
         // Create interactive name display with rename button
@@ -265,8 +265,8 @@ export class MainMenu extends Scene {
         const attrConfig = [
             { key: 'happiness', label: 'Happiness', color: 0xffe066 },
             { key: 'hunger', label: 'Hunger', color: 0x66b3ff },
-            { key: 'cleanliness', label: 'Cleanliness', color: 0x99ff99 },
-            { key: 'stamina', label: 'Stamina', color: 0xff99cc }
+            { key: 'cleanliness', label: 'Cleanliness', color: 0xff99cc },
+            { key: 'stamina', label: 'Stamina', color: 0x99ff99 }
         ];
         let shown = false;
         // Calculate panel height based on number of shown attributes (always show at least 1 row)

@@ -8,11 +8,10 @@ export class Boot extends Scene {
 
     preload() {
         // Load essential assets
-        this.load.image('first-time-pet-selection', 'assets/pet-selection.png');
-        this.load.image('background', 'assets/mainmenu.png');
-        this.load.image('forest1', 'assets/forest1.png');
-        this.load.image('forest2', 'assets/forest2.png');
-        this.load.image('arrow', 'assets/ui/arrow.png');
+        this.load.image('first-time-pet-selection', 'assets/backgrounds/pet-selection.gif');
+        this.load.image('background', 'assets/backgrounds/mainmenu.png');
+        this.load.image('forest1', 'assets/backgrounds/forest1.png');
+        this.load.image('forest2', 'assets/backgrounds/forest2.png');
     }
 
     create() {
