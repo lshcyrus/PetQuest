@@ -11,19 +11,24 @@ export class LevelSelector extends Scene {
         this.selectedDifficulty = null;
         this.generatedLevel = null;
         this.enemy = null;
+        this.petStatusElements = []; // To store elements for easy cleanup
     }
 
     // Initialize with pet and username
     init(data) {
         console.log('LevelSelector init:', data);
-        this.pet = data.pet || {
+        // Fetch initial data from context if available, fallback to data or defaults
+        const globalContext = getGlobalContext();
+        this.username = (globalContext?.userData?.username) || data.username || 'Player';
+        // Use pet data from context primarily, fallback to data passed in init
+        this.petData = globalContext?.userData?.selectedPet || data.pet || {
             key: 'fire_dragon',
             name: 'Ember',
-            hp: 80,
-            stamina: 100,
-            level: 1
+            stats: { hp: 80, stamina: 100 }, // Ensure stats object exists in fallback
+            level: 1,
+            experience: 0
         };
-        this.username = data.username || 'Player';
+        console.log('Initialized with Pet Data:', this.petData);
     }
 
     // Preload assets
@@ -53,6 +58,9 @@ export class LevelSelector extends Scene {
             // Set up pet status (persistent)
             this.setupPetStatus();
 
+            // Add Return to Menu button
+            this.setupReturnButton();
+
             // Handle responsive layout
             const { width, height } = this.scale;
             const isPortrait = height > width;
@@ -71,6 +79,9 @@ export class LevelSelector extends Scene {
 
         // Add resize handler
         this.scale.on('resize', this.onResize, this);
+
+        // Add shutdown handler for cleanup
+        this.events.on(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
     }
 
     // Generate a random level based on difficulty (adapted from Section 5.4)
@@ -229,7 +240,7 @@ export class LevelSelector extends Scene {
             height * 0.2,
             `Select Difficulty, ${this.username}!`,
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '36px',
                 color: '#ffffff',
                 stroke: '#000000',
@@ -255,7 +266,7 @@ export class LevelSelector extends Scene {
                 buttonY,
                 btn.text,
                 {
-                    fontFamily: '"Pixelify Sans", cursive',
+                    fontFamily: '"Silkscreen", cursive',
                     fontSize: '24px',
                     color: '#ffffff',
                     backgroundColor: isConfirm ? (this.confirmEnabled ? '#5abe3b' : '#333333') : 
@@ -348,64 +359,120 @@ export class LevelSelector extends Scene {
         this.setupStartButton();
     }
 
-    // Display pet status
+    // Display pet status (Refactored)
     setupPetStatus() {
+        // Clear previous elements if any
+        this.petStatusElements.forEach(el => el.destroy());
+        this.petStatusElements = [];
+        if (this.petStatusContainer) this.petStatusContainer.destroy();
+
+        // Fetch latest pet data from context
+        const globalContext = getGlobalContext();
+        // Use context data if available, otherwise use the data from init
+        const currentPetData = globalContext?.userData?.selectedPet || this.petData;
+
+        // --- Debugging Start ---
+        console.log("currentPetData in setupPetStatus:", JSON.stringify(currentPetData, null, 2));
+        // --- Debugging End ---
+
+        if (!currentPetData) {
+            console.warn("No pet data available for status display.");
+            return;
+        }
+        console.log("Setting up pet status with:", currentPetData);
+
+
         const { width, height } = this.scale;
-        this.petStatusContainer = this.add.container(width * 0.15, height * 0.2).setDepth(2);
+        // Use consistent positioning logic (adjust as needed for layout)
+        const containerX = width * 0.15;
+        const containerY = height * 0.2;
+        this.petStatusContainer = this.add.container(containerX, containerY).setDepth(2);
 
-        this.petStatusContainer.add(
-            this.add.rectangle(0, 0, 150, 160, 0x000000, 0.7)
-                .setStrokeStyle(2, 0xffffff)
-        );
+        const panelWidth = 160; // Increased width slightly
+        const panelHeight = 180; // Increased height for EXP bar
 
-        const stats = [
-            { name: 'HP', value: this.pet.hp },
-            { name: 'Stamina', value: this.pet.stamina },
-            { name: 'Level', value: this.pet.level }
+        const backgroundRect = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.7)
+            .setStrokeStyle(2, 0xffffff)
+            .setOrigin(0.5); // Center the background
+        this.petStatusContainer.add(backgroundRect);
+        this.petStatusElements.push(backgroundRect); // Add for cleanup
+
+        // Use stats from the currentPetData.stats object, provide defaults if stats or specific stat is missing
+        const petStats = currentPetData.stats || {};
+        const petAttr = currentPetData.attributes || {};
+
+        const petHp = petStats.hp !== undefined ? petStats.hp : 'N/A';
+        const petStamina = (petAttr.stamina !== undefined && petAttr.stamina !== null) ? petAttr.stamina : 'N/A';
+        const petLevel = currentPetData.level !== undefined ? currentPetData.level : 'N/A';
+        const petExp = currentPetData.experience !== undefined ? currentPetData.experience : 0;
+        const nextLevelXP = (petLevel !== 'N/A' ? petLevel * petLevel * 100 : 100);
+
+        const statsToDisplay = [
+            { name: 'HP', value: petHp },
+            { name: 'Stamina', value: petStamina }, // Use the checked value
+            { name: 'Level', value: petLevel },
+
         ];
 
-        stats.forEach((stat, index) => {
-            const yOffset = index * 25 - 40;
+        const textStyle = {
+            fontFamily: '"Silkscreen", cursive', // Changed font
+            fontSize: '16px',
+            color: '#ffffff'
+        };
+        const labelX = -panelWidth / 2 + 15; // Padding from left edge
+        const valueX = panelWidth / 2 - 15; // Padding from right edge
+
+        statsToDisplay.forEach((stat, index) => {
+            const yOffset = -panelHeight / 2 + 30 + index * 30; // Position from top
+
             const label = this.add.text(
-                -60,
+                labelX,
                 yOffset,
                 `${stat.name}:`,
-                {
-                    fontFamily: '"Pixelify Sans", cursive',
-                    fontSize: '16px',
-                    color: '#ffffff'
-                }
+                textStyle
             ).setOrigin(0, 0.5);
 
             const value = this.add.text(
-                60,
+                valueX,
                 yOffset,
                 `${stat.value}`,
-                {
-                    fontFamily: '"Pixelify Sans", cursive',
-                    fontSize: '16px',
-                    color: '#ffffff'
-                }
+                textStyle
             ).setOrigin(1, 0.5);
 
             this.petStatusContainer.add([label, value]);
+            this.petStatusElements.push(label, value); // Add for cleanup
         });
-        // Experience
-        const exp = this.pet.experience || 0;
-        const nextLevelXP = (this.pet.level || 1) * (this.pet.level || 1) * 100;
-        const expText = this.add.text(-60, 55, `EXP: ${exp}/${nextLevelXP}`, {
-            fontFamily: '"Pixelify Sans", cursive',
+
+        // Experience Text and Bar
+        const expYOffset = -panelHeight / 2 + 30 + statsToDisplay.length * 30; // Below last stat
+        const expText = this.add.text(labelX, expYOffset, `EXP: ${petExp}/${nextLevelXP}`, {
+            ...textStyle,
             fontSize: '14px',
             color: '#88ffff',
-            stroke: '#000000',
-            strokeThickness: 2
         }).setOrigin(0, 0.5);
-        this.petStatusContainer.add(expText);
-        // Experience bar
-        const expBarBg = this.add.rectangle(-60, 75, 80, 8, 0x333366).setOrigin(0, 0.5);
-        const expBarWidth = Math.max(0, Math.min(1, exp / nextLevelXP)) * 80;
-        const expBarFill = this.add.rectangle(-60, 75, expBarWidth, 8, 0x44e0ff).setOrigin(0, 0.5);
-        this.petStatusContainer.add([expBarBg, expBarFill]);
+
+        const barWidth = panelWidth - 30; // Bar width with padding
+        const barYOffset = expYOffset + 20; // Below EXP text
+
+        const expBarBg = this.add.rectangle(labelX, barYOffset, barWidth, 10, 0x333366).setOrigin(0, 0.5);
+        const fillWidth = Math.max(0, Math.min(1, petExp / nextLevelXP)) * barWidth;
+        const expBarFill = this.add.rectangle(labelX, barYOffset, fillWidth, 10, 0x44e0ff).setOrigin(0, 0.5);
+
+        this.petStatusContainer.add([expText, expBarBg, expBarFill]);
+        this.petStatusElements.push(expText, expBarBg, expBarFill); // Add for cleanup
+
+        // Initial positioning based on orientation
+        this.updatePetStatusPosition();
+    }
+
+    // Helper to update pet status position on resize/layout change
+    updatePetStatusPosition() {
+        if (!this.petStatusContainer) return;
+        const { width, height } = this.scale;
+        const isPortrait = height > width;
+        const containerX = isPortrait ? width * 0.5 : width * 0.15; // Center in portrait, left in landscape
+        const containerY = isPortrait ? height * 0.15 : height * 0.3; // Adjust Y pos
+        this.petStatusContainer.setPosition(containerX, containerY);
     }
 
     // Show generated level details
@@ -418,7 +485,7 @@ export class LevelSelector extends Scene {
             height * 0.3,
             this.generatedLevel.name,
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '32px',
                 color: '#ffffff',
                 stroke: '#000000',
@@ -442,7 +509,7 @@ export class LevelSelector extends Scene {
             height * 0.45,
             this.generatedLevel.description,
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '18px',
                 color: '#ffffff',
                 align: 'center',
@@ -457,7 +524,7 @@ export class LevelSelector extends Scene {
             `Enemy: ${this.generatedLevel.enemies[0]}\n` +
             `Rewards: ${this.generatedLevel.rewards.join(', ')}`,
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#ffffff',
                 align: 'center',
@@ -482,7 +549,7 @@ export class LevelSelector extends Scene {
             0,
             'START',
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ffffff',
                 stroke: '#000000',
@@ -513,6 +580,47 @@ export class LevelSelector extends Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+    }
+
+    // Add Return to Menu button
+    setupReturnButton() {
+        const { width, height } = this.scale;
+        const buttonX = width * 0.1; // Position top-left
+        const buttonY = height * 0.1;
+
+        this.returnButton = this.add.text(
+            buttonX,
+            buttonY,
+            '< Back to Menu',
+            {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '20px',
+                color: '#ffffff',
+                backgroundColor: '#555555',
+                padding: { x: 15, y: 8 },
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(3); // Ensure it's above overlay
+
+        this.returnButton.on('pointerover', () => {
+            this.returnButton.setStyle({ backgroundColor: '#777777' });
+        });
+
+        this.returnButton.on('pointerout', () => {
+            this.returnButton.setStyle({ backgroundColor: '#555555' });
+        });
+
+        this.returnButton.on('pointerdown', () => {
+            this.returnButton.setStyle({ backgroundColor: '#333333' });
+            // Add fade out and transition
+            this.cameras.main.fadeOut(500, 0, 0, 0);
+            this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                // Pass necessary data back if needed, though MainMenu re-fetches context
+                this.scene.start('MainMenu', { username: this.username }); 
+            });
+        });
+        this.petStatusElements.push(this.returnButton); // Add for cleanup
     }
 
     // Reset to difficulty selection
@@ -551,7 +659,7 @@ export class LevelSelector extends Scene {
         console.log('Starting level:', this.generatedLevel.name);
 
         // Validate pet
-        if (this.pet.stamina < 10) {
+        if (this.petData.stats.stamina < 10) {
             console.warn('Pet too tired');
             this.showError('Your pet is too tired!');
             return;
@@ -571,7 +679,7 @@ export class LevelSelector extends Scene {
         this.cameras.main.fadeOut(800, 0, 0, 0);
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
             this.scene.start('BattleSystem', {
-                pet: this.pet,
+                pet: this.petData,
                 levelData: {
                     ...this.generatedLevel,
                     selectedDifficulty: this.selectedDifficulty
@@ -592,7 +700,7 @@ export class LevelSelector extends Scene {
             height / 0.8,
             message,
             {
-                fontFamily: '"Pixelify Sans", cursive',
+                fontFamily: '"Silkscreen", cursive',
                 fontSize: '24px',
                 color: '#ff0000',
                 stroke: '#ffffff',
@@ -626,10 +734,7 @@ export class LevelSelector extends Scene {
         } else {
             this.setupLandscapeLayout();
         }
-        if (this.generatedLevel) {
-            this.setupLevelInfo();
-            this.setupStartButton();
-        }
+        this.updatePetStatusPosition(); // Update pet status position
     }
 
     // Portrait layout
@@ -664,6 +769,9 @@ export class LevelSelector extends Scene {
         }
         if (this.startButton) {
             this.startButton.setPosition(width * 0.85, height * 0.85);
+        }
+        if (this.returnButton) {
+            this.returnButton.setPosition(width * 0.5, height * 0.05);
         }
     }
 
@@ -700,5 +808,52 @@ export class LevelSelector extends Scene {
         if (this.startButton) {
             this.startButton.setPosition(width * 0.85, height * 0.85);
         }
+        if (this.returnButton) {
+            this.returnButton.setPosition(width * 0.1, height * 0.1);
+        }
+    }
+
+    // Scene shutdown cleanup
+    shutdown() {
+        console.log('LevelSelector shutdown: Cleaning up resources.');
+        // Remove event listeners
+        this.scale.off('resize', this.onResize, this);
+        this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
+        // Destroy UI elements created in this scene
+        this.petStatusElements.forEach(el => {
+            if (el && el.scene) el.destroy(); // Check if element exists and belongs to scene
+        });
+        this.petStatusElements = [];
+
+        if (this.petStatusContainer && this.petStatusContainer.scene) this.petStatusContainer.destroy();
+        if (this.headerText && this.headerText.scene) this.headerText.destroy();
+        if (this.confirmButton && this.confirmButton.scene) this.confirmButton.destroy();
+        this.difficultyButtons.forEach(button => {
+            if (button && button.scene) button.destroy();
+        });
+        this.difficultyButtons = [];
+        if (this.levelHeader && this.levelHeader.scene) this.levelHeader.destroy();
+        if (this.infoPanel && this.infoPanel.scene) this.infoPanel.destroy();
+        if (this.descriptionText && this.descriptionText.scene) this.descriptionText.destroy();
+        if (this.detailsText && this.detailsText.scene) this.detailsText.destroy();
+        if (this.startButton && this.startButton.scene) this.startButton.destroy();
+        if (this.returnButton && this.returnButton.scene) this.returnButton.destroy(); // Ensure return button is destroyed
+        if (this.errorText && this.errorText.scene) this.errorText.destroy();
+
+        // Nullify references
+        this.petStatusContainer = null;
+        this.headerText = null;
+        this.confirmButton = null;
+        this.levelHeader = null;
+        this.infoPanel = null;
+        this.descriptionText = null;
+        this.detailsText = null;
+        this.startButton = null;
+        this.returnButton = null;
+        this.errorText = null;
+        this.petData = null; // Clear pet data reference
+        this.generatedLevel = null;
+        this.enemy = null;
     }
 }

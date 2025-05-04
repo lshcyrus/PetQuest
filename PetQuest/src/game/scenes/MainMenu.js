@@ -164,7 +164,7 @@ export class MainMenu extends Scene {
         // Experience bar above pet
         const exp = this.petData.experience || 0;
         const nextLevelXP = (this.petData.level || 1) * (this.petData.level || 1) * 100;
-        const expBarY = height * 0.7; // Above the pet name
+        const expBarY = height * 0.6; // Above the pet name
         const expBarWidth = Math.min(width * 0.4, 260);
         const expBarX = width * 0.5 - expBarWidth / 2;
         // Bar background
@@ -370,7 +370,7 @@ export class MainMenu extends Scene {
         
         // Example: Default landscape layout
         if (this.pet) {
-            this.pet.setPosition(width / 2, height * 0.8);
+            this.pet.setPosition(width / 2, height * 0.7);
         }
         
         // Other UI adjustments...
