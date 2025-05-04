@@ -217,25 +217,60 @@ export class MainMenu extends Scene {
     setupPet() {
         const { width, height } = this.scale;
         const centerX = width * 0.5;
-        
         if (!this.petData) {
             console.warn('No pet data available to display');
             return;
         }
-        
         console.log('Setting up pet with data:', this.petData);
-        
         // Create pet using the Pet class
-        this.pet = new Pet(this, this.petData, centerX, height * 0.8);
-        
+        this.pet = new Pet(this, this.petData, centerX, height * 0.5);
         // Calculate pet scale based on screen size
-        const baseScale = Math.min(width, height) * 0.00095;
-        
+        const baseScale = Math.min(width, height) * 0.0012;
         // Create the sprite
         this.pet.create(baseScale, 1);
-        
         // Create interactive name display with rename button
-        this.pet.createInteractiveNameDisplay(-height * 0.1, () => this.showRenameDialog());
+        this.pet.createInteractiveNameDisplay(-height * 0.13, () => this.showRenameDialog());
+        // --- Pet Stats Panel ---
+        this.createPetStatsPanel(centerX, height * 0.65);
+    }
+
+    createPetStatsPanel(x, y) {
+        // Remove old panel if exists
+        if (this.petStatsPanel) this.petStatsPanel.destroy();
+        // Panel container
+        this.petStatsPanel = this.add.container(x, y);
+        // Stat config
+        const statConfig = [
+            { key: 'hp', label: 'HP', color: 0x55ff55, max: 5000 },
+            { key: 'sp', label: 'SP', color: 0x3399ff, max: 1000 },
+            { key: 'atk', label: 'ATK', color: 0xff5555, max: 400 },
+            { key: 'def', label: 'DEF', color: 0xff9900, max: 400 }
+        ];
+        const stats = this.petData.stats || {};
+        this.petStatsBars = {};
+        statConfig.forEach((stat, i) => {
+            const yOffset = i * 32;
+            // Label
+            const label = this.add.text(-120, yOffset, stat.label, {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff'
+            }).setOrigin(0, 0.5);
+            // Bar background
+            const barBg = this.add.rectangle(-30, yOffset, 140, 16, 0x333333).setOrigin(0, 0.5);
+            // Bar fill
+            const value = stats[stat.key] || 0;
+            const barWidth = Math.max(0, Math.min(1, value / stat.max)) * 140;
+            const barFill = this.add.rectangle(-30, yOffset, barWidth, 16, stat.color).setOrigin(0, 0.5);
+            // Value text
+            const valueText = this.add.text(120, yOffset, `${value}`, {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff'
+            }).setOrigin(1, 0.5);
+            this.petStatsPanel.add([label, barBg, barFill, valueText]);
+            this.petStatsBars[stat.key] = { barFill, valueText, stat };
+        });
     }
 
     // Scale background to fit screen
