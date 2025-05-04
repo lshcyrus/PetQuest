@@ -10,8 +10,15 @@ exports.validateRegister = [
 ];
 
 exports.validateLogin = [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').exists().withMessage('Password is required')
+  body('email').optional().isEmail().withMessage('Please provide a valid email'),
+  body('username').optional().isLength({ min: 3 }).withMessage('Username must be at least 3 characters long'),
+  body('password').exists().withMessage('Password is required'),
+  body().custom(body => {
+    if (!body.email && !body.username) {
+      throw new Error('Please provide either email or username');
+    }
+    return true;
+  })
 ];
 
 exports.validatePetCreation = [

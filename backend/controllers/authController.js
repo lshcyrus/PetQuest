@@ -26,38 +26,37 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    
-    // Check if email and password are provided
-    if (!email || !password) {
+    const { email, username, password } = req.body;
+    // Check if username/email and password are provided
+    if ((!email && !username) || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide an email and password'
+        error: 'Please provide a username or email and password'
       });
     }
-    
-    // Check for  User Existence
-    const user = await User.findOne({ email }).select('+password');
-    
+    // Find user by email or username
+    let user;
+    if (email) {
+      user = await User.findOne({ email }).select('+password');
+    } else if (username) {
+      user = await User.findOne({ username }).select('+password');
+    }
     if (!user) {
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
-    
     // Check if password matches
     const isMatch = await user.matchPassword(password);
-    
     if (!isMatch) {
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
-    
     // Create token
-    sendTokenResponse(user, 200, res); // 200 status code indicates a successful login
+    sendTokenResponse(user, 200, res);
   } catch (err) {
     next(err);
   }

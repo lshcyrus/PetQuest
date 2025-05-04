@@ -536,25 +536,19 @@ export class FirstLogin extends Scene {
     
     confirmPetSelection() {
         const selectedPet = this.pets[this.selectedPetIndex];
-        
         // Get custom name from input field
         const customName = this.nameInput.node.value.trim();
-        
         // Validate name - if empty, use default pet name
         const petName = customName || selectedPet.name;
-        
         // Get global context
         const globalContext = getGlobalContext();
         if (globalContext) {
-            console.log(`Selected pet: ${selectedPet.key} with name: ${petName}`);
-
-            // Create the pet on the server first
-            this.createAndSelectPet(selectedPet, petName, globalContext);
+            // Always send a deep copy of the default stats for the selected pet
+            const statsCopy = JSON.parse(JSON.stringify(selectedPet.stats));
+            this.createAndSelectPet({ ...selectedPet, stats: statsCopy }, petName, globalContext);
         }
-        
         // Transition to next scene with fade
         this.cameras.main.fadeOut(800, 0, 0, 0);
-        
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
             // Go to the main menu
             this.scene.start('MainMenu', { firstLogin: true });
@@ -613,21 +607,16 @@ export class FirstLogin extends Scene {
                     
                     if (petsResponse.ok && petsData.success && petsData.data && petsData.data.length > 0) {
                         console.log('Found existing pets:', petsData.data);
-                        
                         // Use the first pet
                         let existingPet = petsData.data[0];
-                        
-                        // Add the frontend stats to the backend pet data
+                        // Do NOT overwrite backend stats with frontend stats
                         existingPet.key = existingPet.key || petData.key; // Use existing key or fallback to selected one
-                        existingPet.stats = petData.stats;
-                        
                         // Update the global context with the existing pet
                         globalContext.updateUserData({
                             selectedPet: existingPet,
                             hasSelectedPet: true,
                             isFirstLogin: false
                         });
-                        
                         console.log('Updated global context with existing pet:', existingPet);
                         return;
                     } else {
@@ -655,17 +644,13 @@ export class FirstLogin extends Scene {
             
             // Add the frontend data to the backend pet for rendering
             if (createdPet) {
-                // Add the frontend stats to the backend pet data
+                // Do NOT overwrite backend stats with frontend stats
                 // The key is already included in the pet data from the server
-                createdPet.stats = petData.stats;
-                
-                // Update the global context
                 globalContext.updateUserData({
                     selectedPet: createdPet,
                     hasSelectedPet: true,
                     isFirstLogin: false
                 });
-                
                 console.log('Updated global context with pet:', createdPet);
             }
             

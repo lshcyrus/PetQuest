@@ -23,8 +23,12 @@ const LoginPage = ({ onLogin }) => {
                 return;
             }
         } else if (!isRegister) {
-            if (!email || !password) {
-                setError('Please enter both email and password');
+            if (!email && !username) {
+                setError('Please enter your username or email and password');
+                return;
+            }
+            if (!password) {
+                setError('Please enter your password');
                 return;
             }
         }
@@ -38,12 +42,21 @@ const LoginPage = ({ onLogin }) => {
             setIsLoggingIn(true);
             
             // Login logic
+            let loginPayload = { password };
+            // If the input contains '@', treat as email, else as username
+            if (email && email.includes('@')) {
+                loginPayload.email = email;
+            } else if (email) {
+                loginPayload.username = email;
+            } else if (username) {
+                loginPayload.username = username;
+            }
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify(loginPayload),
             });
             
             const loginData = await response.json();
@@ -63,9 +76,11 @@ const LoginPage = ({ onLogin }) => {
             // The API now returns { success: true, token, data: { username, ... } }
             if (loginData.data && loginData.data.username) {
                 username = loginData.data.username;
+            } else if (loginPayload.username) {
+                username = loginPayload.username;
             } else {
                 // Fallback if username not in expected location
-                username = email.split('@')[0];
+                username = (loginPayload.email || '').split('@')[0];
             }
             
             // Store username for the App component
@@ -156,26 +171,20 @@ const LoginPage = ({ onLogin }) => {
                     <div className="login-panel-background"></div>
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            {
-                                isRegister ? (
-                                    <input
-                                        className='username-input'
-                                        type="text"
-                                        placeholder="Username"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                    />
-                                ) : (
-                                    <input
-                                        className='username-input'
-                                        style={{ fontSize: '20px' }}
-                                        type="text"
-                                        placeholder="Email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                    />
-                                )
-                            }
+                            <input
+                                className='username-input'
+                                style={{ fontSize: '20px' }}
+                                type="text"
+                                placeholder={isRegister ? "Username" : "Username or Email"}
+                                value={isRegister ? username : email}
+                                onChange={(e) => {
+                                    if (isRegister) {
+                                        setUsername(e.target.value);
+                                    } else {
+                                        setEmail(e.target.value);
+                                    }
+                                }}
+                            />
                         </div>
                         <div className="form-group">
                             <input
