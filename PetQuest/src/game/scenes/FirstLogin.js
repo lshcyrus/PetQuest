@@ -576,7 +576,7 @@ export class FirstLogin extends Scene {
                 key: petData.key 
             });
             
-            // Create a new pet on the server with the selected name and key
+            // Create a new pet on the server with the selected name, key, and stats
             const response = await fetch(`${API_URL}/pets`, {
                 method: 'POST',
                 headers: {
@@ -586,7 +586,7 @@ export class FirstLogin extends Scene {
                 body: JSON.stringify({
                     name: customName,
                     key: petData.key, // Send the key to the backend
-                    species: "dragon" // Always include a default species for backward compatibility
+                    stats: petData.stats // Send the full stats object
                 })
             });
             

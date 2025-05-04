@@ -15,15 +15,11 @@ exports.checkLevelUp = (pet) => {
       pet.level += 1;
       pet.experience -= requiredXP;
       
-      // Increase pet stats
-      pet.skills.strength += Math.floor(Math.random() * 3) + 1;
-      pet.skills.intelligence += Math.floor(Math.random() * 3) + 1;
-      pet.skills.agility += Math.floor(Math.random() * 3) + 1;
-      pet.skills.charisma += Math.floor(Math.random() * 3) + 1;
-      
-      // Restore pet health and energy
-      pet.attributes.health = 100;
-      pet.attributes.energy = 100;
+      // Increase pet stats (use atk, def, hp, sp)
+      pet.stats.atk += Math.floor(Math.random() * 5) + 1;
+      pet.stats.def += Math.floor(Math.random() * 5) + 1;
+      pet.stats.hp += Math.floor(Math.random() * 20) + 10;
+      pet.stats.sp += Math.floor(Math.random() * 10) + 5;
       
       return {
         pet,
@@ -51,19 +47,14 @@ exports.checkLevelUp = (pet) => {
     const levelDifference = pet.level - quest.requirements.minLevel;
     successChance += levelDifference * 5;
     
-    // Adjust based on pet stats vs quest requirements
-    const strengthDiff = pet.skills.strength - quest.requirements.minStrength;
-    const intelligenceDiff = pet.skills.intelligence - quest.requirements.minIntelligence;
-    const agilityDiff = pet.skills.agility - quest.requirements.minAgility;
-    const charismaDiff = pet.skills.charisma - quest.requirements.minCharisma;
+    // Adjust based on pet stats vs quest requirements (use atk/def)
+    const atkDiff = (pet.stats.atk || 0) - (quest.requirements.minAtk || 0);
+    const defDiff = (pet.stats.def || 0) - (quest.requirements.minDef || 0);
+    const hpDiff = (pet.stats.hp || 0) - (quest.requirements.minHp || 0);
+    const spDiff = (pet.stats.sp || 0) - (quest.requirements.minSp || 0);
+    successChance += (atkDiff + defDiff) * 2 + (hpDiff + spDiff) * 0.1;
     
-    successChance += (strengthDiff + intelligenceDiff + agilityDiff + charismaDiff) * 2;
-    
-    // Adjust based on pet health and happiness
-    if (pet.attributes.health < 50) {
-      successChance -= (50 - pet.attributes.health) * 0.5;
-    }
-    
+    // Adjust based on pet happiness
     if (pet.attributes.happiness < 50) {
       successChance -= (50 - pet.attributes.happiness) * 0.3;
     }

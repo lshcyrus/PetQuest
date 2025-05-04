@@ -11,16 +11,9 @@ const petSchema = new mongoose.Schema({
         required: [true, "Please enter pet name"],
         trim: true
     },
-    // Make species optional with a default value
-    species: {
-        type: String,
-        required: false,
-        default: "dragon",
-        enum: ["dog", "cat", "dragon", "phoenix", "unicorn"]
-    },
     key: {
         type: String,
-        default: "fire_dragon" // Default pet type key for frontend rendering
+        default: "badger" // Default pet type key for frontend rendering
     },
     level: {
         type: Number,
@@ -30,12 +23,15 @@ const petSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-
+    // New stats field for frontend rendering
+    stats: {
+        hp: { type: Number, required: true, default: 500 },
+        sp: { type: Number, required: true, default: 100 },
+        atk: { type: Number, required: true, default: 100 },
+        def: { type: Number, required: true, default: 100 }
+    },
+    // Old attributes, remove health
     attributes: {
-        health: {
-            type: Number,
-            default: 100
-        },
         happiness: {
             type: Number,
             default: 100
@@ -53,37 +49,18 @@ const petSchema = new mongoose.Schema({
             default: 100
         }
     },
-
-    skills: {
-        strength: {
-            type: Number,
-            default: 10
-        },
-        agility: {
-            type: Number,
-            default: 10 
-        },
-        intelligence: {
-            type: Number,
-            default: 10
-        }
-    },
-
     lastFed: {
         type: Date,
         default: Date.now
     },
-
     lastInteraction: {
         type: Date,
         default: Date.now
     },
-
     completedQuests: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Quest"
     },
-
     createdAt: {
         type: Date,
         default: Date.now

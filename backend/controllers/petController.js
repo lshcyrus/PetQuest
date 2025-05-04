@@ -165,7 +165,6 @@ exports.feedPet = async (req, res, next) => {
     
     // Apply item effects to pet
     pet.attributes.hunger = Math.min(100, pet.attributes.hunger + item.effects.hunger);
-    pet.attributes.health = Math.min(100, pet.attributes.health + item.effects.health);
     pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
     pet.experience += item.effects.experience;
     

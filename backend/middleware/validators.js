@@ -14,15 +14,12 @@ exports.validateLogin = [
   body('password').exists().withMessage('Password is required')
 ];
 
-exports.validatePetCreation = [ // ************************** changeable
+exports.validatePetCreation = [
   body('name').trim().isLength({ min: 1 })
     .withMessage('Pet name is required'),
   body('key').optional() // Make key optional, it has a default in the schema
     .isString()
-    .withMessage('Invalid pet key format'),
-  body('species').optional() // Make species optional, it has a default in the schema
-    .isIn(['dog', 'cat', 'dragon', 'phoenix', 'unicorn'])
-    .withMessage('Invalid pet species')
+    .withMessage('Invalid pet key format')
 ];
 
 exports.validatePetRename = [
