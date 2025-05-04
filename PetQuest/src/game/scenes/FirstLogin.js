@@ -52,21 +52,21 @@ export class FirstLogin extends Scene {
                 name: 'Badger',
                 description: 'A badger with a sharp sense of smell.',
                 stats: {
-                    hp: 100,
+                    hp: 500,
                     sp: 100,    
-                    atk: 90,
-                    def: 50
+                    atk: 120,
+                    def: 100
                 }
             },
             {
                 key: 'dino_rex',
                 name: 'Dino Rex',
-                description: 'A dinosaur that can run fast.',
+                description: 'A dinosaur that is a bit more aggressive.',
                 stats: {
-                    hp: 200,
+                    hp: 550,
                     sp: 50,    
-                    atk: 50,
-                    def: 60
+                    atk: 180,
+                    def: 160
                 }
             },
             {
@@ -74,10 +74,10 @@ export class FirstLogin extends Scene {
                 name: 'Dino Tri',
                 description: 'A dinosaur that is acutally cuter than the other ones.',
                 stats: {
-                    hp: 150,
-                    sp: 100,    
-                    atk: 100,
-                    def: 50
+                    hp: 550,
+                    sp: 80,    
+                    atk: 120,
+                    def: 200
                 }
             },
             {
@@ -85,10 +85,10 @@ export class FirstLogin extends Scene {
                 name: 'Frogger',
                 description: 'A frog that can jump high.',
                 stats: {
-                    hp: 100,
+                    hp: 400,
                     sp: 100,    
-                    atk: 50,
-                    def: 60
+                    atk: 250,
+                    def: 100
                 }
             },
             {
@@ -96,10 +96,10 @@ export class FirstLogin extends Scene {
                 name: 'Pengu',
                 description: 'A penguin that can swim in the water.',
                 stats: {
-                    hp: 70,
-                    sp: 130,    
-                    atk: 60,
-                    def: 50
+                    hp: 500,
+                    sp: 100,    
+                    atk: 160,
+                    def: 90
                 }
             }
         ];
@@ -235,7 +235,7 @@ export class FirstLogin extends Scene {
         const { width, height } = this.scale;
         
         // Container for pets
-        this.petContainer = this.add.container(width / 2, height * 0.4);
+        this.petContainer = this.add.container(width / 2, height * 0.3);
         
         // Create pet sprites
         this.petSprites = [];
@@ -305,16 +305,14 @@ export class FirstLogin extends Scene {
     setupInfoPanel() {
         const { width, height } = this.scale;
         
-        // Create panel background
+        // Create panel background (no border, no semi-transparent background)
         const panelWidth = width * 0.8;
         const panelHeight = height * 0.25;
         const panelX = width / 2;
         const panelY = height * 0.75;
-        
-        // Panel background
-        this.infoPanel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x000000, 0.7)
-            .setOrigin(0.5)
-            .setStrokeStyle(2, 0xffffff);
+        // Remove background and border for infoPanel
+        this.infoPanel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x000000, 0)
+            .setOrigin(0.5);
         
         // Description text
         this.descriptionText = this.add.text(
@@ -358,15 +356,16 @@ export class FirstLogin extends Scene {
             inputElement.style.height = '36px';
             inputElement.style.fontSize = '20px';
             inputElement.style.padding = '4px 10px';
-            inputElement.style.borderRadius = '5px';
+            inputElement.style.borderRadius = '8px';
             inputElement.style.border = '2px solid #4a9e2f';
-            inputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            inputElement.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
             inputElement.style.color = 'white';
             inputElement.style.outline = 'none';
+            inputElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
             inputElement.maxLength = 20; // Limit name length
+            inputElement.placeholder = this.pets[this.selectedPetIndex].name; // Set placeholder to default name
         } catch (error) {
             console.error('Error creating DOM input element:', error);
-            
             // Fallback: Use Phaser text as input
             this.createFallbackInput(width / 2 + 50, height * 0.64);
         }
@@ -374,10 +373,9 @@ export class FirstLogin extends Scene {
         // Stats container
         this.statsContainer = this.add.container(width / 2, height * 0.78);
         
-        // Stats panel background for landscape mode
-        this.statsPanel = this.add.rectangle(0, 0, 300, 180, 0x000000, 0.7)
-            .setOrigin(0.5)
-            .setStrokeStyle(2, 0xffffff);
+        // Stats panel background for landscape mode (no border, no semi-transparent background)
+        this.statsPanel = this.add.rectangle(0, 0, 300, 180, 0x000000, 0)
+            .setOrigin(0.5);
         this.statsContainer.add(this.statsPanel);
         
         // Stats title
@@ -390,42 +388,41 @@ export class FirstLogin extends Scene {
         }).setOrigin(0.5);
         this.statsContainer.add(statsTitle);
         
-        // Create stat bars
-        const statNames = ['Health', 'Attack', 'Defense', 'Speed'];
+        // Create stat bars for hp, sp, atk, def
+        const statNames = [
+            { key: 'hp', label: 'HP' },
+            { key: 'sp', label: 'SP' },
+            { key: 'atk', label: 'ATK' },
+            { key: 'def', label: 'DEF' }
+        ];
         this.statBars = {};
         
         statNames.forEach((stat, index) => {
             const yOffset = index * 30;
             const x = -30;
             const y = yOffset - 40;
-            
             // Label
-            const label = this.add.text(x - 100, y, stat, {
+            const label = this.add.text(x - 100, y, stat.label, {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
-            
             // Bar background
             const barBg = this.add.rectangle(x, y, 140, 15, 0x333333)
                 .setOrigin(0, 0.5);
-                
             // Bar fill
-            const barFill = this.add.rectangle(x, y, 0, 15, this.getStatColor(stat))
+            const barFill = this.add.rectangle(x, y, 0, 15, this.getStatColor(stat.key))
                 .setOrigin(0, 0.5);
-                
             // Value text
             const valueText = this.add.text(x + 150, y, '', {
                 fontFamily: '"Silkscreen", cursive',
                 fontSize: '16px',
                 color: '#ffffff'
             }).setOrigin(0, 0.5);
-                
             // Add to container
             this.statsContainer.add([label, barBg, barFill, valueText]);
-            
             // Store reference to update later
-            this.statBars[stat.toLowerCase()] = {
+            this.statBars[stat.key] = {
                 fill: barFill,
                 text: valueText
             };
@@ -503,34 +500,34 @@ export class FirstLogin extends Scene {
     
     updatePetInfo() {
         const currentPet = this.pets[this.selectedPetIndex];
-        
         // Update pet name
         this.petName.setText(currentPet.name);
-        
         // Set default name in the input field if it's empty
         const inputElement = this.nameInput.node;
         if (!inputElement.value) {
-            inputElement.value = currentPet.name;
+            inputElement.value = '';
         }
-        
+        inputElement.placeholder = currentPet.name;
         // Update description
         this.descriptionText.setText(currentPet.description);
-        
         // Update stats
         const stats = currentPet.stats;
-        
+        // Define stat maximums for bar ratio
+        const statMax = { hp: 5000, sp: 1000, atk: 400, def: 400 };
         // Animate stats bars
-        for (const [statName, value] of Object.entries(stats)) {
-            const bar = this.statBars[statName];
+        for (const statKey of ['hp', 'sp', 'atk', 'def']) {
+            const value = stats[statKey];
+            const bar = this.statBars[statKey];
             if (bar) {
-                // Animate the bar fill
+                // Calculate bar width based on max
+                const max = statMax[statKey] || 100;
+                const width = Math.max(0, Math.min(1, value / max)) * 140;
                 this.tweens.add({
                     targets: bar.fill,
-                    width: value * 1.4, // Scale to fit the 140px bar
+                    width: width,
                     duration: 400,
                     ease: 'Power2'
                 });
-                
                 // Update text value
                 bar.text.setText(`${value}`);
             }
@@ -681,10 +678,10 @@ export class FirstLogin extends Scene {
     getStatColor(stat) {
         // Different colors for different stats
         switch(stat.toLowerCase()) {
-            case 'hp': return 0xff5555;
-            case 'sp': return 0x55ff55;
-            case 'atk': return 0xff9900;
-            case 'def': return 0x3399ff;
+            case 'hp': return 0x55ff55;
+            case 'sp': return 0x3399ff;
+            case 'atk': return 0xff5555;
+            case 'def': return 0xff9900;
             
             default: return 0xffffff;
         }
@@ -730,17 +727,17 @@ export class FirstLogin extends Scene {
         this.promptText.setPosition(width / 2, 110);
         
         // Pet in the center
-        this.petContainer.setPosition(width / 2, height * 0.35);
-        this.petName.setPosition(width / 2, height * 0.5);
-        this.pageIndicator.setPosition(width / 2, height * 0.54);
+        this.petContainer.setPosition(width / 2, height * 0.3);
+        this.petName.setPosition(width / 2, height * 0.4);
+        this.pageIndicator.setPosition(width / 2, height * 0.5);
         
         // Navigation arrows
         this.leftArrow.setPosition(width / 2 - 180, height * 0.35);
         this.rightArrow.setPosition(width / 2 + 180, height * 0.35);
         
         // Name input
-        this.nameLabel.setPosition(width / 2 - 150, height * 0.62);
-        this.nameInput.setPosition(width / 2 + 50, height * 0.62);
+        this.nameLabel.setPosition(width / 2 - 150, height * 0.65);
+        this.nameInput.setPosition(width / 2 + 50, height * 0.65);
         
         // Description at the bottom
         this.infoPanel.setSize(width * 0.9, height * 0.25);
@@ -819,44 +816,47 @@ export class FirstLogin extends Scene {
 
     createFallbackInput(x, y) {
         // Create a background rectangle for the input field
-        const inputBg = this.add.rectangle(x, y, 200, 36, 0x000000, 0.7)
+        const inputBg = this.add.rectangle(x, y, 200, 36, 0x000000, 0.85)
             .setOrigin(0, 0.5)
-            .setStrokeStyle(2, 0x4a9e2f);
-        
+            .setStrokeStyle(2, 0x4a9e2f)
+            .setDepth(2);
         // Create text for the input
         const currentPet = this.pets[this.selectedPetIndex];
-        this.nameInput = this.add.text(x + 10, y, currentPet.name, {
+        this.nameInput = this.add.text(x + 10, y, '', {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '20px',
             color: '#ffffff',
-            fixedWidth: 180
-        }).setOrigin(0, 0.5);
-        
+            fixedWidth: 180,
+            backgroundColor: 'rgba(0,0,0,0)',
+            padding: { left: 8, right: 8, top: 4, bottom: 4 }
+        }).setOrigin(0, 0.5).setDepth(3);
+        this.nameInput.setText('');
+        this.nameInput.node = {
+            value: '',
+            style: {},
+            placeholder: currentPet.name
+        };
+        // Show placeholder visually
+        this.nameInput.setText(currentPet.name);
+        this.nameInput.setAlpha(0.5);
         // Make interactive to allow "typing"
         inputBg.setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.showVirtualKeyboard());
-        
-        // Override the node property to match DOM interface
-        this.nameInput.node = {
-            value: currentPet.name,
-            style: {}
-        };
+        this.nameInput.setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => this.showVirtualKeyboard());
     }
     
     showVirtualKeyboard() {
         const { width, height } = this.scale;
-        
         // Create overlay
         const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.7)
             .setOrigin(0)
             .setDepth(100)
             .setInteractive();
-            
         // Create dialog
         const dialog = this.add.rectangle(width / 2, height / 2, 400, 180, 0x333333)
             .setStrokeStyle(2, 0xffffff)
             .setDepth(101);
-            
         // Title
         const title = this.add.text(width / 2, height / 2 - 60, 'Enter Pet Name', {
             fontFamily: '"Silkscreen", cursive',
@@ -866,53 +866,51 @@ export class FirstLogin extends Scene {
             strokeThickness: 4
         }).setOrigin(0.5)
           .setDepth(101);
-          
         // Input field
         const inputBg = this.add.rectangle(width / 2, height / 2, 300, 40, 0x000000)
             .setStrokeStyle(2, 0x4a9e2f)
             .setDepth(101);
-            
-        const inputText = this.add.text(width / 2, height / 2, this.nameInput.node.value, {
+        let inputText = this.add.text(width / 2, height / 2, this.nameInput.node.value || this.nameInput.node.placeholder, {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '20px',
             color: '#ffffff',
             align: 'center'
         }).setOrigin(0.5)
           .setDepth(101);
-          
+        inputText.setAlpha(this.nameInput.node.value ? 1 : 0.5);
         // Buttons
         const okButton = this.add.rectangle(width / 2 + 80, height / 2 + 60, 120, 40, 0x008800)
             .setStrokeStyle(2, 0xffffff)
             .setInteractive({ useHandCursor: true })
             .setDepth(101);
-            
         const okText = this.add.text(width / 2 + 80, height / 2 + 60, 'OK', {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '20px',
             color: '#ffffff'
         }).setOrigin(0.5)
           .setDepth(101);
-          
         const cancelButton = this.add.rectangle(width / 2 - 80, height / 2 + 60, 120, 40, 0x880000)
             .setStrokeStyle(2, 0xffffff)
             .setInteractive({ useHandCursor: true })
             .setDepth(101);
-            
         const cancelText = this.add.text(width / 2 - 80, height / 2 + 60, 'CANCEL', {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '20px',
             color: '#ffffff'
         }).setOrigin(0.5)
           .setDepth(101);
-          
-        // Handle input - add virtual keyboard or use prompt in simple cases
-        const newName = prompt('Enter your pet name:', this.nameInput.node.value);
+        // Simple input: use prompt for now, but update the fallback visually
+        const newName = prompt('Enter your pet name:', this.nameInput.node.value || this.nameInput.node.placeholder);
         if (newName && newName.trim()) {
             // Update the value
             this.nameInput.node.value = newName.trim().substring(0, 20);
             this.nameInput.setText(this.nameInput.node.value);
+            this.nameInput.setAlpha(1);
+        } else {
+            // If empty, show placeholder
+            this.nameInput.setText(this.nameInput.node.placeholder);
+            this.nameInput.setAlpha(0.5);
         }
-        
         // Remove dialog immediately since we used prompt
         overlay.destroy();
         dialog.destroy();
