@@ -7,7 +7,7 @@
     min-height: 100vh;
     padding: clamp(1rem, 5vw, 3rem);
     background-color: #f0f0f0;
-    background-image: url('/assets/login.png'); /* Add your background image to public/assets folder */
+    background-image: url('/assets/login.png'); 
     background-size: cover;
     background-position: center;
     background-repeat: repeat; 
@@ -29,7 +29,6 @@
     max-width: 300px;
 }
 
-/* Remove the login-box styling that's constraining the size */
 .login-box {
     background: transparent;
     box-shadow: none;
@@ -50,7 +49,7 @@
     padding: clamp(0.7rem, 2vw, 0.6rem);
     margin: 0rem 6rem;
     border: none;
-    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 16px */
+    font-size: clamp(18px, 2vw, 24px); 
     background-color: transparent;
     font-family: 'Pixelify Sans', sans-serif;
 }
@@ -60,7 +59,7 @@
     padding: clamp(0.7rem, 2vw, 0.6rem);
     margin: 0rem 6rem;
     border: none;
-    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 16px */
+    font-size: clamp(18px, 2vw, 24px); 
     background-color: transparent;
     font-family: 'Pixelify Sans', sans-serif;
 }
@@ -75,7 +74,7 @@
     align-self: center; /* Center the button */
     margin-inline: auto; /* Alternative centering */
     font-family: 'Pixelify Sans', sans-serif;
-    font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 18px */
+    font-size: clamp(18px, 2vw, 24px); 
     line-height: 1;
 }
 
@@ -91,7 +90,7 @@
     border: none;
     color: #ffffff;
     cursor: pointer;
-    font-size: clamp(18px, 2.2vw, 26px); /* Increased from 14px, 1.8vw, 20px */
+    font-size: clamp(18px, 2.2vw, 26px); 
     text-decoration: underline;
     padding: 0.5rem;
     transition: color 0.3s ease;
@@ -106,7 +105,7 @@
 .error-message {
     color: #ff3333;
     margin: 0.5rem 0;
-    font-size: clamp(16px, 1.8vw, 20px); /* Increased from 12px, 1.5vw, 14px */
+    font-size: clamp(16px, 1.8vw, 20px); 
     text-align: center;
     color: #ff3333;
     font-size: 14px;
@@ -123,19 +122,18 @@
     }
 }
 
-/* For better performance - add to existing media queries */
+/* For better performance */
 @media (prefers-reduced-motion: reduce) {
     .login-container {
         animation: none;
     }
 }
 
-/* Update the login panel styling for maximum responsiveness */
 .login-panel {
   position: relative;
-  width: min(95vw, 800px); /* Increased maximum size, but still responsive */
+  width: min(95vw, 800px); 
   max-width: 100%;
-  aspect-ratio: 1 / 1; /* Adjust if your image has a different aspect ratio */
+  aspect-ratio: 1 / 1; /* Adjust if the image has a different aspect ratio */
   margin: 0 auto;
 }
 
@@ -171,7 +169,6 @@ input {
   background-color: transparent;
 }
 
-/* Position form elements with percentage-based positioning for responsiveness */
 .form-group {
   position: absolute;
   width: 75%;
@@ -180,7 +177,6 @@ input {
   margin: 0;
 }
 
-/* Move username input down */
 .form-group:nth-child(1) {
   top: 37%;
   left: 50%;
@@ -194,9 +190,9 @@ input {
   transform: translateX(-50%);
 }
 
-/* Position confirm password input (for register mode) */
+/* Position confirm password input for register mode */
 .form-group:nth-child(3) {
-  top: 75%; /* Adjust this percentage as needed */
+  top: 75%; 
   left: 50%;
   transform: translateX(-50%);
 }
@@ -205,7 +201,7 @@ input {
 .form-group input {
   width: 100%;
   padding: clamp(0.4rem, 1.5vw, 0.6rem);
-  font-size: clamp(16px, 2vw, 22px); /* Increased from 12px, 1.5vw, 16px */
+  font-size: clamp(16px, 2vw, 22px); 
   border: 1px solid rgba(0, 0, 0, 0.2);
   height: auto;
   outline: none;
@@ -235,7 +231,7 @@ input {
   width: 75%;
   max-width: 400px;
   padding: clamp(0.5rem, 1.5vw, 0.8rem);
-  font-size: clamp(18px, 2vw, 24px); /* Increased from 14px, 1.5vw, 18px */
+  font-size: clamp(18px, 2vw, 24px); 
   border: none;
   background: transparent;
   color: white;
@@ -274,9 +270,9 @@ input {
         transform: translateX(-50%);
     }
     
-    /* Position confirm password input (for register mode) */
+    /* Position confirm password input for register mode */
     .form-group:nth-child(3) {
-        top: 75%; /* Adjust this percentage as needed */
+        top: 75%; 
         left: 50%;
         transform: translateX(-50%);
     }

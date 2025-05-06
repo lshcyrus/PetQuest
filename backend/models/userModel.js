@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema({ // Define the User Schema
   // Virtual currency for purchasing items
   coins: {
     type: Number,
-    default: 500 // Starting coins
+    default: 1500 // Starting coins
   },
   gems: {
     type: Number,
