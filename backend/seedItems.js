@@ -60,8 +60,8 @@ const potionItems = [
     description: 'A potion that fully recovers HP and SP',
     type: 'medicine',
     effects: {
-      health: 999, // Special value handled in the controller to fully heal
-      sp: 999      // Special value handled in the controller to fully restore SP
+      health: 5000, // Special value handled in the controller to fully heal
+      sp: 1000      // Special value handled in the controller to fully restore SP
     },
     rarity: 'rare',
     price: 500,
