@@ -92,7 +92,7 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Mystic', 'Twilight', 'Emerald'],
                 nameSuffix: ['Forest', 'Grove', 'Woods'],
                 background: 'forest',
-                enemyNames: ['Fierce Wolfling', 'Shadow Bat', 'Gloom Owl'],
+                enemyNames: ['Gorgon'],
                 descriptions: [
                     'A dense forest with glowing mushrooms.',
                     'A misty woodland hiding ancient secrets.',
@@ -103,7 +103,7 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Frosty', 'Glacial', 'Arctic'],
                 nameSuffix: ['Tundra', 'Glacier', 'Fjord'],
                 background: 'iceland',
-                enemyNames: ['Polar Yeti', 'Ice Wraith', 'Frost Drake'],
+                enemyNames: ['Blue Golem'],
                 descriptions: [
                     'A frozen tundra swept by icy winds.',
                     'A glacial expanse with shimmering ice.',
@@ -114,7 +114,7 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Scorching', 'Mirage', 'Dune'],
                 nameSuffix: ['Desert', 'Dunes', 'Wastes'],
                 background: 'desert',
-                enemyNames: ['Sand Viper', 'Scorpion King', 'Dust Wraith'],
+                enemyNames: ['Orange Golem'],
                 descriptions: [
                     'A scorching desert with deadly sands.',
                     'A shimmering wasteland full of illusions.',
@@ -663,16 +663,6 @@ export class LevelSelector extends Scene {
             console.warn('Pet too tired');
             this.showError('Your pet is too tired!');
             return;
-        }
-
-        // Save level to context
-        const globalContext = getGlobalContext();
-        if (globalContext) {
-            globalContext.selectLevel({
-                id: this.generatedLevel.id,
-                name: this.generatedLevel.name,
-                difficulty: this.selectedDifficulty
-            });
         }
 
         // Transition to BattleSystem

@@ -158,6 +158,26 @@ export class Preloader extends Scene {
             this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
         });
 
+        // --- ENEMY SPRITES ---
+        // Gorgon
+        this.load.spritesheet('gorgon_idle', 'Enemy_Gorgon/Gorgan_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_walk', 'Enemy_Gorgon/Gorgan_walk.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_attack', 'Enemy_Gorgon/Gorgan_attack.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_hurt', 'Enemy_Gorgon/Gorgan_hurt.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_die', 'Enemy_Gorgon/Gorgan_die.png', { frameWidth: 128, frameHeight: 128 });
+        // Blue Golem
+        this.load.spritesheet('blue_golem_idle', 'Enemy_Blue Golem/Blue Golem_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('blue_golem_walk', 'Enemy_Blue Golem/Blue Golem_walk.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('blue_golem_attack', 'Enemy_Blue Golem/Blue Golem_attack.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('blue_golem_hurt', 'Enemy_Blue Golem/Blue Golem_hurt.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('blue_golem_die', 'Enemy_Blue Golem/Blue Golem_die.png', { frameWidth: 128, frameHeight: 128 });
+        // Orange Golem
+        this.load.spritesheet('orange_golem_idle', 'Enemy_Orange Golem/Orange Golem_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('orange_golem_walk', 'Enemy_Orange Golem/Orange Golem_walk.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('orange_golem_attack', 'Enemy_Orange Golem/Orange Golem_attack.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('orange_golem_hurt', 'Enemy_Orange Golem/Orange Golem_hurt.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('orange_golem_die', 'Enemy_Orange Golem/Orange Golem_die.png', { frameWidth: 128, frameHeight: 128 });
+
         WebFontLoader.load({
             google: {
                 families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']

@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { initOrientationHandling } from '../utils/orientationHandler';
 import { LevelSelector } from './scenes/LevelSelector';
-
+import { BattleSystem } from './scenes/BattleSystem';
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
@@ -47,6 +47,7 @@ const config = {
         Quests,
         LevelTransition,
         LevelSelector,
+        BattleSystem,
         GameOver
     ]
 };

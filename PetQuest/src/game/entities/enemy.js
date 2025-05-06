@@ -8,7 +8,7 @@ export class Enemy {
      * @param {Object} data - Enemy data (name, stats, abilities, biome, key, etc.)
      * @param {string} data.name - Enemy name
      * @param {string} [data.key] - Sprite key for the enemy's images
-     * @param {Object} data.stats - Enemy stats (hp, attack, defense, speed)
+     * @param {Object} data.stats - Enemy stats (hp, maxhp, sp, maxsp, atk, def)
      * @param {string[]} data.abilities - List of ability IDs
      * @param {string} [data.biome] - Biome type
      * @param {number} [x=0] - X position
@@ -21,7 +21,63 @@ export class Enemy {
         this.y = y;
         this.sprite = null;
         this.nameText = null;
-        this.data.stats = data.stats || { hp: 50, attack: 10, defense: 10, speed: 10 };
+        
+        // Default stats if not provided
+        this.data.stats = data.stats || { 
+            hp: 50, 
+            maxhp: 50, 
+            sp: 25, 
+            maxsp: 25, 
+            atk: 10, 
+            def: 10 
+        };
+        
+        // Ensure both hp and maxhp are set consistently
+        if (!this.data.stats.maxhp && this.data.stats.hp) {
+            this.data.stats.maxhp = this.data.stats.hp;
+        }
+        
+        if (!this.data.stats.hp && this.data.stats.maxhp) {
+            this.data.stats.hp = this.data.stats.maxhp;
+        }
+        
+        // If neither exists, set default values
+        if (!this.data.stats.hp && !this.data.stats.maxhp) {
+            this.data.stats.hp = 50;
+            this.data.stats.maxhp = 50;
+        }
+        
+        // Ensure SP stats exist
+        if (!this.data.stats.sp) {
+            this.data.stats.sp = 25;
+        }
+        if (!this.data.stats.maxsp) {
+            this.data.stats.maxsp = 25;
+        }
+        
+        // Convert old attack/defense to atk/def if needed
+        if (this.data.stats.attack && !this.data.stats.atk) {
+            this.data.stats.atk = this.data.stats.attack;
+            delete this.data.stats.attack;
+        }
+        
+        if (this.data.stats.defense && !this.data.stats.def) {
+            this.data.stats.def = this.data.stats.defense;
+            delete this.data.stats.defense;
+        }
+        
+        // Set default atk/def if missing
+        if (!this.data.stats.atk) {
+            this.data.stats.atk = 10;
+        }
+        if (!this.data.stats.def) {
+            this.data.stats.def = 10;
+        }
+        
+        // Remove speed stat if it exists
+        if (this.data.stats.speed) {
+            delete this.data.stats.speed;
+        }
     }
 
     /**
@@ -129,8 +185,20 @@ export class Enemy {
                 this.sprite.clearTint();
             });
         };
+        
+        // Remove any overlays from previous effects
+        if (this._effectOverlay) {
+            this._effectOverlay.destroy();
+            this._effectOverlay = null;
+        }
+        if (this._effectText) {
+            this._effectText.destroy();
+            this._effectText = null;
+        }
+        
         switch (action) {
             case 'attack': {
+                // Attempt to use the attack animation if it exists
                 const animKey = `${enemyKey}_attack`;
                 if (!scene.anims.exists(animKey)) {
                     scene.anims.create({
@@ -140,13 +208,84 @@ export class Enemy {
                         repeat: 0
                     });
                 }
+                
+                // Play the attack animation
                 this.sprite.play(animKey);
-                playIdle(800);
+                
+                // Add a visual effect for the attack - flash and lunge forward
+                const originalX = this.sprite.x;
+                const attackMovement = this.sprite.flipX ? -30 : 30; // Movement direction based on flip
+                
+                // Optional attack effect - glowing outline
+                this.sprite.setTint(0xff9900); // Orange glow for attack
+                
+                // Move forward quickly
+                scene.tweens.add({
+                    targets: this.sprite,
+                    x: originalX + attackMovement,
+                    duration: 150,
+                    ease: 'Power1',
+                    onComplete: () => {
+                        // Add attack effect - slashing line
+                        const slashX = this.sprite.x + (this.sprite.flipX ? -50 : 50);
+                        const slash = scene.add.graphics();
+                        slash.lineStyle(3, 0xff0000, 1);
+                        slash.beginPath();
+                        slash.moveTo(slashX - 20, this.sprite.y - 20);
+                        slash.lineTo(slashX + 20, this.sprite.y + 20);
+                        slash.moveTo(slashX + 20, this.sprite.y - 20);
+                        slash.lineTo(slashX - 20, this.sprite.y + 20);
+                        slash.closePath();
+                        slash.stroke();
+                        this._effectOverlay = slash;
+                        
+                        // Move back after delay
+                        scene.time.delayedCall(100, () => {
+                            scene.tweens.add({
+                                targets: this.sprite,
+                                x: originalX,
+                                duration: 150,
+                                ease: 'Power1',
+                                onComplete: () => {
+                                    // Fade out the slash effect
+                                    if (slash) {
+                                        scene.tweens.add({
+                                            targets: slash,
+                                            alpha: 0,
+                                            duration: 200,
+                                            onComplete: () => {
+                                                if (slash && !slash.destroyed) {
+                                                    slash.destroy();
+                                                }
+                                            }
+                                        });
+                                    }
+                                    // Return to idle
+                                    playIdle(300);
+                                }
+                            });
+                        });
+                    }
+                });
                 break;
             }
             case 'hurt': {
                 this.sprite.setTint(0xff4444);
-                playIdle(400);
+                
+                // Add a shake effect
+                const originalX = this.sprite.x;
+                scene.tweens.add({
+                    targets: this.sprite,
+                    x: originalX + (Math.random() > 0.5 ? 5 : -5), // Small random shake
+                    yoyo: true,
+                    repeat: 2, // Shake back and forth a couple of times
+                    duration: 50, // Quick shake
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => {
+                        this.sprite.setX(originalX); // Ensure sprite returns to original position
+                        playIdle(400);
+                    }
+                });
                 break;
             }
             default:
@@ -169,19 +308,13 @@ export class EnemyFactory {
         // Base enemy stats by biome, now with sprite keys
         const baseEnemies = {
             forest: [
-                { name: 'Gloom Owl', key: 'gloom_owl', hp: 50, attack: 10, defense: 5, speed: 8 },
-                { name: 'Shadow Bat', key: 'shadow_bat', hp: 40, attack: 12, defense: 3, speed: 10 },
-                { name: 'Fierce Wolfling', key: 'fierce_wolfling', hp: 60, attack: 11, defense: 6, speed: 7 }
+                { name: 'Gorgon', key: 'gorgon_idle', hp: 120, maxhp: 120, sp: 60, maxsp: 60, atk: 22, def: 18 }
             ],
             iceland: [
-                { name: 'Polar Yeti', key: 'polar_yeti', hp: 80, attack: 15, defense: 10, speed: 5 },
-                { name: 'Ice Wraith', key: 'ice_wraith', hp: 60, attack: 13, defense: 7, speed: 7 },
-                { name: 'Frost Drake', key: 'frost_drake', hp: 70, attack: 14, defense: 8, speed: 6 }
+                { name: 'Blue Golem', key: 'blue_golem_idle', hp: 180, maxhp: 180, sp: 40, maxsp: 40, atk: 18, def: 25 }
             ],
             desert: [
-                { name: 'Sand Viper', key: 'sand_viper', hp: 45, attack: 13, defense: 4, speed: 9 },
-                { name: 'Scorpion King', key: 'scorpion_king', hp: 65, attack: 12, defense: 9, speed: 6 },
-                { name: 'Dust Wraith', key: 'dust_wraith', hp: 55, attack: 11, defense: 6, speed: 8 }
+                { name: 'Orange Golem', key: 'orange_golem_idle', hp: 160, maxhp: 160, sp: 50, maxsp: 50, atk: 20, def: 22 }
             ]
         };
 
@@ -242,15 +375,23 @@ export class EnemyFactory {
         // Stat multiplier
         const multiplier = 1 + (difficulty - 1) * 0.5;
         let hp = base.hp;
+        let sp = base.sp;
         if (selectedAbilities.includes('quick_heal')) {
             hp *= 1.1;
+            sp *= 1.2;
         }
 
+        // Calculate final stats
+        const finalHp = Math.round(hp * multiplier);
+        const finalSp = Math.round(sp * multiplier);
+        
         const stats = {
-            hp: Math.round(hp * multiplier),
-            attack: Math.round(base.attack * multiplier),
-            defense: Math.round(base.defense * multiplier),
-            speed: Math.round(base.speed * multiplier)
+            hp: finalHp,
+            maxhp: finalHp,
+            sp: finalSp,
+            maxsp: finalSp,
+            atk: Math.round(base.atk * multiplier),
+            def: Math.round(base.def * multiplier)
         };
 
         return new Enemy(
