@@ -105,6 +105,7 @@ export class Preloader extends Scene {
         this.load.image('pet_addHealth', 'UI/pet_addHealth.png');
         this.load.image('pet_outdoor', 'UI/pet_outdoor.png');
         this.load.image('inventory_btn', 'UI/inventory.png');
+        this.load.image('shop_btn', 'UI/shop.png');
 
         // Load potion images
         this.load.image('hp-potion', 'items/medicine/hp-potion.png');

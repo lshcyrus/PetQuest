@@ -23,6 +23,7 @@ export const GlobalProvider = ({ children }) => {
     level: 1,
     experience: 0,
     coins: 0,
+    gems: 0,
     items: [],  // Keep for backward compatibility
     inventory: [], // Add inventory field to match backend
     achievements: [], 
@@ -79,6 +80,8 @@ export const GlobalProvider = ({ children }) => {
             selectedPet: serverUserData.selectedPet || null,
             inventory: serverUserData.inventory || [],
             items: serverUserData.inventory || [],
+            coins: serverUserData.coins || prev.coins,
+            gems: serverUserData.gems || prev.gems,
             // Add other fields from serverUserData as needed
           }));
           
@@ -200,6 +203,7 @@ export const GlobalProvider = ({ children }) => {
       level: 1,
       experience: 0,
       coins: 0,
+      gems: 0,
       items: [],
       inventory: [],
       achievements: [],

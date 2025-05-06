@@ -645,7 +645,7 @@ exports.medicinePet = async (req, res, next) => {
           pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || pet.stats.sp) + spHeal);
         }
       }
-
+      
       // Some medicines might also improve other stats (e.g., happiness)
       if (item.effects.happiness) {
         pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);

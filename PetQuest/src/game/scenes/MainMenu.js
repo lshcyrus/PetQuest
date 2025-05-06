@@ -22,6 +22,13 @@ export class MainMenu extends Scene {
             this.username = globalContext.userData.username || 'Player';
             this.petData = globalContext.userData.selectedPet;
             
+            // Log user data including coins
+            console.log(`MainMenu - User data loaded:`, {
+                username: this.username,
+                coins: globalContext.userData.coins,
+                hasSelectedPet: globalContext.userData.hasSelectedPet
+            });
+            
             // Log which pet is being loaded
             if (this.petData) {
                 console.log(`Loading pet in MainMenu: ${this.petData.name}`);
@@ -31,6 +38,7 @@ export class MainMenu extends Scene {
         } else {
             // Fallback if context is not available
             this.username = data.username || 'Player';
+            console.warn('MainMenu - No global context available');
         }
     }
 
@@ -690,7 +698,8 @@ export class MainMenu extends Scene {
             { key: 'train', icon: 'pet_train', handler: this.handleTrain, anim: 'train', label: 'Train' },
             { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'medicine', label: 'Medicine' },
             { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'outdoor', label: 'Outdoor' },
-            { key: 'inventory', icon: 'inventory_btn', handler: this.handleInventory, anim: null, label: 'Inventory' }
+            { key: 'inventory', icon: 'inventory_btn', handler: this.handleInventory, anim: null, label: 'Inventory' },
+            { key: 'shop', icon: 'shop_btn', handler: this.handleShop, anim: null, label: 'Shop' }
         ];
 
         const totalButtons = buttons.length;
@@ -1000,6 +1009,23 @@ export class MainMenu extends Scene {
             }
         });
 
+        modal.show();
+    }
+
+    async handleShop() {
+        console.log('Shop button clicked');
+        
+        // Import the ShopModal dynamically
+        const { ShopModal } = await import('./ShopModal');
+        
+        // Create shop modal for all items first (default)
+        const modal = new ShopModal(this, {
+            itemType: null, // Show all items initially
+            onClose: () => {
+                console.log('Shop closed');
+            }
+        });
+        
         modal.show();
     }
 

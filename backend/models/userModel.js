@@ -39,17 +39,14 @@ const UserSchema = new mongoose.Schema({ // Define the User Schema
     ref: 'Pet',
     default: null
   },
-  //////////////////////////////////////////////////////////////////////////////
-  // changable for futher game development
-  currency: {
-    coins: {
-      type: Number,
-      default: 100
-    },
-    gems: {
-      type: Number,
-      default: 5
-    }
+  // Virtual currency for purchasing items
+  coins: {
+    type: Number,
+    default: 500 // Starting coins
+  },
+  gems: {
+    type: Number,
+    default: 5
   },
   inventory: [{
     item: {
@@ -61,7 +58,6 @@ const UserSchema = new mongoose.Schema({ // Define the User Schema
       default: 1
     }
   }],
-  //////////////////////////////////////////////////////////////////////////////
   createdAt: { // store the date and time
     type: Date,
     default: Date.now

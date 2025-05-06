@@ -25,7 +25,10 @@ const potionItems = [
       sp: 0
     },
     rarity: 'common',
-    price: 100,
+    price: {
+      coins: 100,
+      gems: 0
+    },
     image: 'hp-potion.png'
   },
   {
@@ -38,7 +41,10 @@ const potionItems = [
       sp: 30
     },
     rarity: 'common',
-    price: 100,
+    price: {
+      coins: 100,
+      gems: 0
+    },
     image: 'sp-potion.png'
   },
   {
@@ -51,7 +57,10 @@ const potionItems = [
       sp: 40
     },
     rarity: 'uncommon',
-    price: 200,
+    price: {
+      coins: 200,
+      gems: 0
+    },
     image: 'mixed-potion.png'
   },
   {
@@ -64,7 +73,10 @@ const potionItems = [
       sp: 1000      // Special value handled in the controller to fully restore SP
     },
     rarity: 'rare',
-    price: 500,
+    price: {
+      coins: 500,
+      gems: 0
+    },
     image: 'best-potion.png'
   }
 ];
@@ -79,7 +91,10 @@ const toyItems = [
       happiness: 10
     },
     rarity: 'common',
-    price: 100,
+    price: {
+      coins: 100,
+      gems: 0
+    },
     image: 'chess.png'
   },
   {
@@ -91,7 +106,10 @@ const toyItems = [
       happiness: 10
     },
     rarity: 'common',
-    price: 100,
+    price: {
+      coins: 100,
+      gems: 0
+    },
     image: 'feather.png'
   },
   {
@@ -103,7 +121,10 @@ const toyItems = [
       happiness: 10
     },
     rarity: 'uncommon',
-    price: 200,
+    price: {
+      coins: 200,
+      gems: 0
+    },
     image: 'cup.png'
   }
 ]
@@ -137,7 +158,7 @@ const seedItems = async () => {
     // List all items to verify
     const allItems = await Item.find();
     console.log(`Total items in database: ${allItems.length}`);
-    allItems.forEach(item => console.log(`- ${item.name}: ${item.type}`));
+    allItems.forEach(item => console.log(`- ${item.name}: ${item.type} - Price: ${JSON.stringify(item.price)}`));
     
     mongoose.disconnect();
     console.log('Database connection closed');

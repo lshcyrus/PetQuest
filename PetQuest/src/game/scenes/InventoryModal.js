@@ -245,26 +245,50 @@ export class InventoryModal {
             const globalContext = getGlobalContext();
             
             if (globalContext) {
-                // Fetch the latest inventory data using the global context method
-                const inventoryData = await globalContext.fetchInventory();
+                try {
+                    // Fetch the latest inventory data using the global context method
+                    const inventoryData = await globalContext.fetchInventory();
+                    
+                    if (inventoryData && Array.isArray(inventoryData) && inventoryData.length > 0) {
+                        console.log('Got inventory from global context fetchInventory:', inventoryData.length, 'items');
+                        
+                        // Verify each item has a proper structure
+                        this.inventory = inventoryData.filter(invItem => {
+                            const isValid = invItem && invItem.item;
+                            if (!isValid) console.warn('Invalid inventory item structure:', invItem);
+                            return isValid;
+                        });
+                        
+                        this.filterItems();
+                        this.displayItems();
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('Error using globalContext.fetchInventory():', err.message);
+                }
                 
-                if (inventoryData && inventoryData.length > 0) {
-                    console.log('Got inventory from global context:', inventoryData.length, 'items');
-                    this.inventory = inventoryData;
-                    this.filterItems();
-                    this.displayItems();
-                    return;
-                } else if (globalContext.userData && globalContext.userData.inventory && globalContext.userData.inventory.length > 0) {
-                    // Use existing inventory data from context if fetchInventory didn't work
+                // Try using existing inventory in userData
+                if (globalContext.userData && 
+                    globalContext.userData.inventory && 
+                    Array.isArray(globalContext.userData.inventory) && 
+                    globalContext.userData.inventory.length > 0) {
+                    
                     console.log('Using existing inventory from global context:', globalContext.userData.inventory.length, 'items');
-                    this.inventory = globalContext.userData.inventory;
+                    
+                    // Verify each item has a proper structure
+                    this.inventory = globalContext.userData.inventory.filter(invItem => {
+                        const isValid = invItem && invItem.item;
+                        if (!isValid) console.warn('Invalid inventory item in userData:', invItem);
+                        return isValid;
+                    });
+                    
                     this.filterItems();
                     this.displayItems();
                     return;
                 }
                 
                 // If we got here, the global context didn't have inventory data, fall back to direct API call
-                console.log('No inventory in global context, falling back to direct API call');
+                console.log('No valid inventory in global context, falling back to direct API call');
             }
 
             // Direct API call as fallback
@@ -287,7 +311,19 @@ export class InventoryModal {
                 throw new Error(data.error || 'Failed to fetch inventory');
             }
             
-            this.inventory = data.data || [];
+            console.log('Got inventory from direct API call:', data);
+            
+            // Ensure we have a proper data structure
+            if (!data.data || !Array.isArray(data.data)) {
+                console.error('Invalid response structure from API:', data);
+                throw new Error('Invalid response from server');
+            }
+            
+            this.inventory = data.data.filter(invItem => {
+                const isValid = invItem && invItem.item;
+                if (!isValid) console.warn('Invalid inventory item from API:', invItem);
+                return isValid;
+            });
             
             // Also update the global context if it exists
             if (globalContext) {
@@ -315,7 +351,13 @@ export class InventoryModal {
             );
         } else {
             // Show all items when requiredItemType is undefined (view mode)
-            this.filteredItems = [...this.inventory];
+            this.filteredItems = [...this.inventory].filter(invItem => invItem && invItem.item);
+        }
+        
+        // Log filtered items for debugging
+        console.log(`Filtered ${this.filteredItems.length} items from ${this.inventory.length} total items`);
+        if (this.filteredItems.length === 0 && this.inventory.length > 0) {
+            console.log('Inventory structure:', JSON.stringify(this.inventory.slice(0, 2)));
         }
     }
     
@@ -331,13 +373,19 @@ export class InventoryModal {
         this.itemCards = [];
         
         // Show empty message if no items found
-        if (this.filteredItems.length === 0) {
+        if (!this.filteredItems || this.filteredItems.length === 0) {
             this.emptyText.setVisible(true);
             return;
         }
         
         // Create item cards
         this.filteredItems.forEach((invItem, index) => {
+            // Skip items with null item reference
+            if (!invItem || !invItem.item) {
+                console.warn('Skipping invalid inventory item:', invItem);
+                return;
+            }
+            
             const item = invItem.item;
             const y = index * (this.itemHeight + this.itemPadding);
             
@@ -375,7 +423,7 @@ export class InventoryModal {
             const imageY = y + this.itemHeight / 2;
             
             // Get image key from item data - could be name, image field, or a default
-            const imageKey = item.name || 'hp-potion'; // Default fallback
+            const imageKey = (item && item.name) ? item.name : 'hp-potion'; // Default fallback
             
             try {
                 itemImage = this.scene.add.image(imageX + imageSize/2, imageY, imageKey);
@@ -405,13 +453,13 @@ export class InventoryModal {
                     imageY, 
                     imageSize, 
                     imageSize, 
-                    this.rarityColors[item.rarity] || 0x666666
+                    this.rarityColors[item?.rarity] || 0x666666
                 );
                 // Add item type text to the fallback rectangle
                 const typeText = this.scene.add.text(
                     imageX + imageSize/2,
                     imageY,
-                    item.type?.substring(0, 3).toUpperCase() || '???',
+                    (item && item.type) ? item.type.substring(0, 3).toUpperCase() : '???',
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '14px',
@@ -425,10 +473,10 @@ export class InventoryModal {
             const textX = imageX + imageSize + 10;
             
             // Item name with rarity color
-            const rarityColor = this.rarityColors[item.rarity] || 0xffffff;
+            const rarityColor = this.rarityColors[item?.rarity] || 0xffffff;
             const nameText = this.scene.add.text(
                 textX, y + 10,
-                item.name,
+                item?.name || 'Unknown Item',
                 {
                     fontFamily: '"Silkscreen", cursive',
                     fontSize: '18px',
@@ -439,7 +487,7 @@ export class InventoryModal {
             // Item description
             const descText = this.scene.add.text(
                 textX, y + 40,
-                item.description,
+                item?.description || 'No description available',
                 {
                     fontFamily: '"Silkscreen", cursive',
                     fontSize: '14px',
@@ -488,17 +536,37 @@ export class InventoryModal {
      * @param {number} index - Index of item to select
      */
     selectItem(index) {
+        // Check if the index is valid
+        if (index < 0 || index >= this.itemCards.length) {
+            console.warn(`Invalid item index: ${index}, max: ${this.itemCards.length - 1}`);
+            return;
+        }
+
         // Deselect previous item
-        if (this.selectedIndex !== -1 && this.itemCards[this.selectedIndex]) {
+        if (this.selectedIndex !== -1 && 
+            this.selectedIndex < this.itemCards.length && 
+            this.itemCards[this.selectedIndex] && 
+            this.itemCards[this.selectedIndex].card) {
             this.itemCards[this.selectedIndex].card.setFillStyle(this.itemBackgroundColor);
         }
         
         // Select new item
         this.selectedIndex = index;
+        
+        if (!this.itemCards[index] || !this.itemCards[index].card) {
+            console.warn(`Item card at index ${index} is not valid`);
+            return;
+        }
+        
         this.itemCards[index].card.setFillStyle(this.itemSelectedColor);
         
         // Call onItemSelect with the item ID
         const itemId = this.itemCards[index].itemId;
+        if (!itemId) {
+            console.warn(`No itemId found for index ${index}`);
+            return;
+        }
+        
         this.onItemSelect(itemId);
         
         // Close the modal
