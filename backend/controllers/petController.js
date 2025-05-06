@@ -168,6 +168,11 @@ exports.feedPet = async (req, res, next) => {
     pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
     pet.experience += item.effects.experience;
     
+    // Regenerate 10 stamina if not full
+    if (pet.attributes.stamina < 100) {
+      pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
+    }
+    
     const levelUpResult = gameLogic.checkLevelUp(pet);
     pet = levelUpResult.pet;
     
@@ -380,6 +385,188 @@ exports.renamePet = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Error renaming pet:', err.message);
+    next(err);
+  }
+};
+
+// @desc    Train pet to gain experience
+// @route   PUT /api/pets/:id/train
+// @access  Private
+exports.trainPet = async (req, res, next) => {
+  try {
+    let pet = await Pet.findById(req.params.id);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to train this pet'
+      });
+    }
+    
+    // Check if pet has enough stamina
+    if (pet.attributes.stamina < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet does not have enough stamina to train'
+      });
+    }
+    
+    // Add experience and decrease stamina
+    pet.experience += 20;
+    pet.attributes.stamina = Math.max(0, pet.attributes.stamina - 10);
+    
+    // Check if pet levels up
+    const levelUpResult = gameLogic.checkLevelUp(pet);
+    pet = levelUpResult.pet;
+    
+    pet.lastInteraction = Date.now();
+    
+    await pet.save();
+    
+    res.status(200).json({
+      success: true,
+      data: pet,
+      levelUp: levelUpResult.leveledUp
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Use medicine to regenerate HP
+// @route   PUT /api/pets/:id/medicine
+// @access  Private
+exports.medicinePet = async (req, res, next) => {
+  try {
+    let pet = await Pet.findById(req.params.id);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to give medicine to this pet'
+      });
+    }
+    
+    // Check if the pet already has full HP
+    if (pet.currentHP >= pet.stats.hp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet already has full HP'
+      });
+    }
+    
+    // Set or increment current HP
+    if (pet.currentHP === undefined) {
+      pet.currentHP = Math.min(pet.stats.hp, pet.stats.hp * 0.2 + (pet.currentHP || 0));
+    } else {
+      // Regenerate 20% of max HP
+      pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + (pet.stats.hp * 0.2));
+    }
+    
+    pet.lastInteraction = Date.now();
+    
+    await pet.save();
+    
+    res.status(200).json({
+      success: true,
+      data: pet
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Take pet outdoors for temporary buffs
+// @route   PUT /api/pets/:id/outdoor
+// @access  Private
+exports.outdoorPet = async (req, res, next) => {
+  try {
+    let pet = await Pet.findById(req.params.id);
+    
+    if (!pet) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pet not found'
+      });
+    }
+    
+    // Check if pet belongs to user
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Not authorized to take this pet outdoors'
+      });
+    }
+    
+    // Check if pet already has active buffs
+    if (pet.activeBuffs && pet.activeBuffs.expiresAt > Date.now()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet already has active buffs'
+      });
+    }
+    
+    // Generate random buffs - 10% increase to a random combination of stats
+    const buffAmount = 0.1; // 10% buff
+    const buffDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
+    
+    // Initialize activeBuffs if it doesn't exist
+    if (!pet.activeBuffs) {
+      pet.activeBuffs = {};
+    }
+    
+    // Apply buffs to random stats (HP, SP, ATK, DEF)
+    const statOptions = ['hp', 'sp', 'atk', 'def'];
+    const selectedStats = [];
+    
+    // Randomly select 2-3 stats to buff
+    const numStatsToBuff = Math.floor(Math.random() * 2) + 2; // 2 or 3
+    
+    for (let i = 0; i < numStatsToBuff; i++) {
+      const randomIndex = Math.floor(Math.random() * statOptions.length);
+      const stat = statOptions.splice(randomIndex, 1)[0];
+      selectedStats.push(stat);
+    }
+    
+    // Set buff values
+    pet.activeBuffs.stats = {};
+    selectedStats.forEach(stat => {
+      pet.activeBuffs.stats[stat] = Math.floor(pet.stats[stat] * buffAmount);
+    });
+    
+    // Set expiration time
+    pet.activeBuffs.expiresAt = Date.now() + buffDuration;
+    
+    // Update pet interaction time
+    pet.lastInteraction = Date.now();
+    
+    await pet.save();
+    
+    res.status(200).json({
+      success: true,
+      data: pet,
+      buffDetails: {
+        buffedStats: selectedStats,
+        duration: '30 minutes'
+      }
+    });
+  } catch (err) {
     next(err);
   }
 };

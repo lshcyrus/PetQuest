@@ -677,55 +677,190 @@ export class MainMenu extends Scene {
     // Add handler functions for each button
     async handleFeed() {
         console.log('Feed button clicked');
-        // TODO: Call API to update pet stamina
-        // Example: await this.updatePetInteraction('feed');
-        // TODO: Update UI (stamina bar in right panel)
+        
+        // Check if stamina is already full
+        if (this.petData.attributes && this.petData.attributes.stamina >= 100) {
+            this.showToast('Stamina already full!');
+            return;
+        }
+        
+        try {
+            // Try to find any food item in the inventory (simplified for now)
+            const itemId = 'defaultFoodItem'; // This would normally come from the inventory
+            
+            await this.updatePetInteraction('feed', { itemId });
+            this.showToast('Pet fed! +10 Stamina');
+        } catch (error) {
+            console.error('Error feeding pet:', error);
+            this.showToast('Could not feed pet');
+        }
     }
 
     async handlePlay() {
         console.log('Play button clicked');
-        // TODO: Call API to update pet happiness
-        // Example: await this.updatePetInteraction('play');
-        // TODO: Update UI (happiness bar in right panel)
+        
+        try {
+            const result = await this.updatePetInteraction('play');
+            
+            if (result) {
+                this.showToast('Pet is happy! +10 Happiness');
+            }
+        } catch (error) {
+            console.error('Error playing with pet:', error);
+            this.showToast('Could not play with pet');
+        }
     }
 
     async handleTrain() {
         console.log('Train button clicked');
-        // TODO: Call API to update pet EXP
-        // Example: await this.updatePetInteraction('train');
-        // TODO: Update UI (EXP bar, level text in left panel)
+        
+        // Check if pet has enough stamina
+        if (this.petData.attributes && this.petData.attributes.stamina < 10) {
+            this.showToast('Not enough stamina to train!');
+            return;
+        }
+        
+        try {
+            const result = await this.updatePetInteraction('train');
+            
+            if (result && result.levelUp) {
+                this.showToast(`Pet trained and leveled up to ${this.petData.level}!`);
+            } else if (result) {
+                this.showToast('Pet trained! +20 Experience');
+            }
+        } catch (error) {
+            console.error('Error training pet:', error);
+            this.showToast('Could not train pet');
+        }
     }
 
     async handleMedicine() {
         console.log('Medicine button clicked');
-        // TODO: Call API to update pet HP
-        // Example: await this.updatePetInteraction('medicine');
-        // TODO: Update UI (HP text in left panel)
+        
+        // Check if HP is already full
+        if (this.petData.currentHP >= this.petData.stats.hp) {
+            this.showToast('HP already full!');
+            return;
+        }
+        
+        try {
+            const result = await this.updatePetInteraction('medicine');
+            
+            if (result) {
+                const healAmount = Math.floor(this.petData.stats.hp * 0.2);
+                this.showToast(`Pet healed! +${healAmount} HP`);
+            }
+        } catch (error) {
+            console.error('Error healing pet:', error);
+            this.showToast('Could not heal pet');
+        }
     }
 
     async handleOutdoor() {
         console.log('Outdoor button clicked');
-        // TODO: Call API to apply buff/debuff
-        // Example: await this.updatePetInteraction('outdoor');
-        // TODO: Update UI (potentially show buff icon?)
+        
+        // Check if pet already has active buffs
+        if (this.petData.activeBuffs && this.petData.activeBuffs.expiresAt > new Date().getTime()) {
+            const timeRemaining = Math.ceil((this.petData.activeBuffs.expiresAt - new Date().getTime()) / 60000);
+            this.showToast(`Buff still active for ${timeRemaining} minutes!`);
+            return;
+        }
+        
+        try {
+            const result = await this.updatePetInteraction('outdoor');
+            
+            if (result && result.buffDetails) {
+                const buffedStats = result.buffDetails.buffedStats.join(', ').toUpperCase();
+                this.showToast(`Pet went outside! +10% ${buffedStats} for 30 minutes`);
+            }
+        } catch (error) {
+            console.error('Error taking pet outdoors:', error);
+            this.showToast('Could not take pet outdoors');
+        }
     }
 
-    // Example generic function to call backend (adapt as needed)
-    async updatePetInteraction(action) {
+    // Show a temporary toast message to the user
+    showToast(message, duration = 2000) {
+        const { width, height } = this.scale;
+        
+        // Remove existing toast if any
+        if (this.toast) {
+            this.toast.destroy();
+        }
+        
+        // Create toast background
+        const toastBg = this.add.rectangle(
+            width / 2,
+            height * 0.2,
+            width * 0.6,
+            50,
+            0x000000,
+            0.7
+        ).setOrigin(0.5);
+        
+        // Create toast text
+        const toastText = this.add.text(
+            width / 2,
+            height * 0.2,
+            message,
+            {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff',
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        
+        // Group toast elements
+        this.toast = this.add.container(0, 0, [toastBg, toastText]);
+        this.toast.setDepth(100);
+        
+        // Fade in
+        this.toast.setAlpha(0);
+        this.tweens.add({
+            targets: this.toast,
+            alpha: 1,
+            duration: 200,
+            ease: 'Power1',
+            onComplete: () => {
+                // Auto-hide after duration
+                this.time.delayedCall(duration, () => {
+                    if (this.toast) {
+                        this.tweens.add({
+                            targets: this.toast,
+                            alpha: 0,
+                            duration: 200,
+                            ease: 'Power1',
+                            onComplete: () => {
+                                if (this.toast) {
+                                    this.toast.destroy();
+                                    this.toast = null;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Generic function to call backend
+    async updatePetInteraction(action, data = {}) {
         try {
             const token = localStorage.getItem('token');
             if (!token || !this.petData || !this.petData._id) {
                 console.error(`Cannot perform ${action}: missing token or pet ID`);
-                return;
+                return null;
             }
 
             const API_URL = import.meta.env.VITE_API_URL;
             const response = await fetch(`${API_URL}/pets/${this.petData._id}/${action}`, {
-                method: 'POST', // Or PUT, depending on your API design
+                method: 'PUT',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                }
-                // Add body if needed: body: JSON.stringify({ /* data */ })
+                },
+                body: JSON.stringify(data)
             });
 
             const responseData = await response.json();
@@ -733,29 +868,28 @@ export class MainMenu extends Scene {
             if (response.ok && responseData.success) {
                 console.log(`Pet ${action} successful:`, responseData.data);
 
-                // --- Update Local State & UI ---
-                // Option 1: Refetch user data via context
+                // Update local petData reference
+                this.petData = responseData.data;
+                
+                // Update global context if available
                 const globalContext = getGlobalContext();
-                if (globalContext && globalContext.fetchUserData) {
-                     await globalContext.fetchUserData(); // Assuming context has a function to refresh data
-                     // Update local petData reference
-                     this.petData = globalContext.userData.selectedPet;
-                     // Refresh UI panels
-                     this.refreshUI();
-                } else {
-                     // Option 2: Manually update local petData and UI elements
-                     this.petData = responseData.data; // Assuming API returns updated pet
-                     this.refreshUI();
+                if (globalContext && globalContext.userData) {
+                    globalContext.userData.selectedPet = this.petData;
                 }
-
-
+                
+                // Refresh UI panels
+                this.refreshUI();
+                
+                return responseData;
             } else {
                 console.error(`Failed to ${action} pet:`, responseData.error || 'Unknown error');
-                // TODO: Show error message to user?
+                this.showToast(responseData.error || `Failed to ${action} pet`);
+                return null;
             }
         } catch (error) {
             console.error(`Error during pet ${action}:`, error.message);
-             // TODO: Show error message to user?
+            this.showToast(`Error: ${error.message}`);
+            return null;
         }
     }
 

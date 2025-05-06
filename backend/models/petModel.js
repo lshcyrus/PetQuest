@@ -30,6 +30,19 @@ const petSchema = new mongoose.Schema({
         atk: { type: Number, required: true, default: 100 },
         def: { type: Number, required: true, default: 100 }
     },
+    // Current HP and SP values (can be lower than max after battles)
+    currentHP: { type: Number },
+    currentSP: { type: Number },
+    // Active temporary buffs from outdoor activity 
+    activeBuffs: {
+        stats: {
+            hp: { type: Number },
+            sp: { type: Number },
+            atk: { type: Number },
+            def: { type: Number }
+        },
+        expiresAt: { type: Date }
+    },
     // Old attributes, remove health
     attributes: {
         happiness: {
