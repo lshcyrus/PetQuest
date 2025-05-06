@@ -129,6 +129,69 @@ const toyItems = [
   }
 ]
 
+const equipmentItems = [
+  {
+    name: 'sword',
+    displayName: 'Sword',
+    description: 'A sword that your pet can use for training',
+    type: 'equipment',
+    effects: {
+      experience: 10
+    },
+    rarity: 'common',
+    price: {
+      coins: 100, 
+      gems: 0
+    },
+    image: 'sword.png'
+  },
+  {
+    name: 'magic-wand',
+    displayName: 'Magic Wand',
+    description: 'A magic wand that your pet can use for training',
+    type: 'equipment',
+    effects: {
+      experience: 20
+    },
+    rarity: 'uncommon',
+    price: {
+      coins: 200,
+      gems: 0
+    },
+    image: 'magic-wand.png'
+  },
+  {
+    name: 'the-sword-of-light',
+    displayName: 'The Sword of Light',
+    description: 'A sword that your pet can use for training',
+    type: 'equipment',
+    effects: {
+      experience: 50
+    },
+    rarity: 'rare',
+    price: {
+      coins: 500,
+      gems: 0
+    },
+    image: 'the-sword-of-light.png'
+  },
+  {
+    name: 'demons-blade',
+    displayName: 'Demons Blade',
+    description: 'A sword that your pet can use for training',
+    type: 'equipment',
+    effects: {
+      experience: 150
+    },
+    rarity: 'epic',
+    price: {
+      coins: 1000,
+      gems: 0
+    },
+    image: 'demons-blade.png'
+  }
+]
+
 // Insert potion items into database
 const seedItems = async () => {
   try {
@@ -141,6 +204,10 @@ const seedItems = async () => {
     console.log('Existing toy items:', existingToyItems.length);
     existingToyItems.forEach(item => console.log(`- ${item.name}: ${item._id}`));
     
+    const existingEquipmentItems = await Item.find({ type: 'equipment' });
+    console.log('Existing equipment items:', existingEquipmentItems.length);
+    existingEquipmentItems.forEach(item => console.log(`- ${item.name}: ${item._id}`));
+
     // Delete all medicine items
     await Item.deleteMany({ type: 'medicine' });
     console.log('Cleared all existing medicine items');
@@ -148,12 +215,18 @@ const seedItems = async () => {
     // Delete all toy items
     await Item.deleteMany({ type: 'toy' });
     console.log('Cleared all existing toy items');
+
+    // Delete all equipment items
+    await Item.deleteMany({ type: 'equipment' });
+    console.log('Cleared all existing equipment items');
     
     // Insert new items
     const result = await Item.insertMany(potionItems);
     const result2 = await Item.insertMany(toyItems);
+    const result3 = await Item.insertMany(equipmentItems);
     console.log(`✅ Added ${result.length} potion items to database`);
     console.log(`✅ Added ${result2.length} toy items to database`);
+    console.log(`✅ Added ${result3.length} equipment items to database`);
     
     // List all items to verify
     const allItems = await Item.find();
