@@ -899,7 +899,25 @@ export class MainMenu extends Scene {
             actionType: 'medicine',
             onItemSelect: async (itemId) => {
                 try {
-                    // Play animation when item is selected
+                    // Get the item details from context to determine what type of potion it is
+                    const globalContext = getGlobalContext();
+                    
+                    console.log('Selected item ID:', itemId);
+                    console.log('Global context inventory:', globalContext.userData.inventory);
+                    
+                    // Check if HP is already full and handle accordingly
+                    if (currentHP >= maxHP) {
+                        this.showToast('Pet already at full HP!');
+                        return;
+                    }
+                    
+                    // Check if SP is already full and handle accordingly
+                    if (currentSP >= maxSP) {
+                        this.showToast('Pet already at full SP!');
+                        return;
+                    }
+                    
+                    // Play animation when item is selected and will be used
                     if (this.pet && typeof this.pet.playAnimation === 'function') {
                         this.pet.playAnimation('medicine');
                     }
@@ -948,7 +966,7 @@ export class MainMenu extends Scene {
         console.log('Outdoor button clicked');
         
         // Play animation immediately
-        if (this.pet && typeof this.pet.playAnimation === 'function') {
+        if (this.pet && typeof this.pet.playAnimation === 'function' && this.petData.attributes.stamina >= 50) {
             this.pet.playAnimation('outdoor');
         }
         
