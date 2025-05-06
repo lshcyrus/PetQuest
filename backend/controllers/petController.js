@@ -25,6 +25,27 @@ exports.createPet = async (req, res, next) => {
     const pet = await Pet.create(req.body);
     console.log('Pet created:', pet._id);
     
+    // Give the user 5 hp-potion when they create their first pet
+    try {
+      const Item = require('../models/itemModel');
+      const hpPotionItem = await Item.findOne({ name: 'hp-potion' });
+      if (hpPotionItem) {
+        // Check if user already has the item in inventory
+        const userDoc = await User.findById(req.user.id);
+        const existingInvItem = userDoc.inventory.find((inv) => inv.item.toString() === hpPotionItem._id.toString());
+        if (existingInvItem) {
+          existingInvItem.quantity += 5; // add quantity if already present
+        } else {
+          userDoc.inventory.push({ item: hpPotionItem._id, quantity: 5 });
+        }
+        await userDoc.save();
+      } else {
+        console.warn('hp-potion item not found in database. Make sure to seed items.');
+      }
+    } catch (inventoryErr) {
+      console.error('Error adding default hp-potions to user inventory:', inventoryErr);
+    }
+    
     // Update user with the selected pet
     const updatedUser = await User.findByIdAndUpdate(req.user.id, {
       hasSelectedPet: true,
@@ -559,11 +580,11 @@ exports.medicinePet = async (req, res, next) => {
       });
     }
     
-    // Check if the pet already has full HP
-    if (pet.currentHP >= pet.stats.hp) {
+    // Check if the pet already has full HP and SP (no need for medicine)
+    if (pet.currentHP >= pet.stats.hp && pet.currentSP >= pet.stats.sp) {
       return res.status(400).json({
         success: false,
-        error: 'Pet already has full HP'
+        error: 'Pet already has full HP and SP'
       });
     }
     
@@ -599,12 +620,33 @@ exports.medicinePet = async (req, res, next) => {
         });
       }
       
-      // Apply medicine effects
-      // Heal based on health effect or 40% of max HP
-      const healAmount = item.effects.health || Math.floor(pet.stats.hp * 0.4);
-      pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + healAmount);
-      
-      // Some medicines might also improve other stats
+      // Determine HP/SP heal amounts
+      let hpHeal = 0;
+      let spHeal = 0;
+
+      // Special case: best-potion fully restores HP & SP
+      if (item.name === 'best-potion') {
+        pet.currentHP = pet.stats.hp;
+        pet.currentSP = pet.stats.sp;
+      } else {
+        hpHeal = item.effects.health || 0;
+        spHeal = item.effects.sp || 0;
+
+        // If neither specified, default HP heal 40%
+        if (hpHeal === 0 && spHeal === 0) {
+          hpHeal = Math.floor(pet.stats.hp * 0.4);
+        }
+
+        // Apply heals
+        if (hpHeal > 0) {
+          pet.currentHP = Math.min(pet.stats.hp, (pet.currentHP || pet.stats.hp) + hpHeal);
+        }
+        if (spHeal > 0) {
+          pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || pet.stats.sp) + spHeal);
+        }
+      }
+
+      // Some medicines might also improve other stats (e.g., happiness)
       if (item.effects.happiness) {
         pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
       }

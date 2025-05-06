@@ -104,6 +104,7 @@ export class Preloader extends Scene {
         this.load.image('pet_train', 'UI/pet_train.png');
         this.load.image('pet_addHealth', 'UI/pet_addHealth.png');
         this.load.image('pet_outdoor', 'UI/pet_outdoor.png');
+        this.load.image('inventory_btn', 'UI/inventory.png');
 
         // Load play, train, outdoor spritesheets for each pet with correct frame sizes
         const petActionSheets = [

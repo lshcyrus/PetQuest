@@ -36,6 +36,10 @@ const ItemSchema = new mongoose.Schema({
     experience: {
       type: Number,
       default: 0
+    },
+    sp: {
+      type: Number,
+      default: 0
     }
   },
   price: {

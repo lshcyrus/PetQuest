@@ -612,6 +612,15 @@ export class FirstLogin extends Scene {
                     isFirstLogin: false
                 });
                 console.log('Updated global context with pet:', createdPet);
+                
+                // Fetch the inventory to get the default hp-potions
+                console.log('Fetching inventory after pet creation');
+                try {
+                    await globalContext.fetchInventory();
+                    console.log('Inventory fetched successfully after pet creation');
+                } catch (inventoryError) {
+                    console.error('Error fetching inventory after pet creation:', inventoryError);
+                }
             }
             
         } catch (error) {

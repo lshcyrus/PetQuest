@@ -39,6 +39,15 @@ export class MainMenu extends Scene {
         this.setupUI();
         this.setupPet();
         
+        // Fetch inventory data when the scene loads
+        const globalContext = getGlobalContext();
+        if (globalContext) {
+            console.log('Fetching inventory at MainMenu initialization');
+            globalContext.fetchInventory()
+                .then(() => console.log('Inventory loaded in MainMenu'))
+                .catch(err => console.error('Error loading inventory in MainMenu:', err));
+        }
+        
         // Check initial orientation and setup UI accordingly
         const width = this.scale.width;
         const height = this.scale.height;
@@ -674,17 +683,20 @@ export class MainMenu extends Scene {
         const { width, height } = this.scale;
         const buttonSize = Math.min(width * 0.12, 70); // Size of the button
         const buttonSpacing = buttonSize * 1.3; // Spacing between buttons
-        const totalWidth = 5 * buttonSize + 4 * (buttonSpacing - buttonSize);
-        const startX = (width - totalWidth) / 2 + buttonSize / 2;
-        const bottomY = height - buttonSize / 2 - 20; // Position from bottom
 
         const buttons = [
             { key: 'feed', icon: 'pet_feed', handler: this.handleFeed, anim: 'feed', label: 'Feed' },
             { key: 'play', icon: 'pet_play', handler: this.handlePlay, anim: 'play', label: 'Play' },
             { key: 'train', icon: 'pet_train', handler: this.handleTrain, anim: 'train', label: 'Train' },
             { key: 'medicine', icon: 'pet_addHealth', handler: this.handleMedicine, anim: 'medicine', label: 'Medicine' },
-            { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'outdoor', label: 'Outdoor' }
+            { key: 'outdoor', icon: 'pet_outdoor', handler: this.handleOutdoor, anim: 'outdoor', label: 'Outdoor' },
+            { key: 'inventory', icon: 'inventory_btn', handler: this.handleInventory, anim: null, label: 'Inventory' }
         ];
+
+        const totalButtons = buttons.length;
+        const totalWidth = totalButtons * buttonSize + (totalButtons - 1) * (buttonSpacing - buttonSize);
+        const startX = (width - totalWidth) / 2 + buttonSize / 2;
+        const bottomY = height - buttonSize / 2 - 20; // Position from bottom
 
         this.interactionButtons = [];
         this.interactionButtonLabels = [];
@@ -859,13 +871,17 @@ export class MainMenu extends Scene {
     async handleMedicine() {
         console.log('Medicine button clicked');
         
-        // Get current HP or default to full if undefined
+        // Get current HP and SP or default to full if undefined
         const currentHP = this.petData.currentHP !== undefined ? 
             this.petData.currentHP : this.petData.stats.hp;
+        const currentSP = this.petData.currentSP !== undefined ? 
+            this.petData.currentSP : this.petData.stats.sp;
+        const maxHP = this.petData.stats.hp;
+        const maxSP = this.petData.stats.sp;
         
-        // Check if HP is already full
-        if (currentHP >= this.petData.stats.hp) {
-            this.showToast('HP already full!');
+        // Check if both HP and SP are already full
+        if (currentHP >= maxHP && currentSP >= maxSP) {
+            this.showToast('HP and SP already full!');
             return;
         }
         
@@ -883,11 +899,27 @@ export class MainMenu extends Scene {
                     const result = await this.updatePetInteraction('medicine', { itemId });
                     
                     if (result) {
-                        // Show actual healing amount based on before/after if available
-                        const newHP = result.data.currentHP;
-                        const healAmount = Math.floor(newHP - currentHP);
+                        // Get updated values
+                        const newHP = result.data.currentHP || maxHP;
+                        const newSP = result.data.currentSP || maxSP;
                         
-                        this.showToast(`Pet healed with special medicine! +${healAmount} HP`);
+                        // Calculate healing amounts
+                        const healHPAmount = Math.floor(newHP - currentHP);
+                        const healSPAmount = Math.floor(newSP - currentSP);
+                        
+                        // Create appropriate message based on what was healed
+                        let message = 'Pet healed with medicine!';
+                        if (healHPAmount > 0 && healSPAmount > 0) {
+                            message = `Pet healed with mixed potion! +${healHPAmount} HP +${healSPAmount} SP`;
+                        } else if (healHPAmount > 0) {
+                            message = `Pet healed with HP potion! +${healHPAmount} HP`;
+                        } else if (healSPAmount > 0) {
+                            message = `Pet healed with SP potion! +${healSPAmount} SP`;
+                        } else if (newHP >= maxHP && newSP >= maxSP) {
+                            message = 'Pet fully restored with best potion!';
+                        }
+                        
+                        this.showToast(message);
                     }
                 } catch (error) {
                     console.error('Failed to heal pet with medicine:', error);
@@ -955,6 +987,20 @@ export class MainMenu extends Scene {
             console.error('Error taking pet outdoors:', error);
             this.showToast('Could not take pet outdoors');
         }
+    }
+
+    async handleInventory() {
+        console.log('Inventory button clicked');
+
+        const modal = new InventoryModal(this, {
+            actionType: 'view',
+            onItemSelect: () => {}, // Just view, no select behavior
+            onClose: () => {
+                console.log('Inventory closed');
+            }
+        });
+
+        modal.show();
     }
 
     // Show a temporary toast message to the user

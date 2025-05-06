@@ -23,7 +23,8 @@ export const GlobalProvider = ({ children }) => {
     level: 1,
     experience: 0,
     coins: 0,
-    items: [], 
+    items: [],  // Keep for backward compatibility
+    inventory: [], // Add inventory field to match backend
     achievements: [], 
     lastLogin: null,
     settings: {
@@ -76,6 +77,8 @@ export const GlobalProvider = ({ children }) => {
             username: serverUserData.username || prev.username,
             hasSelectedPet: serverUserData.hasSelectedPet || false,
             selectedPet: serverUserData.selectedPet || null,
+            inventory: serverUserData.inventory || [],
+            items: serverUserData.inventory || [],
             // Add other fields from serverUserData as needed
           }));
           
@@ -170,7 +173,11 @@ export const GlobalProvider = ({ children }) => {
   };
 
   const addItem = (item) => {
-    setUserData(prev => ({ ...prev, items: [...prev.items, item] }));
+    setUserData(prev => ({ 
+      ...prev, 
+      items: [...prev.items, item],
+      inventory: [...prev.inventory, item] 
+    }));
   };
 
   const updateSettings = (newSettings) => {
@@ -194,6 +201,7 @@ export const GlobalProvider = ({ children }) => {
       experience: 0,
       coins: 0,
       items: [],
+      inventory: [],
       achievements: [],
       lastLogin: null,
       settings: {
@@ -201,6 +209,64 @@ export const GlobalProvider = ({ children }) => {
         notificationsEnabled: true,
       }
     });
+  };
+
+  // Function to fetch and update inventory
+  const fetchInventory = async () => {
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      // If no token exists, don't try to fetch inventory
+      if (!token) {
+        console.log('No token found, skipping inventory fetch');
+        return;
+      }
+      
+      console.log('Fetching user inventory from API');
+      
+      // Get inventory data from the server
+      const response = await fetch(`${API_URL}/users/me/inventory`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Inventory API response status:', response.status);
+      const responseData = await response.json();
+      console.log('Inventory API raw response:', responseData);
+      
+      if (!response.ok) {
+        console.error('API error fetching inventory:', responseData.error || 'Unknown error');
+        throw new Error(responseData.error || 'Failed to load inventory');
+      }
+      
+      if (responseData.success && responseData.data) {
+        const inventoryData = responseData.data;
+        console.log('Inventory loaded, item count:', inventoryData.length);
+        console.log('Inventory data details:', JSON.stringify(inventoryData));
+        
+        // Update the user data with inventory data
+        setUserData(prev => {
+          console.log('Updating userData with inventory, previous items/inventory length:', 
+            prev.items.length, prev.inventory.length);
+          return {
+            ...prev,
+            inventory: inventoryData,
+            items: inventoryData // Also update items for backward compatibility
+          };
+        });
+        
+        return inventoryData;
+      } else {
+        console.warn('Unexpected inventory response format:', responseData);
+        return [];
+      }
+    } catch (error) {
+      console.error('Failed to load inventory:', error.message);
+      return [];
+    }
   };
 
   // Values to be provided by the context
@@ -214,6 +280,7 @@ export const GlobalProvider = ({ children }) => {
     addItem,
     updateSettings,
     resetUserData,
+    fetchInventory,
     isFirstLogin: !userData.hasSelectedPet,
     setPet: (petData) => {
       setUserData(prev => ({ ...prev, selectedPet: petData }));

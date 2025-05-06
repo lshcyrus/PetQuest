@@ -1,6 +1,8 @@
 /**
  * InventoryModal - A Phaser modal to display and select items from inventory
  */
+import { getGlobalContext } from '../../utils/contextBridge';
+
 export class InventoryModal {
     /**
      * Create an inventory modal
@@ -21,7 +23,8 @@ export class InventoryModal {
             feed: 'food',
             play: 'toy',
             train: 'equipment',
-            medicine: 'medicine'
+            medicine: 'medicine',
+            view: undefined // show all items
         };
         
         this.requiredItemType = this.actionTypeMap[this.actionType];
@@ -238,6 +241,33 @@ export class InventoryModal {
      */
     async fetchInventory() {
         try {
+            // Try to get the inventory from global context first
+            const globalContext = getGlobalContext();
+            
+            if (globalContext) {
+                // Fetch the latest inventory data using the global context method
+                const inventoryData = await globalContext.fetchInventory();
+                
+                if (inventoryData && inventoryData.length > 0) {
+                    console.log('Got inventory from global context:', inventoryData.length, 'items');
+                    this.inventory = inventoryData;
+                    this.filterItems();
+                    this.displayItems();
+                    return;
+                } else if (globalContext.userData && globalContext.userData.inventory && globalContext.userData.inventory.length > 0) {
+                    // Use existing inventory data from context if fetchInventory didn't work
+                    console.log('Using existing inventory from global context:', globalContext.userData.inventory.length, 'items');
+                    this.inventory = globalContext.userData.inventory;
+                    this.filterItems();
+                    this.displayItems();
+                    return;
+                }
+                
+                // If we got here, the global context didn't have inventory data, fall back to direct API call
+                console.log('No inventory in global context, falling back to direct API call');
+            }
+
+            // Direct API call as fallback
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('Not authenticated');
@@ -258,6 +288,15 @@ export class InventoryModal {
             }
             
             this.inventory = data.data || [];
+            
+            // Also update the global context if it exists
+            if (globalContext) {
+                globalContext.updateUserData({
+                    inventory: this.inventory,
+                    items: this.inventory
+                });
+            }
+            
             this.filterItems();
             this.displayItems();
         } catch (err) {
@@ -270,9 +309,14 @@ export class InventoryModal {
      * Filter inventory by the required item type
      */
     filterItems() {
-        this.filteredItems = this.inventory.filter(
-            invItem => invItem.item && invItem.item.type === this.requiredItemType
-        );
+        if (this.requiredItemType) {
+            this.filteredItems = this.inventory.filter(
+                invItem => invItem.item && invItem.item.type === this.requiredItemType
+            );
+        } else {
+            // Show all items when requiredItemType is undefined (view mode)
+            this.filteredItems = [...this.inventory];
+        }
     }
     
     /**
