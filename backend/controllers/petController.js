@@ -108,13 +108,6 @@ exports.feedPet = async (req, res, next) => {
   try {
     const { itemId } = req.body;
     
-    if (!itemId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please provide an item to feed'
-      });
-    }
-    
     // Get pet
     let pet = await Pet.findById(req.params.id);
     
@@ -122,6 +115,17 @@ exports.feedPet = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         error: 'Pet not found'
+      });
+    }
+    
+    // Check if we're using direct feeding (without item)
+    const directFeeding = !itemId;
+    
+    // If stamina is already full, return error
+    if (directFeeding && pet.attributes.stamina >= 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pet stamina already full'
       });
     }
     
@@ -133,65 +137,88 @@ exports.feedPet = async (req, res, next) => {
       });
     }
     
-    // Find the item in user's inventory
-    const user = await User.findById(req.user.id);
-    const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
-    
-    if (!inventoryItem || inventoryItem.quantity <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Item not found in inventory'
-      });
-    }
-    
-    // Get item details
-    const Item = require('../models/itemModel');
-    const item = await Item.findById(itemId);
-    
-    if (!item) {
-      return res.status(404).json({
-        success: false,
-        error: 'Item not found'
-      });
-    }
-    
-    // Check if item is food
-    if (item.type !== 'food') {
-      return res.status(400).json({
-        success: false,
-        error: 'This item cannot be used for feeding'
-      });
-    }
-    
-    // Apply item effects to pet
-    pet.attributes.hunger = Math.min(100, pet.attributes.hunger + item.effects.hunger);
-    pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
-    pet.experience += item.effects.experience;
-    
-    // Regenerate 10 stamina if not full
-    if (pet.attributes.stamina < 100) {
+    // Handle direct feeding (without item) or item-based feeding
+    if (directFeeding) {
+      // Apply direct feeding effects (decrease hunger, increase happiness)
+      // Hunger represents how hungry the pet is (0 = full, 100 = very hungry)
+      pet.attributes.hunger = Math.max(0, pet.attributes.hunger - 15);
+      
+      // Increase happiness
+      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + 5);
+      
+      // Regenerate stamina
       pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
+      
+      pet.lastFed = Date.now();
+      await pet.save();
+      
+      res.status(200).json({
+        success: true,
+        data: pet
+      });
+    } else {
+      // Find the item in user's inventory
+      const user = await User.findById(req.user.id);
+      const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
+      
+      if (!inventoryItem || inventoryItem.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Item not found in inventory'
+        });
+      }
+      
+      // Get item details
+      const Item = require('../models/itemModel');
+      const item = await Item.findById(itemId);
+      
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          error: 'Item not found'
+        });
+      }
+      
+      // Check if item is food
+      if (item.type !== 'food') {
+        return res.status(400).json({
+          success: false,
+          error: 'This item cannot be used for feeding'
+        });
+      }
+      
+      // Apply item effects to pet
+      // Hunger should decrease when fed (item.effects.hunger should be positive)
+      pet.attributes.hunger = Math.max(0, pet.attributes.hunger - item.effects.hunger);
+      // Happiness increases as normal
+      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
+      pet.experience += item.effects.experience;
+      
+      // Regenerate 10 stamina if not full
+      if (pet.attributes.stamina < 100) {
+        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
+      }
+      
+      const levelUpResult = gameLogic.checkLevelUp(pet);
+      pet = levelUpResult.pet;
+      
+      pet.lastFed = Date.now();
+      
+      await pet.save();
+      
+      inventoryItem.quantity--;
+      if (inventoryItem.quantity <= 0) {
+        user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
+      }
+      
+      await user.save();
+      
+      res.status(200).json({
+        success: true,
+        data: pet,
+        levelUp: levelUpResult.leveledUp
+      });
     }
-    
-    const levelUpResult = gameLogic.checkLevelUp(pet);
-    pet = levelUpResult.pet;
-    
-    pet.lastFed = Date.now();
-    
-    await pet.save();
-    
-    inventoryItem.quantity--;
-    if (inventoryItem.quantity <= 0) {
-      user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
-    }
-    
-    await user.save();
-    
-    res.status(200).json({
-      success: true,
-      data: pet,
-      levelUp: levelUpResult.leveledUp
-    });
   } catch (err) {
     next(err);
   }
@@ -473,7 +500,8 @@ exports.medicinePet = async (req, res, next) => {
     
     // Set or increment current HP
     if (pet.currentHP === undefined) {
-      pet.currentHP = Math.min(pet.stats.hp, pet.stats.hp * 0.2 + (pet.currentHP || 0));
+      // Initialize to full HP if undefined
+      pet.currentHP = pet.stats.hp;
     } else {
       // Regenerate 20% of max HP
       pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + (pet.stats.hp * 0.2));

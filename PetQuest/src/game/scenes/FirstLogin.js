@@ -538,7 +538,9 @@ export class FirstLogin extends Scene {
                 body: JSON.stringify({
                     name: customName,
                     key: petData.key, // Send the key to the backend
-                    stats: petData.stats // Send the full stats object
+                    stats: petData.stats, // Send the full stats object
+                    currentHP: petData.stats.hp, // Initialize currentHP to max HP
+                    currentSP: petData.stats.sp  // Initialize currentSP to max SP
                 })
             });
             

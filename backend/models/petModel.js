@@ -30,9 +30,15 @@ const petSchema = new mongoose.Schema({
         atk: { type: Number, required: true, default: 100 },
         def: { type: Number, required: true, default: 100 }
     },
-    // Current HP and SP values (can be lower than max after battles)
-    currentHP: { type: Number },
-    currentSP: { type: Number },
+    // Current HP and SP values
+    currentHP: { 
+        type: Number,
+        default: function() { return this.stats.hp; } // Default to max HP
+    },
+    currentSP: { 
+        type: Number,
+        default: function() { return this.stats.sp; } // Default to max SP
+    },
     // Active temporary buffs from outdoor activity 
     activeBuffs: {
         stats: {

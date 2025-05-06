@@ -236,42 +236,100 @@ export class MainMenu extends Scene {
             let currentValue = '-';
             let maxValue = stats[stat.key] !== undefined ? stats[stat.key] : undefined;
 
-            if (stat.key === 'hp' || stat.key === 'sp') {
-                // For HP and SP, try to get the current value directly from petData (set during battles)
-                // Fallback to max value if current not available
-                currentValue = (this.petData[stat.key] !== undefined && this.petData[stat.key] !== null)
-                    ? this.petData[stat.key]
-                    : (maxValue !== undefined ? maxValue : '-');
-
-                // Ensure we have a max value to display
-                if (maxValue === undefined) {
-                    maxValue = currentValue;
-                }
-
+            if (stat.key === 'hp') {
+                // For HP, use currentHP if available, otherwise use max
+                currentValue = (this.petData.currentHP !== undefined) ? 
+                    this.petData.currentHP : maxValue;
+            } else if (stat.key === 'sp') {
+                // For SP, use currentSP if available, otherwise use max
+                currentValue = (this.petData.currentSP !== undefined) ? 
+                    this.petData.currentSP : maxValue;
             } else {
                 // For other stats (atk, def, etc.), display the single value (max)
                 currentValue = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
             }
 
+            // Check for active buffs for this stat
+            let buffValue = 0;
+            const now = new Date().getTime();
+            const hasActiveBuffs = this.petData.activeBuffs && 
+                this.petData.activeBuffs.expiresAt && 
+                new Date(this.petData.activeBuffs.expiresAt).getTime() > now;
+            
+            if (hasActiveBuffs && 
+                this.petData.activeBuffs.stats && 
+                this.petData.activeBuffs.stats[stat.key]) {
+                buffValue = this.petData.activeBuffs.stats[stat.key];
+            }
+
             // Compose display string
-            const displayStr = (stat.key === 'hp' || stat.key === 'sp')
-                ? `${currentValue}/${maxValue}`
-                : `${currentValue}`;
-
-            const statText = this.add.text(
-                -panelWidth / 2 + 16,
-                yOffset,
-                `${stat.label}: ${displayStr}`,
-                {
-                    fontFamily: '"Silkscreen", cursive',
-                    fontSize: '18px',
-                    color: '#ffffff',
-                    stroke: '#000000',
-                    strokeThickness: 2
+            let displayStr;
+            if (stat.key === 'hp' || stat.key === 'sp') {
+                // For HP and SP, show current/max format
+                displayStr = `${currentValue}/${maxValue}`;
+                // Add buff indicator if applicable
+                if (buffValue > 0) {
+                    displayStr += ` +${buffValue}`;
                 }
-            ).setOrigin(0, 0.5);
+            } else {
+                displayStr = `${currentValue}`;
+                // Add buff indicator if applicable
+                if (buffValue > 0) {
+                    displayStr += ` +${buffValue}`;
+                }
+            }
 
-            this.leftStatsPanel.add(statText);
+            // Create the stat text
+            let baseText = `${stat.label}: `;
+            
+            // If we have a buff, we'll create two text objects to style them differently
+            if (buffValue > 0) {
+                // Base text without the buff
+                const mainText = this.add.text(
+                    -panelWidth / 2 + 16,
+                    yOffset,
+                    baseText + displayStr.replace(` +${buffValue}`, ''),
+                    {
+                        fontFamily: '"Silkscreen", cursive',
+                        fontSize: '18px',
+                        color: '#ffffff',
+                        stroke: '#000000',
+                        strokeThickness: 2
+                    }
+                ).setOrigin(0, 0.5);
+                
+                // Buff text with color highlighting
+                const buffText = this.add.text(
+                    -panelWidth / 2 + 16 + mainText.width,
+                    yOffset,
+                    ` +${buffValue}`,
+                    {
+                        fontFamily: '"Silkscreen", cursive',
+                        fontSize: '18px',
+                        color: '#00ff00', // Green color for buffs
+                        stroke: '#000000',
+                        strokeThickness: 2
+                    }
+                ).setOrigin(0, 0.5);
+                
+                this.leftStatsPanel.add([mainText, buffText]);
+            } else {
+                // Regular stat without buff
+                const statText = this.add.text(
+                    -panelWidth / 2 + 16,
+                    yOffset,
+                    baseText + displayStr,
+                    {
+                        fontFamily: '"Silkscreen", cursive',
+                        fontSize: '18px',
+                        color: '#ffffff',
+                        stroke: '#000000',
+                        strokeThickness: 2
+                    }
+                ).setOrigin(0, 0.5);
+                
+                this.leftStatsPanel.add(statText);
+            }
         });
     }
 
@@ -297,7 +355,7 @@ export class MainMenu extends Scene {
         const attributes = this.petData.attributes || {};
         const attrConfig = [
             { key: 'happiness', label: 'Happiness', color: 0xffe066 },
-            { key: 'hunger', label: 'Hunger', color: 0x66b3ff },
+            { key: 'hunger', label: 'Fullness', color: 0x66b3ff },
             { key: 'cleanliness', label: 'Cleanliness', color: 0xff99cc },
             { key: 'stamina', label: 'Stamina', color: 0x99ff99 }
         ];
@@ -326,7 +384,14 @@ export class MainMenu extends Scene {
                 const barY = yOffset + 24; // 24px below label (18px label + 6px padding)
                 const barBg = this.add.rectangle(-panelWidth/2 + 16, barY, 180, 16, 0x333333).setOrigin(0, 0.5);
                 // Bar fill
-                const value = Math.max(0, Math.min(100, attributes[attr.key]));
+                let value = Math.max(0, Math.min(100, attributes[attr.key]));
+                
+                // For hunger, invert the display (0 hunger = full bar, 100 hunger = empty bar)
+                if (attr.key === 'hunger') {
+                    // Invert the value for display purposes only
+                    value = 100 - value;
+                }
+                
                 const barWidth = (value / 100) * 180;
                 const barFill = this.add.rectangle(-panelWidth/2 + 16, barY, barWidth, 16, attr.color).setOrigin(0, 0.5);
                 this.rightAttributesPanel.add([label, barBg, barFill]);
@@ -679,19 +744,20 @@ export class MainMenu extends Scene {
         console.log('Feed button clicked');
         
         // Check if stamina is already full
-        if (this.petData.attributes && this.petData.attributes.stamina >= 100) {
+        if (this.petData.attributes.stamina >= 100) {
             this.showToast('Stamina already full!');
             return;
         }
         
         try {
-            // Try to find any food item in the inventory (simplified for now)
-            const itemId = 'defaultFoodItem'; // This would normally come from the inventory
+            // Use direct feeding (without requiring an item)
+            const result = await this.updatePetInteraction('feed', {});
             
-            await this.updatePetInteraction('feed', { itemId });
-            this.showToast('Pet fed! +10 Stamina');
+            if (result) {
+                this.showToast('Pet fed! +15 fullness, +10 stamina');
+            }
         } catch (error) {
-            console.error('Error feeding pet:', error);
+            console.error('Failed to feed pet:', error);
             this.showToast('Could not feed pet');
         }
     }
@@ -737,8 +803,12 @@ export class MainMenu extends Scene {
     async handleMedicine() {
         console.log('Medicine button clicked');
         
+        // Get current HP or default to full if undefined
+        const currentHP = this.petData.currentHP !== undefined ? 
+            this.petData.currentHP : this.petData.stats.hp;
+        
         // Check if HP is already full
-        if (this.petData.currentHP >= this.petData.stats.hp) {
+        if (currentHP >= this.petData.stats.hp) {
             this.showToast('HP already full!');
             return;
         }
@@ -747,7 +817,11 @@ export class MainMenu extends Scene {
             const result = await this.updatePetInteraction('medicine');
             
             if (result) {
-                const healAmount = Math.floor(this.petData.stats.hp * 0.2);
+                // Show actual healing amount based on before/after
+                const prevHP = currentHP;
+                const newHP = this.petData.currentHP;
+                const healAmount = Math.floor(newHP - prevHP);
+                
                 this.showToast(`Pet healed! +${healAmount} HP`);
             }
         } catch (error) {
@@ -770,8 +844,24 @@ export class MainMenu extends Scene {
             const result = await this.updatePetInteraction('outdoor');
             
             if (result && result.buffDetails) {
-                const buffedStats = result.buffDetails.buffedStats.join(', ').toUpperCase();
-                this.showToast(`Pet went outside! +10% ${buffedStats} for 30 minutes`);
+                // Format the buff message with actual values
+                if (result.data && result.data.activeBuffs && result.data.activeBuffs.stats) {
+                    const buffs = result.data.activeBuffs.stats;
+                    let buffMessage = '';
+                    
+                    // Create a detailed buff message showing actual values
+                    Object.entries(buffs).forEach(([stat, value]) => {
+                        if (value > 0) {
+                            buffMessage += `${stat.toUpperCase()}+${value} `;
+                        }
+                    });
+                    
+                    this.showToast(`Pet went outside! ${buffMessage.trim()} for 30 minutes`);
+                } else {
+                    // Fallback to the old format
+                    const buffedStats = result.buffDetails.buffedStats.join(', ').toUpperCase();
+                    this.showToast(`Pet went outside! +10% ${buffedStats} for 30 minutes`);
+                }
             }
         } catch (error) {
             console.error('Error taking pet outdoors:', error);
