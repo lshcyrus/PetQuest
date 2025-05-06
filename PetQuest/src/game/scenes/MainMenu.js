@@ -899,20 +899,32 @@ export class MainMenu extends Scene {
             actionType: 'medicine',
             onItemSelect: async (itemId) => {
                 try {
-                    // Get the item details from context to determine what type of potion it is
+                    // Get the item details from context
                     const globalContext = getGlobalContext();
                     
                     console.log('Selected item ID:', itemId);
-                    console.log('Global context inventory:', globalContext.userData.inventory);
                     
-                    // Check if HP is already full and handle accordingly
-                    if (currentHP >= maxHP) {
+                    // Find the item in the inventory
+                    const inventory = globalContext.userData.inventory || [];
+                    const inventoryItem = inventory.find(entry => entry.item._id === itemId);
+                    
+                    if (!inventoryItem || !inventoryItem.item) {
+                        console.error('Item not found in inventory');
+                        this.showToast('Item not available');
+                        return;
+                    }
+                    
+                    const item = inventoryItem.item;
+                    console.log('Found item:', item);
+                    
+                    // Check if this is an HP potion and HP is already full
+                    if (item.name === 'hp-potion' && currentHP >= maxHP) {
                         this.showToast('Pet already at full HP!');
                         return;
                     }
                     
-                    // Check if SP is already full and handle accordingly
-                    if (currentSP >= maxSP) {
+                    // Check if this is an SP potion and SP is already full
+                    if (item.name === 'sp-potion' && currentSP >= maxSP) {
                         this.showToast('Pet already at full SP!');
                         return;
                     }
@@ -976,7 +988,7 @@ export class MainMenu extends Scene {
             this.showToast(`Buff still active for ${timeRemaining} minutes!`);
             return;
         }
-        
+
         // Check if pet has enough stamina
         if (this.petData.attributes && this.petData.attributes.stamina < 50) {
             this.showToast('Not enough stamina for outdoor activity!');
