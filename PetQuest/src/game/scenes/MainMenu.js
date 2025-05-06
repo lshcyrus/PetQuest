@@ -231,14 +231,46 @@ export class MainMenu extends Scene {
         const stats = this.petData.stats || {};
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
-            const value = stats[stat.key] !== undefined ? stats[stat.key] : '-';
-            const statText = this.add.text(-panelWidth/2 + 16, yOffset, `${stat.label}: ${value}`, {
-                fontFamily: '"Silkscreen", cursive',
-                fontSize: '18px',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 2
-            }).setOrigin(0, 0.5);
+
+            // Determine current and maximum values based on stat type
+            let currentValue = '-';
+            let maxValue = stats[stat.key] !== undefined ? stats[stat.key] : undefined;
+
+            if (stat.key === 'hp' || stat.key === 'sp') {
+                // For HP and SP, try to get the current value directly from petData (set during battles)
+                // Fallback to max value if current not available
+                currentValue = (this.petData[stat.key] !== undefined && this.petData[stat.key] !== null)
+                    ? this.petData[stat.key]
+                    : (maxValue !== undefined ? maxValue : '-');
+
+                // Ensure we have a max value to display
+                if (maxValue === undefined) {
+                    maxValue = currentValue;
+                }
+
+            } else {
+                // For other stats (atk, def, etc.), display the single value (max)
+                currentValue = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
+            }
+
+            // Compose display string
+            const displayStr = (stat.key === 'hp' || stat.key === 'sp')
+                ? `${currentValue}/${maxValue}`
+                : `${currentValue}`;
+
+            const statText = this.add.text(
+                -panelWidth / 2 + 16,
+                yOffset,
+                `${stat.label}: ${displayStr}`,
+                {
+                    fontFamily: '"Silkscreen", cursive',
+                    fontSize: '18px',
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0, 0.5);
+
             this.leftStatsPanel.add(statText);
         });
     }
