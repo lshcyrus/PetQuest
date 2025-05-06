@@ -17,7 +17,7 @@ export class Boot extends Scene {
     create() {
         console.log('Boot scene started');
         
-        // Check if this is a first-time user
+        // Check if this user is the first time logging in
         this.checkFirstTimeUser();
         
         // Proceed to preloader
@@ -35,8 +35,6 @@ export class Boot extends Scene {
         // based on the hasSelectedPet value from the server
         console.log("Boot: First-time user check - global context available:", !!globalContext);
         
-        // Nothing else to do here - the first-time user status is already determined
-        // in the GlobalProvider when loading user data from the server
     }
 
     optimizeForMobile() {
@@ -48,7 +46,7 @@ export class Boot extends Scene {
             
             // Adjust physics settings for mobile if you're using physics
             if (this.physics && this.physics.world) {
-                this.physics.world.setFPS(30); // Lower FPS for better performance
+                this.physics.world.setFPS(30); 
             }
             
         }
