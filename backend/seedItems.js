@@ -181,11 +181,11 @@ const equipmentItems = [
     description: 'A sword that your pet can use for training',
     type: 'equipment',
     effects: {
-      experience: 150
+      experience: 200
     },
-    rarity: 'epic',
+    rarity: 'legendary',
     price: {
-      coins: 1000,
+      coins: 1500,
       gems: 0
     },
     image: 'demons-blade.png'
