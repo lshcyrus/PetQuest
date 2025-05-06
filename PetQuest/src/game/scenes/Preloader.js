@@ -117,6 +117,12 @@ export class Preloader extends Scene {
         this.load.image('feather', 'items/toy/feather.png');
         this.load.image('cup', 'items/toy/cup.png');
         this.load.image('chess', 'items/toy/chess.png');
+
+        // Load equipment images
+        this.load.image('sword', 'items/equipment/sword.png');
+        this.load.image('magic-wand', 'items/equipment/magic-wand.png');
+        this.load.image('the-sword-of-light', 'items/equipment/the-sword-of-light.png');
+        this.load.image('demons-blade', 'items/equipment/demons-blade.png');
         
         // Load play, train, outdoor spritesheets for each pet with correct frame sizes
         const petActionSheets = [

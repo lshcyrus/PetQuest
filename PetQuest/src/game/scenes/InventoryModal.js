@@ -1,16 +1,16 @@
 /**
- * InventoryModal - A Phaser modal to display and select items from inventory
- */
+InventoryModal - A Phaser modal to display and select items from inventory
+*/
 import { getGlobalContext } from '../../utils/contextBridge';
 
 export class InventoryModal {
     /**
-     * Create an inventory modal
-     * @param {Phaser.Scene} scene - The scene this modal belongs to
-     * @param {Object} options - Modal options
-     * @param {string} options.actionType - Type of action ('feed', 'play', 'train', 'medicine')
-     * @param {Function} options.onItemSelect - Callback when item is selected
-     * @param {Function} options.onClose - Callback when modal is closed
+      Create an inventory modal
+      @param {Phaser.Scene} scene - The scene this modal belongs to
+      @param {Object} options - Modal options
+      @param {string} options.actionType - Type of action ('feed', 'play', 'train', 'medicine')
+      @param {Function} options.onItemSelect - Callback when item is selected
+      @param {Function} options.onClose - Callback when modal is closed
      */
     constructor(scene, options) {
         this.scene = scene;
@@ -41,7 +41,7 @@ export class InventoryModal {
         this.emptyText = null;
         
         // Appearance settings
-        this.width = Math.min(this.scene.scale.width * 0.8, 500);
+        this.width = Math.min(this.scene.scale.width * 0.8, 700);
         this.height = Math.min(this.scene.scale.height * 0.7, 600);
         this.padding = 20;
         this.itemHeight = 80;
@@ -62,7 +62,7 @@ export class InventoryModal {
     }
     
     /**
-     * Show the modal and fetch inventory data
+     Show the modal and fetch inventory data
      */
     show() {
         this.createModal();
@@ -70,7 +70,7 @@ export class InventoryModal {
     }
     
     /**
-     * Create the modal UI elements
+     Create the modal UI elements
      */
     createModal() {
         // Create the container for all elements
@@ -114,27 +114,9 @@ export class InventoryModal {
         title.setOrigin(0.5, 0);
         this.container.add(title);
         
-        // Add close button
-        const closeBtn = this.scene.add.text(
-            modalX + this.width - this.padding,
-            modalY + this.padding,
-            'X',
-            {
-                fontFamily: '"Silkscreen", cursive',
-                fontSize: '18px',
-                color: '#aaaaaa'
-            }
-        );
-        closeBtn.setOrigin(1, 0);
-        closeBtn.setInteractive({ useHandCursor: true });
-        closeBtn.on('pointerover', () => closeBtn.setColor('#ffffff'));
-        closeBtn.on('pointerout', () => closeBtn.setColor('#aaaaaa'));
-        closeBtn.on('pointerdown', () => this.close());
-        this.container.add(closeBtn);
-        
         // Create container for item display
         const itemsY = modalY + 60;
-        const itemsHeight = this.height - 120;
+        const itemsHeight = this.height - 80;
         
         // Mask for scrolling
         const itemsMask = this.scene.add.graphics();
@@ -144,6 +126,56 @@ export class InventoryModal {
         this.itemsContainer = this.scene.add.container(modalX + this.padding, itemsY);
         this.itemsContainer.setMask(new Phaser.Display.Masks.GeometryMask(this.scene, itemsMask));
         this.container.add(this.itemsContainer);
+        
+        // Add close button on top of everything else as a separate top-level element
+        const closeButtonContainer = this.scene.add.container(0, 0);
+        closeButtonContainer.setDepth(2000); // Higher depth than anything else
+        
+        const closeBtn = this.scene.add.rectangle(
+            modalX + this.width - this.padding - 10,
+            modalY + this.padding + 10,
+            30, 30, 0x880000
+        );
+        closeBtn.setOrigin(0.5, 0.5);
+        closeBtn.setInteractive({ 
+            useHandCursor: true,
+            hitArea: new Phaser.Geom.Rectangle(-20, -20, 70, 70),
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains
+        });
+        
+        // Add hover effects
+        closeBtn.on('pointerover', () => {
+            closeBtn.setFillStyle(0xaa0000); // Brighter red on hover
+            closeBtn.setScale(1.1); // Slightly larger on hover
+        });
+        
+        closeBtn.on('pointerout', () => {
+            closeBtn.setFillStyle(0x880000); // Back to original color
+            closeBtn.setScale(1.0); // Back to original size
+        });
+        
+        // Make the button respond to clicks with priority
+        closeBtn.on('pointerdown', (pointer) => {
+            pointer.event.stopPropagation();
+            this.close();
+        });
+        closeButtonContainer.add(closeBtn);
+        
+        const closeBtnText = this.scene.add.text(
+            closeBtn.x,
+            closeBtn.y,
+            'X',
+            {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '18px',
+                color: '#ffffff'
+            }
+        );
+        closeBtnText.setOrigin(0.5, 0.5);
+        closeButtonContainer.add(closeBtnText);
+        
+        // Add the close button container to the main container
+        this.container.add(closeButtonContainer);
         
         // Loading text
         this.loadingText = this.scene.add.text(
@@ -159,7 +191,7 @@ export class InventoryModal {
         this.loadingText.setOrigin(0.5);
         this.container.add(this.loadingText);
         
-        // Error text (hidden initially)
+        // Error text (hidden)
         this.errorText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -174,7 +206,7 @@ export class InventoryModal {
         this.errorText.setVisible(false);
         this.container.add(this.errorText);
         
-        // Empty text (hidden initially)
+        // Empty text (hidden)
         this.emptyText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -190,32 +222,13 @@ export class InventoryModal {
         this.emptyText.setVisible(false);
         this.container.add(this.emptyText);
         
-        // Add cancel button at bottom
-        const cancelBtn = this.scene.add.rectangle(
-            modalX + this.width/2,
-            modalY + this.height - this.padding - 20,
-            120, 40, 0xaa0000
-        );
-        cancelBtn.setOrigin(0.5, 0.5);
-        cancelBtn.setInteractive({ useHandCursor: true });
-        cancelBtn.on('pointerdown', () => this.close());
-        this.container.add(cancelBtn);
-        
-        const cancelText = this.scene.add.text(
-            cancelBtn.x,
-            cancelBtn.y,
-            'Cancel',
-            {
-                fontFamily: '"Silkscreen", cursive',
-                fontSize: '16px',
-                color: '#ffffff'
-            }
-        );
-        cancelText.setOrigin(0.5, 0.5);
-        this.container.add(cancelText);
-        
         // Set up scrolling for items list
         this.scene.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+            // Skip scrolling if the pointer is over the close button
+            if (closeBtn.getBounds().contains(pointer.x, pointer.y)) {
+                return;
+            }
+            
             if (this.filteredItems.length > 0 && pointer.y > itemsY && pointer.y < itemsY + itemsHeight) {
                 this.itemsContainer.y -= deltaY;
                 
@@ -237,8 +250,8 @@ export class InventoryModal {
     }
     
     /**
-     * Fetch inventory data from backend
-     */
+    Fetch inventory data from backend
+    */
     async fetchInventory() {
         try {
             // Try to get the inventory from global context first
@@ -287,7 +300,7 @@ export class InventoryModal {
                     return;
                 }
                 
-                // If we got here, the global context didn't have inventory data, fall back to direct API call
+                // Fall back to direct API call, if the global context didn't have inventory data
                 console.log('No valid inventory in global context, falling back to direct API call');
             }
 
@@ -313,7 +326,7 @@ export class InventoryModal {
             
             console.log('Got inventory from direct API call:', data);
             
-            // Ensure we have a proper data structure
+            // Ensure there is a proper data structure
             if (!data.data || !Array.isArray(data.data)) {
                 console.error('Invalid response structure from API:', data);
                 throw new Error('Invalid response from server');
@@ -325,7 +338,7 @@ export class InventoryModal {
                 return isValid;
             });
             
-            // Also update the global context if it exists
+            // Update the global context if it exists
             if (globalContext) {
                 globalContext.updateUserData({
                     inventory: this.inventory,
@@ -342,7 +355,7 @@ export class InventoryModal {
     }
     
     /**
-     * Filter inventory by the required item type
+     Filter inventory by the required item type
      */
     filterItems() {
         if (this.requiredItemType) {
@@ -362,7 +375,7 @@ export class InventoryModal {
     }
     
     /**
-     * Display filtered items in the modal
+     Display filtered items in the modal
      */
     displayItems() {
         // Hide loading text
@@ -522,8 +535,8 @@ export class InventoryModal {
     }
     
     /**
-     * Show an error message
-     * @param {string} message - Error message to display
+     Show an error message
+     @param {string} message - Error message to display
      */
     showError(message) {
         this.loadingText.setVisible(false);
@@ -532,8 +545,8 @@ export class InventoryModal {
     }
     
     /**
-     * Select an item by index
-     * @param {number} index - Index of item to select
+     Select an item by index
+     @param {number} index - Index of item to select
      */
     selectItem(index) {
         // Check if the index is valid
@@ -574,7 +587,7 @@ export class InventoryModal {
     }
     
     /**
-     * Close the modal
+     Close the modal
      */
     close() {
         this.container.destroy();
