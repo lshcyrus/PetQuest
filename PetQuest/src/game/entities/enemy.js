@@ -1,4 +1,44 @@
-export class EnemyGenerator {
+// Enemy entity and generator for PetQuest
+// Inspired by Pet.js structure and the old EnemyGenerator.js
+
+export class Enemy {
+    /**
+     * Create a new Enemy
+     * @param {Object} data - Enemy data (name, stats, abilities, etc.)
+     * @param {string} data.name - Enemy name
+     * @param {Object} data.stats - Enemy stats (hp, attack, defense, speed)
+     * @param {string[]} data.abilities - List of ability IDs
+     * @param {string} [data.biome] - Biome type
+     */
+    constructor(data) {
+        this.name = data.name;
+        this.stats = data.stats;
+        this.abilities = data.abilities || [];
+        this.biome = data.biome || 'neutral';
+    }
+
+    /**
+     * Get a summary of the enemy for UI or debugging
+     */
+    getSummary() {
+        return {
+            name: this.name,
+            stats: this.stats,
+            abilities: this.abilities,
+            biome: this.biome
+        };
+    }
+
+    // Add more methods as needed for battle logic, animations, etc.
+}
+
+export class EnemyFactory {
+    /**
+     * Generate a random enemy based on difficulty and biome
+     * @param {number} difficulty - 1 (Easy) to 4 (Expert)
+     * @param {string} biome - 'forest', 'iceland', 'desert', or 'neutral'
+     * @returns {Enemy}
+     */
     static generateRandomEnemy(difficulty, biome = 'neutral') {
         // Base enemy stats by biome
         const baseEnemies = {
@@ -44,16 +84,16 @@ export class EnemyGenerator {
         };
 
         // Select enemy based on biome
-        const enemyList = baseEnemies[biome] || baseEnemies.forest; // Fallback to forest
-        const enemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+        const enemyList = baseEnemies[biome] || baseEnemies.forest;
+        const base = enemyList[Math.floor(Math.random() * enemyList.length)];
 
         // Determine number of abilities
         let numAbilities;
         switch (difficulty) {
-            case 1: numAbilities = 1; break; // Easy
-            case 2: numAbilities = Math.random() < 0.5 ? 1 : 2; break; // Medium
-            case 3: numAbilities = 2; break; // Hard
-            case 4: numAbilities = Math.random() < 0.5 ? 2 : 3; break; // Expert
+            case 1: numAbilities = 1; break;
+            case 2: numAbilities = Math.random() < 0.5 ? 1 : 2; break;
+            case 3: numAbilities = 2; break;
+            case 4: numAbilities = Math.random() < 0.5 ? 2 : 3; break;
             default: numAbilities = 1;
         }
 
@@ -63,33 +103,35 @@ export class EnemyGenerator {
         const selectedAbilities = [];
         const usedTypes = new Set();
 
-        // Prioritize biome-specific abilities (80% chance)
         for (let i = 0; i < numAbilities; i++) {
             let abilityPool = Math.random() < 0.8 ? biomeAbilities : neutralAbilities;
-            // Filter out already used types for variety (except Expert)
             let available = abilityPool.filter(a => difficulty === 4 || !usedTypes.has(a.type));
-            if (available.length === 0) available = abilityPool; // Fallback
-            if (available.length === 0) break; // No more abilities
-
+            if (available.length === 0) available = abilityPool;
+            if (available.length === 0) break;
             const ability = available[Math.floor(Math.random() * available.length)];
             selectedAbilities.push(ability.id);
             usedTypes.add(ability.type);
         }
 
-        // Apply stat multiplier
+        // Stat multiplier
         const multiplier = 1 + (difficulty - 1) * 0.5;
-        let hp = enemy.hp;
+        let hp = base.hp;
         if (selectedAbilities.includes('quick_heal')) {
-            hp *= 1.1; // +10% HP for healers
+            hp *= 1.1;
         }
 
-        return {
-            name: enemy.name,
+        const stats = {
             hp: Math.round(hp * multiplier),
-            attack: Math.round(enemy.attack * multiplier),
-            defense: Math.round(enemy.defense * multiplier),
-            speed: Math.round(enemy.speed * multiplier),
-            abilities: selectedAbilities
+            attack: Math.round(base.attack * multiplier),
+            defense: Math.round(base.defense * multiplier),
+            speed: Math.round(base.speed * multiplier)
         };
+
+        return new Enemy({
+            name: base.name,
+            stats,
+            abilities: selectedAbilities,
+            biome
+        });
     }
-}
+} 

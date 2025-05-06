@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { getGlobalContext } from '../../utils/contextBridge';
-import { EnemyGenerator } from '../Functions/EnemyGenerator';
+import { EnemyFactory } from '../entities/enemy';
 
 // LevelSelector scene: Player selects difficulty, then a random level is generated
 export class LevelSelector extends Scene {
@@ -147,7 +147,7 @@ export class LevelSelector extends Scene {
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
         // Generate enemy
-        this.enemy = EnemyGenerator.generateRandomEnemy(difficulty, biome.background);
+        this.enemy = EnemyFactory.generateRandomEnemy(difficulty, biome.background);
 
         return {
             id,
