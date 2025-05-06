@@ -1,16 +1,16 @@
 /**
- * InventoryModal - A Phaser modal to display and select items from inventory
- */
+InventoryModal - A Phaser modal to display and select items from inventory
+*/
 import { getGlobalContext } from '../../utils/contextBridge';
 
 export class InventoryModal {
     /**
-     * Create an inventory modal
-     * @param {Phaser.Scene} scene - The scene this modal belongs to
-     * @param {Object} options - Modal options
-     * @param {string} options.actionType - Type of action ('feed', 'play', 'train', 'medicine')
-     * @param {Function} options.onItemSelect - Callback when item is selected
-     * @param {Function} options.onClose - Callback when modal is closed
+      Create an inventory modal
+      @param {Phaser.Scene} scene - The scene this modal belongs to
+      @param {Object} options - Modal options
+      @param {string} options.actionType - Type of action ('feed', 'play', 'train', 'medicine')
+      @param {Function} options.onItemSelect - Callback when item is selected
+      @param {Function} options.onClose - Callback when modal is closed
      */
     constructor(scene, options) {
         this.scene = scene;
@@ -62,7 +62,7 @@ export class InventoryModal {
     }
     
     /**
-     * Show the modal and fetch inventory data
+     Show the modal and fetch inventory data
      */
     show() {
         this.createModal();
@@ -70,7 +70,7 @@ export class InventoryModal {
     }
     
     /**
-     * Create the modal UI elements
+     Create the modal UI elements
      */
     createModal() {
         // Create the container for all elements
@@ -159,7 +159,7 @@ export class InventoryModal {
         this.loadingText.setOrigin(0.5);
         this.container.add(this.loadingText);
         
-        // Error text (hidden initially)
+        // Error text (hidden)
         this.errorText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -174,7 +174,7 @@ export class InventoryModal {
         this.errorText.setVisible(false);
         this.container.add(this.errorText);
         
-        // Empty text (hidden initially)
+        // Empty text (hidden)
         this.emptyText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -237,8 +237,8 @@ export class InventoryModal {
     }
     
     /**
-     * Fetch inventory data from backend
-     */
+    Fetch inventory data from backend
+    */
     async fetchInventory() {
         try {
             // Try to get the inventory from global context first
@@ -287,7 +287,7 @@ export class InventoryModal {
                     return;
                 }
                 
-                // If we got here, the global context didn't have inventory data, fall back to direct API call
+                // Fall back to direct API call, if the global context didn't have inventory data
                 console.log('No valid inventory in global context, falling back to direct API call');
             }
 
@@ -313,7 +313,7 @@ export class InventoryModal {
             
             console.log('Got inventory from direct API call:', data);
             
-            // Ensure we have a proper data structure
+            // Ensure there is a proper data structure
             if (!data.data || !Array.isArray(data.data)) {
                 console.error('Invalid response structure from API:', data);
                 throw new Error('Invalid response from server');
@@ -325,7 +325,7 @@ export class InventoryModal {
                 return isValid;
             });
             
-            // Also update the global context if it exists
+            // Update the global context if it exists
             if (globalContext) {
                 globalContext.updateUserData({
                     inventory: this.inventory,
@@ -342,7 +342,7 @@ export class InventoryModal {
     }
     
     /**
-     * Filter inventory by the required item type
+     Filter inventory by the required item type
      */
     filterItems() {
         if (this.requiredItemType) {
@@ -362,7 +362,7 @@ export class InventoryModal {
     }
     
     /**
-     * Display filtered items in the modal
+     Display filtered items in the modal
      */
     displayItems() {
         // Hide loading text
@@ -522,8 +522,8 @@ export class InventoryModal {
     }
     
     /**
-     * Show an error message
-     * @param {string} message - Error message to display
+     Show an error message
+     @param {string} message - Error message to display
      */
     showError(message) {
         this.loadingText.setVisible(false);
@@ -532,8 +532,8 @@ export class InventoryModal {
     }
     
     /**
-     * Select an item by index
-     * @param {number} index - Index of item to select
+     Select an item by index
+     @param {number} index - Index of item to select
      */
     selectItem(index) {
         // Check if the index is valid
@@ -574,7 +574,7 @@ export class InventoryModal {
     }
     
     /**
-     * Close the modal
+     Close the modal
      */
     close() {
         this.container.destroy();

@@ -133,7 +133,7 @@ export class FirstLogin extends Scene {
             this.setupMobileUI();
         }
         
-        // Let the React component know this scene is ready
+        // Send the Ready message
         EventBus.emit('current-scene-ready', this);
     }
 
@@ -569,7 +569,6 @@ export class FirstLogin extends Scene {
                         console.log('Found existing pets:', petsData.data);
                         // Use the first pet
                         let existingPet = petsData.data[0];
-                        // Do NOT overwrite backend stats with frontend stats
                         existingPet.key = existingPet.key || petData.key; // Use existing key or fallback to selected one
                         // Update the global context with the existing pet
                         globalContext.updateUserData({
@@ -604,8 +603,6 @@ export class FirstLogin extends Scene {
             
             // Add the frontend data to the backend pet for rendering
             if (createdPet) {
-                // Do NOT overwrite backend stats with frontend stats
-                // The key is already included in the pet data from the server
                 globalContext.updateUserData({
                     selectedPet: createdPet,
                     hasSelectedPet: true,
