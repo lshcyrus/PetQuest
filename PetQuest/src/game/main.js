@@ -26,7 +26,7 @@ const config = {
         // Allow expanding to fullscreen
         expandParent: true,
     },
-    // Other settings...
+    // Other settings:
     input: {
         activePointers: 3, // Support multi-touch
         smoothFactor: 0.2, // Smooth touch movement
