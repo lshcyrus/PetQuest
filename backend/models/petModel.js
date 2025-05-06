@@ -53,7 +53,7 @@ const petSchema = new mongoose.Schema({
     attributes: {
         happiness: {
             type: Number,
-            default: 100
+            default: 70
         },
         hunger: {
             type: Number,

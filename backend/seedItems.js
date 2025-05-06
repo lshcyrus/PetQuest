@@ -199,7 +199,8 @@ const foodItems = [
     description: 'A delicious cake that your pet can eat',
     type: 'food',
     effects: {
-      stamina: 10
+      stamina: 10,
+      hunger: 10
     },
     rarity: 'common',
     price: {
@@ -214,7 +215,8 @@ const foodItems = [
     description: 'A delicious donut that your pet can eat',
     type: 'food',
     effects: {
-      stamina: 20
+      stamina: 20,
+      hunger: 20
     },
     rarity: 'uncommon',
     price: {
@@ -229,7 +231,8 @@ const foodItems = [
     description: 'A delicious fish that your pet can eat',
     type: 'food',
     effects: {
-        stamina: 20
+      stamina: 20,
+      hunger: 20
     },
     rarity: 'uncommon',
     price: {
@@ -244,7 +247,8 @@ const foodItems = [
     description: 'A delicious strawberry that your pet can eat',
     type: 'food',
     effects: {
-      stamina: 40
+      stamina: 40,
+      hunger: 40
     },
     rarity: 'rare',
     price: {
@@ -259,7 +263,8 @@ const foodItems = [
     description: 'What are you? An idiot sandwich? Sorry Chef!',
     type: 'food',
     effects: {
-      stamina: 100
+      stamina: 100,
+      hunger: 100
     },
     rarity: 'legendary',
     price: {

@@ -171,9 +171,6 @@ export class Preloader extends Scene {
     create() {
         console.log("Preloader create method started");
         
-        // Create pet animations
-        this.createPetAnimations();
-        
         // Get global context to check if user has selected a pet
         const globalContext = getGlobalContext();
         
@@ -226,35 +223,5 @@ export class Preloader extends Scene {
         });
     }
 
-    createPetAnimations() {
-        // Create animations for fire dragon
-        if (!this.anims.exists('fire_dragon_idle')) {
-            this.anims.create({
-                key: 'fire_dragon_idle',
-                frames: this.anims.generateFrameNumbers('fire_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-        
-        // Create animations for ice dragon
-        if (!this.anims.exists('ice_dragon_idle')) {
-            this.anims.create({
-                key: 'ice_dragon_idle',
-                frames: this.anims.generateFrameNumbers('ice_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-        
-        // Create animations for enemy dragon
-        if (!this.anims.exists('enemy_dragon_idle')) {
-            this.anims.create({
-                key: 'enemy_dragon_idle',
-                frames: this.anims.generateFrameNumbers('enemy_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-    }
+    
 }
