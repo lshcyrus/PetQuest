@@ -1,16 +1,6 @@
-/**
- * ShopModal - A Phaser modal to display and purchase items from the shop
- */
 import { getGlobalContext } from '../../utils/contextBridge';
 
 export class ShopModal {
-    /**
-     * Create a shop modal
-     * @param {Phaser.Scene} scene - The scene this modal belongs to
-     * @param {Object} options - Modal options
-     * @param {string} options.itemType - Type of items to show ('toy', 'medicine', etc.) or undefined for all
-     * @param {Function} options.onClose - Callback when modal is closed
-     */
     constructor(scene, options) {
         this.scene = scene;
         this.itemType = options.itemType;
@@ -24,17 +14,17 @@ export class ShopModal {
         this.errorText = null;
         this.emptyText = null;
         
-        // Appearance settings
+        // Appearance
         this.width = Math.min(this.scene.scale.width * 0.8, 700);
         this.height = Math.min(this.scene.scale.height * 0.7, 600);
         this.padding = 20;
-        this.itemHeight = 100; // Taller for purchase button
+        this.itemHeight = 100; 
         this.itemPadding = 10;
         this.backgroundColor = 0x222222;
         this.itemBackgroundColor = 0x333333;
         this.itemHoverColor = 0x444444;
         
-        // Item rarity colors
+        // Different colours for different rarity
         this.rarityColors = {
             common: 0xffffff,
             uncommon: 0x00ff00,
@@ -43,29 +33,25 @@ export class ShopModal {
             legendary: 0xffaa00
         };
 
-        // Data
+        // Data to be stored
         this.shopItems = [];
         this.filteredItems = [];
         this.userCoins = 0;
     }
     
-    /**
-     * Show the modal and fetch shop items
-     */
+    // Showing the modal
     show() {
         this.createModal();
         this.fetchShopItems();
         this.fetchUserCoins();
     }
     
-    /**
-     * Create the modal UI elements
-     */
+    // Creating the modal
     createModal() {
-        // Create the container for all elements
+        // Container for all elements
         this.container = this.scene.add.container(0, 0);
         
-        // Add background overlay
+        // Background overlay
         const overlay = this.scene.add.rectangle(
             0, 0, 
             this.scene.scale.width * 2, 
@@ -76,7 +62,7 @@ export class ShopModal {
         overlay.setInteractive();
         this.container.add(overlay);
         
-        // Add modal background
+        // Modal background
         const modalX = this.scene.scale.width / 2 - this.width / 2;
         const modalY = this.scene.scale.height / 2 - this.height / 2;
         const modalBg = this.scene.add.rectangle(
@@ -88,7 +74,7 @@ export class ShopModal {
         modalBg.setStrokeStyle(2, 0xffffff);
         this.container.add(modalBg);
         
-        // Add title
+        // Title
         const title = this.scene.add.text(
             modalX + this.width / 2,
             modalY + 20,
@@ -119,12 +105,12 @@ export class ShopModal {
         this.coinsText.setOrigin(0.5, 0);
         this.container.add(this.coinsText);
         
-        // Add category tabs
+        // Category tabs
         this.createCategoryTabs(modalX, modalY + 80);
         
-        // Create container for item display
-        const itemsY = modalY + 135; // Adjusted to make room for tabs and coin display
-        const itemsHeight = this.height - 135; // Increased height now that bottom button is gone
+        // Container for item display
+        const itemsY = modalY + 135; 
+        const itemsHeight = this.height - 135; 
         
         // Mask for scrolling
         const itemsMask = this.scene.add.graphics();
@@ -135,9 +121,9 @@ export class ShopModal {
         this.itemsContainer.setMask(new Phaser.Display.Masks.GeometryMask(this.scene, itemsMask));
         this.container.add(this.itemsContainer);
         
-        // Add close button on top of everything else as a separate top-level element
+        // Close button on top of everything
         const closeButtonContainer = this.scene.add.container(0, 0);
-        closeButtonContainer.setDepth(2000); // Higher depth than anything else
+        closeButtonContainer.setDepth(2000); // Highest depth
         
         const closeBtn = this.scene.add.rectangle(
             modalX + this.width - this.padding - 10,
@@ -151,18 +137,18 @@ export class ShopModal {
             hitAreaCallback: Phaser.Geom.Rectangle.Contains
         });
         
-        // Add hover effects
+        // Hover effects
         closeBtn.on('pointerover', () => {
-            closeBtn.setFillStyle(0xaa0000); // Brighter red on hover
-            closeBtn.setScale(1.1); // Slightly larger on hover
+            closeBtn.setFillStyle(0xaa0000); 
+            closeBtn.setScale(1.1); 
         });
         
         closeBtn.on('pointerout', () => {
-            closeBtn.setFillStyle(0x880000); // Back to original color
-            closeBtn.setScale(1.0); // Back to original size
+            closeBtn.setFillStyle(0x880000);
+            closeBtn.setScale(1.0); 
         });
         
-        // Make the button respond to clicks with priority
+        // Button respond
         closeBtn.on('pointerdown', (pointer) => {
             pointer.event.stopPropagation();
             this.close();
@@ -182,10 +168,9 @@ export class ShopModal {
         closeBtnText.setOrigin(0.5, 0.5);
         closeButtonContainer.add(closeBtnText);
         
-        // Add the close button container to the main container
+        // Close button container added to the main container
         this.container.add(closeButtonContainer);
         
-        // Loading text
         this.loadingText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -199,7 +184,7 @@ export class ShopModal {
         this.loadingText.setOrigin(0.5);
         this.container.add(this.loadingText);
         
-        // Error text (hidden initially)
+        // Error text
         this.errorText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -214,7 +199,7 @@ export class ShopModal {
         this.errorText.setVisible(false);
         this.container.add(this.errorText);
         
-        // Empty text (hidden initially)
+        // Empty text 
         this.emptyText = this.scene.add.text(
             modalX + this.width / 2,
             modalY + this.height / 2,
@@ -230,9 +215,9 @@ export class ShopModal {
         this.emptyText.setVisible(false);
         this.container.add(this.emptyText);
         
-        // Set up scrolling for items list
+        // Scrolling for items 
         this.scene.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-            // Skip scrolling if the pointer is over the close button
+            // Stop scrolling if the pointer is out of bounds
             if (closeBtn.getBounds().contains(pointer.x, pointer.y)) {
                 return;
             }
@@ -240,7 +225,7 @@ export class ShopModal {
             if (this.filteredItems.length > 0 && pointer.y > itemsY && pointer.y < itemsY + itemsHeight) {
                 this.itemsContainer.y -= deltaY;
                 
-                // Constrain scrolling
+                // Keep scrolling
                 const minY = itemsY;
                 const maxItems = Math.floor(itemsHeight / (this.itemHeight + this.itemPadding));
                 const maxY = itemsY - (Math.max(0, this.filteredItems.length - maxItems) * (this.itemHeight + this.itemPadding));
@@ -253,13 +238,10 @@ export class ShopModal {
             }
         });
         
-        // Depth and input settings for the whole container
         this.container.setDepth(1000);
     }
     
-    /**
-     * Fetch shop items from backend
-     */
+    // Getting shop items from backend
     async fetchShopItems() {
         try {
             const token = localStorage.getItem('token');
@@ -290,9 +272,7 @@ export class ShopModal {
         }
     }
     
-    /**
-     * Fetch user's coin balance
-     */
+    // Getting user's coin balance
     async fetchUserCoins() {
         const globalContext = getGlobalContext();
         if (globalContext) {
@@ -305,18 +285,12 @@ export class ShopModal {
         }
     }
     
-    /**
-     * Update the coins display with the current value
-     */
     updateCoinsDisplay() {
         if (this.coinsText) {
             this.coinsText.setText(`Coins: ${this.userCoins}`);
         }
     }
     
-    /**
-     * Filter shop items by the required item type
-     */
     filterItems() {
         if (this.itemType) {
             this.filteredItems = this.shopItems.filter(
@@ -327,14 +301,8 @@ export class ShopModal {
             this.filteredItems = [...this.shopItems];
         }
     }
-    
-    /**
-     * Create category tabs for filtering items
-     * @param {number} modalX - X position of the modal
-     * @param {number} tabY - Y position for the tabs
-     */
+
     createCategoryTabs(modalX, tabY) {
-        // Available categories
         const categories = [
             { id: null, label: 'All' },
             { id: 'toy', label: 'Toys' },
@@ -343,14 +311,12 @@ export class ShopModal {
             { id: 'equipment', label: 'Equipment' }
         ];
         
-        // Tab dimensions and styling
         const tabWidth = this.width / categories.length;
         const tabHeight = 40;
         this.tabs = [];
         
-        // Create tabs
+        // Creating tabs
         categories.forEach((category, index) => {
-            // Tab background
             const isSelected = this.itemType === category.id;
             const tabX = modalX + (tabWidth * index);
             
@@ -363,7 +329,6 @@ export class ShopModal {
             tab.setStrokeStyle(1, 0xffffff, isSelected ? 1 : 0.3);
             tab.setInteractive({ useHandCursor: true });
             
-            // Tab label
             const label = this.scene.add.text(
                 tabX + tabWidth / 2,
                 tabY + tabHeight / 2,
@@ -376,7 +341,6 @@ export class ShopModal {
             );
             label.setOrigin(0.5);
             
-            // Tab behavior
             tab.on('pointerover', () => {
                 if (this.itemType !== category.id) {
                     tab.setFillStyle(0x3a5c80);
@@ -395,21 +359,15 @@ export class ShopModal {
                 this.switchCategory(category.id);
             });
             
-            // Store tab references
+            // Tab references
             this.container.add([tab, label]);
             this.tabs.push({ tab, label, category });
         });
     }
     
-    /**
-     * Switch active category
-     * @param {string|null} categoryId - Category ID to switch to
-     */
     switchCategory(categoryId) {
-        // Update selected category
         this.itemType = categoryId;
         
-        // Update tab appearances
         this.tabs.forEach(({ tab, label, category }) => {
             const isSelected = this.itemType === category.id;
             tab.setFillStyle(isSelected ? 0x4477aa : 0x333333);
@@ -417,14 +375,10 @@ export class ShopModal {
             label.setColor(isSelected ? '#ffffff' : '#aaaaaa');
         });
         
-        // Refresh items display
         this.filterItems();
         this.displayItems();
     }
     
-    /**
-     * Display filtered items in the modal
-     */
     displayItems() {
         // Hide loading text
         this.loadingText.setVisible(false);
@@ -434,7 +388,7 @@ export class ShopModal {
             if (card.destroy && typeof card.destroy === 'function') {
                 card.destroy();
             } else {
-                // If it's not a Phaser object but a container of elements
+                // Clearing all children
                 for (const key in card) {
                     if (card[key] && card[key].destroy && typeof card[key].destroy === 'function') {
                         card[key].destroy();
@@ -444,10 +398,9 @@ export class ShopModal {
         });
         this.itemCards = [];
         
-        // Also clear all children from the container to be safe
         this.itemsContainer.removeAll(true);
         
-        // Show empty message if no items found
+        // Empty message
         if (this.filteredItems.length === 0) {
             this.emptyText.setVisible(true);
             return;
@@ -455,11 +408,10 @@ export class ShopModal {
             this.emptyText.setVisible(false);
         }
         
-        // Create item cards
+        // Item cards
         this.filteredItems.forEach((item, index) => {
             const y = index * (this.itemHeight + this.itemPadding);
             
-            // Item card background
             const card = this.scene.add.rectangle(
                 0, y,
                 this.width - this.padding * 2,
@@ -469,7 +421,6 @@ export class ShopModal {
             card.setOrigin(0, 0);
             card.setInteractive({ useHandCursor: true });
             
-            // Hover effects
             card.on('pointerover', () => {
                 card.setFillStyle(this.itemHoverColor);
             });
@@ -477,24 +428,20 @@ export class ShopModal {
                 card.setFillStyle(this.itemBackgroundColor);
             });
             
-            // Add card to container
             this.itemsContainer.add(card);
             
-            // Create a container for the item image and shadow to keep them contained
             const imageContainer = this.scene.add.container(0, 0);
             this.itemsContainer.add(imageContainer);
             
-            // Item image
             const imageSize = this.itemHeight - 20;
             const imageX = 10;
             const imageY = y + this.itemHeight / 2;
             
-            // Get image key from item data
             const imageKey = item.name || 'hp-potion'; // Default fallback
             
             let itemImage;
             try {
-                // Create shadow first
+                // Shadow
                 const shadow = this.scene.add.image(imageX + imageSize/2 + 2, imageY + 2, imageKey);
                 const scale = Math.min(imageSize / shadow.width, imageSize / shadow.height);
                 shadow.setScale(scale);
@@ -502,13 +449,13 @@ export class ShopModal {
                 shadow.setAlpha(0.5);
                 imageContainer.add(shadow);
                 
-                // Add the main image
+                // Main image
                 itemImage = this.scene.add.image(imageX + imageSize/2, imageY, imageKey);
                 itemImage.setScale(scale);
                 imageContainer.add(itemImage);
             } catch (err) {
                 console.warn(`Failed to load image for ${imageKey}:`, err);
-                // Create a fallback colored square if image fails to load
+                // Fallback colored square
                 itemImage = this.scene.add.rectangle(
                     imageX + imageSize/2, 
                     imageY, 
@@ -518,7 +465,6 @@ export class ShopModal {
                 );
                 imageContainer.add(itemImage);
                 
-                // Add item type text to the fallback rectangle
                 const typeText = this.scene.add.text(
                     imageX + imageSize/2,
                     imageY,
@@ -532,10 +478,8 @@ export class ShopModal {
                 imageContainer.add(typeText);
             }
             
-            // Adjust text position to account for image
             const textX = imageX + imageSize + 10;
             
-            // Item name with rarity color
             const rarityColor = this.rarityColors[item.rarity] || 0xffffff;
             const nameText = this.scene.add.text(
                 textX, y + 10,
@@ -561,7 +505,7 @@ export class ShopModal {
             );
             this.itemsContainer.add(descText);
             
-            // Extract price - handle both object and number formats
+            // Extract price
             let priceAmount = 0;
             if (typeof item.price === 'number') {
                 priceAmount = item.price;
@@ -569,7 +513,6 @@ export class ShopModal {
                 priceAmount = item.price.coins || 0;
             }
             
-            // Price display
             const priceText = this.scene.add.text(
                 this.width - this.padding * 3 - 80, y + 10,
                 `Price: ${priceAmount}`,
@@ -593,10 +536,9 @@ export class ShopModal {
                 0x44aa44
             ).setOrigin(0.5);
             
-            // Determine if user can afford - check both price formats
+            // Check if user can afford
             const canAfford = this.userCoins >= priceAmount;
             
-            // Set button style based on affordability
             if (!canAfford) {
                 buyButton.setFillStyle(0x666666);
             }
@@ -615,12 +557,11 @@ export class ShopModal {
             ).setOrigin(0.5);
             this.itemsContainer.add(buyText);
             
-            // Buy functionality
             if (canAfford) {
                 buyButton.on('pointerdown', () => this.purchaseItem(item));
             }
             
-            // Store for cleanup
+            // Data to be stored
             this.itemCards.push({
                 card,
                 nameText,
@@ -634,9 +575,6 @@ export class ShopModal {
         });
     }
     
-    /**
-     * Purchase an item
-     */
     async purchaseItem(item) {
         try {
             const token = localStorage.getItem('token');
@@ -644,7 +582,7 @@ export class ShopModal {
                 throw new Error('Not authenticated');
             }
             
-            // Call backend to purchase item
+            // Calling backend for purchasing item
             const API_URL = import.meta.env.VITE_API_URL;
             const response = await fetch(`${API_URL}/items/${item._id}/purchase`, {
                 method: 'POST',
@@ -660,24 +598,21 @@ export class ShopModal {
                 throw new Error(data.error || 'Failed to purchase item');
             }
             
-            // Update user coins from the response
             if (data.success && data.data) {
                 const globalContext = getGlobalContext();
                 if (globalContext) {
-                    // Update global context with new coins balance and inventory
                     globalContext.updateUserData({
                         coins: data.data.coins,
                         inventory: data.data.inventory
                     });
                     
-                    // Update local coins balance
+                    // Local coins balance
                     this.userCoins = data.data.coins;
                     this.updateCoinsDisplay();
                     
-                    // Show success message
+                    // Success message
                     this.showPurchaseSuccess(item);
                     
-                    // Refresh display to update button states
                     this.displayItems();
                 }
             }
@@ -687,11 +622,7 @@ export class ShopModal {
         }
     }
     
-    /**
-     * Show a purchase success message
-     */
     showPurchaseSuccess(item) {
-        // Create and display a success message
         const { width, height } = this.scene.scale;
         const successMsg = this.scene.add.text(
             width / 2,
@@ -708,7 +639,6 @@ export class ShopModal {
         
         successMsg.setDepth(1001);
         
-        // Fade out and remove
         this.scene.tweens.add({
             targets: successMsg,
             alpha: 0,
@@ -719,24 +649,16 @@ export class ShopModal {
         });
     }
     
-    /**
-     * Show an error message
-     * @param {string} message - Error message to display
-     */
     showError(message) {
         this.loadingText.setVisible(false);
         this.errorText.setText(message);
         this.errorText.setVisible(true);
         
-        // Hide error after a delay
         this.scene.time.delayedCall(3000, () => {
             this.errorText.setVisible(false);
         });
     }
     
-    /**
-     * Close the modal
-     */
     close() {
         this.container.destroy();
         this.onClose();
