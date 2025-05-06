@@ -106,6 +106,17 @@ export class Preloader extends Scene {
         this.load.image('pet_outdoor', 'UI/pet_outdoor.png');
         this.load.image('inventory_btn', 'UI/inventory.png');
 
+        // Load potion images
+        this.load.image('hp-potion', 'items/medicine/hp-potion.png');
+        this.load.image('sp-potion', 'items/medicine/sp-potion.png');
+        this.load.image('mixed-potion', 'items/medicine/mixed-potion.png');
+        this.load.image('best-potion', 'items/medicine/best-potion.png');
+        
+        // Load toy images
+        this.load.image('feather', 'items/toy/feather.png');
+        this.load.image('cup', 'items/toy/cup.png');
+        this.load.image('chess', 'items/toy/chess.png');
+        
         // Load play, train, outdoor spritesheets for each pet with correct frame sizes
         const petActionSheets = [
             // dino_rex

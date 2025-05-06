@@ -368,10 +368,66 @@ export class InventoryModal {
                 this.selectItem(index);
             });
             
+            // Item image
+            let itemImage;
+            const imageSize = this.itemHeight - 10;
+            const imageX = 10;
+            const imageY = y + this.itemHeight / 2;
+            
+            // Get image key from item data - could be name, image field, or a default
+            const imageKey = item.name || 'hp-potion'; // Default fallback
+            
+            try {
+                itemImage = this.scene.add.image(imageX + imageSize/2, imageY, imageKey);
+                
+                // Scale image to fit
+                const scale = Math.min(
+                    imageSize / itemImage.width,
+                    imageSize / itemImage.height
+                );
+                itemImage.setScale(scale);
+                
+                // Create shadow as a darker version of the image below the actual image
+                const shadow = this.scene.add.image(imageX + imageSize/2 + 2, imageY + 2, imageKey);
+                shadow.setScale(scale);
+                shadow.setTint(0x000000);
+                shadow.setAlpha(0.5);
+                
+                // Add shadow to container first so it appears behind the main image
+                this.itemsContainer.add(shadow);
+                // Remove the image temporarily and add it again to make it above the shadow
+                this.itemsContainer.remove(itemImage);
+            } catch (err) {
+                console.warn(`Failed to load image for ${imageKey}:`, err);
+                // Create a fallback colored square if image fails to load
+                itemImage = this.scene.add.rectangle(
+                    imageX + imageSize/2, 
+                    imageY, 
+                    imageSize, 
+                    imageSize, 
+                    this.rarityColors[item.rarity] || 0x666666
+                );
+                // Add item type text to the fallback rectangle
+                const typeText = this.scene.add.text(
+                    imageX + imageSize/2,
+                    imageY,
+                    item.type?.substring(0, 3).toUpperCase() || '???',
+                    {
+                        fontFamily: '"Silkscreen", cursive',
+                        fontSize: '14px',
+                        color: '#ffffff'
+                    }
+                ).setOrigin(0.5);
+                this.itemsContainer.add(typeText);
+            }
+            
+            // Adjust name and description position to account for image
+            const textX = imageX + imageSize + 10;
+            
             // Item name with rarity color
             const rarityColor = this.rarityColors[item.rarity] || 0xffffff;
             const nameText = this.scene.add.text(
-                10, y + 10,
+                textX, y + 10,
                 item.name,
                 {
                     fontFamily: '"Silkscreen", cursive',
@@ -382,13 +438,13 @@ export class InventoryModal {
             
             // Item description
             const descText = this.scene.add.text(
-                10, y + 40,
+                textX, y + 40,
                 item.description,
                 {
                     fontFamily: '"Silkscreen", cursive',
                     fontSize: '14px',
                     color: '#cccccc',
-                    wordWrap: { width: this.width - this.padding * 4 - 70 }
+                    wordWrap: { width: this.width - textX - this.padding * 2 - 70 }
                 }
             );
             
@@ -405,8 +461,15 @@ export class InventoryModal {
             qtyText.setOrigin(1, 0);
             
             // Add to container
-            this.itemsContainer.add([card, nameText, descText, qtyText]);
-            this.itemCards.push({ card, nameText, descText, qtyText, itemId: item._id });
+            this.itemsContainer.add([card, itemImage, nameText, descText, qtyText]);
+            this.itemCards.push({ 
+                card, 
+                image: itemImage, 
+                nameText, 
+                descText, 
+                qtyText, 
+                itemId: item._id 
+            });
         });
     }
     
