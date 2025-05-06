@@ -121,12 +121,21 @@ exports.feedPet = async (req, res, next) => {
     // Check if we're using direct feeding (without item)
     const directFeeding = !itemId;
     
-    // If stamina is already full, return error
-    if (directFeeding && pet.attributes.stamina >= 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'Pet stamina already full'
-      });
+    // Check if pet is already full (hunger = 0) or stamina is already full
+    if (directFeeding) {
+      if (pet.attributes.hunger <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pet is already full'
+        });
+      }
+      
+      if (pet.attributes.stamina >= 100) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pet stamina already full'
+        });
+      }
     }
     
     // Check if pet belongs to user
@@ -184,6 +193,14 @@ exports.feedPet = async (req, res, next) => {
         return res.status(400).json({
           success: false,
           error: 'This item cannot be used for feeding'
+        });
+      }
+      
+      // Check if pet is already full (hunger = 0)
+      if (pet.attributes.hunger <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pet is already full'
         });
       }
       

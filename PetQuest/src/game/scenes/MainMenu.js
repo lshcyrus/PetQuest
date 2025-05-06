@@ -743,6 +743,12 @@ export class MainMenu extends Scene {
     async handleFeed() {
         console.log('Feed button clicked');
         
+        // Check if the pet is already full (hunger = 0)
+        if (this.petData.attributes.hunger <= 0) {
+            this.showToast('Pet is already full!');
+            return;
+        }
+        
         // Check if stamina is already full
         if (this.petData.attributes.stamina >= 100) {
             this.showToast('Stamina already full!');
@@ -758,7 +764,13 @@ export class MainMenu extends Scene {
             }
         } catch (error) {
             console.error('Failed to feed pet:', error);
-            this.showToast('Could not feed pet');
+            
+            // Show specific error message if available
+            if (error.message && error.message.includes('Pet is already full')) {
+                this.showToast('Pet is already full!');
+            } else {
+                this.showToast('Could not feed pet');
+            }
         }
     }
 

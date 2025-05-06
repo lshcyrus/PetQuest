@@ -92,13 +92,23 @@ petSchema.methods.updateStats = function() {
     const hoursSinceLastFed = (now - this.lastFed) / (1000 * 60 * 60);
     const hoursSinceLastInteraction = (now - this.lastInteraction) / (1000 * 60 * 60);
     
-    // Decrease hunger and happiness over time
-    this.attributes.hunger = Math.max(0, this.attributes.hunger - (hoursSinceLastFed * 5));
+    // Hunger represents how hungry the pet is (0-100):
+    // - 0 = not hungry at all (just fed)
+    // - 100 = extremely hungry
+    // - Increases by 4 points per hour
+    // - Displayed as "Fullness" in UI (inverted scale)
+    this.attributes.hunger = Math.min(100, this.attributes.hunger + (hoursSinceLastFed * 4));
+    
+    // Decrease happiness over time
     this.attributes.happiness = Math.max(0, this.attributes.happiness - (hoursSinceLastInteraction * 3));
     
-    // Update health based on hunger and happiness
-    if (this.attributes.hunger < 20 || this.attributes.happiness < 20) {
-      this.attributes.health = Math.max(0, this.attributes.health - 5);
+    // Update health based on hunger and happiness (high hunger value = hungry pet)
+    if (this.attributes.hunger > 80 || this.attributes.happiness < 20) {
+      // Reduce currentHP by 5% if pet is too hungry or unhappy
+      if (this.currentHP) {
+        const healthReduction = Math.ceil(this.stats.hp * 0.05);
+        this.currentHP = Math.max(1, this.currentHP - healthReduction);
+      }
     }
     
     // Update stamina recovery
