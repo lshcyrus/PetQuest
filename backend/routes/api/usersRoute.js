@@ -3,6 +3,7 @@ const router = express.Router(); // to create modular, mountable route handlers
 const { check, validationResult } = require('express-validator'); // from the express-validator library used for validating and sanitizing user input
 const {protect} = require('../../middleware/auth.js');
 const User = require('../../models/userModel.js');
+const { getUserInventory } = require('../../controllers/userController');
 
 // @route   GET api/users
 // @desc    Get all users  
@@ -136,5 +137,8 @@ router.delete('/me', protect, async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
+// Get user inventory
+router.get("/me/inventory", protect, getUserInventory);
 
 module.exports = router;

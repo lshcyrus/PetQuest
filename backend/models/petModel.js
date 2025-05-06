@@ -59,10 +59,6 @@ const petSchema = new mongoose.Schema({
             type: Number,
             default: 50
         },
-        cleanliness: {
-            type: Number,
-            default: 50    
-        },
         stamina: {
             type: Number,
             default: 100

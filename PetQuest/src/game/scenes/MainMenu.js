@@ -2,6 +2,7 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import Phaser from 'phaser';
 import { getGlobalContext } from '../../utils/contextBridge';
+import { InventoryModal } from './InventoryModal';
 import { Pet } from '../entities/Pet';
 
 export class MainMenu extends Scene {
@@ -356,7 +357,6 @@ export class MainMenu extends Scene {
         const attrConfig = [
             { key: 'happiness', label: 'Happiness', color: 0xffe066 },
             { key: 'hunger', label: 'Fullness', color: 0x66b3ff },
-            { key: 'cleanliness', label: 'Cleanliness', color: 0xff99cc },
             { key: 'stamina', label: 'Stamina', color: 0x99ff99 }
         ];
         let shown = false;
@@ -724,12 +724,9 @@ export class MainMenu extends Scene {
                     duration: 100,
                     yoyo: true,
                     onComplete: () => {
-                        if (this.pet && typeof this.pet.playAnimation === 'function') {
-                            this.pet.playAnimation(btnConfig.anim); // Play pet animation
-                        } else {
-                            console.warn(`Pet or playAnimation method not available for animation: ${btnConfig.anim}`);
-                        }
-                        btnConfig.handler.call(this); // Call the specific handler
+                        // Only call the handler to show the modal
+                        // Animation will be played only if an item is selected
+                        btnConfig.handler.call(this); 
                     }
                 });
             });
@@ -755,38 +752,67 @@ export class MainMenu extends Scene {
             return;
         }
         
-        try {
-            // Use direct feeding (without requiring an item)
-            const result = await this.updatePetInteraction('feed', {});
-            
-            if (result) {
-                this.showToast('Pet fed! +15 fullness, +10 stamina');
+        // Show inventory modal for food selection
+        const modal = new InventoryModal(this, {
+            actionType: 'feed',
+            onItemSelect: async (itemId) => {
+                try {
+                    // Play animation when item is selected
+                    if (this.pet && typeof this.pet.playAnimation === 'function') {
+                        this.pet.playAnimation('feed');
+                    }
+                    
+                    // Use the selected item for feeding
+                    const result = await this.updatePetInteraction('feed', { itemId });
+                    
+                    if (result) {
+                        this.showToast('Pet fed with special food!');
+                    }
+                } catch (error) {
+                    console.error('Failed to feed pet with item:', error);
+                    this.showToast('Could not feed pet with this item');
+                }
+            },
+            onClose: () => {
+                // Do nothing when modal is closed without selecting an item
+                console.log('Feed canceled');
             }
-        } catch (error) {
-            console.error('Failed to feed pet:', error);
-            
-            // Show specific error message if available
-            if (error.message && error.message.includes('Pet is already full')) {
-                this.showToast('Pet is already full!');
-            } else {
-                this.showToast('Could not feed pet');
-            }
-        }
+        });
+        
+        modal.show();
     }
 
     async handlePlay() {
         console.log('Play button clicked');
         
-        try {
-            const result = await this.updatePetInteraction('play');
-            
-            if (result) {
-                this.showToast('Pet is happy! +10 Happiness');
+        // Show inventory modal for toy selection
+        const modal = new InventoryModal(this, {
+            actionType: 'play',
+            onItemSelect: async (itemId) => {
+                try {
+                    // Play animation when item is selected
+                    if (this.pet && typeof this.pet.playAnimation === 'function') {
+                        this.pet.playAnimation('play');
+                    }
+                    
+                    // Use the selected toy for playing
+                    const result = await this.updatePetInteraction('play', { itemId });
+                    
+                    if (result) {
+                        this.showToast('Pet played with special toy!');
+                    }
+                } catch (error) {
+                    console.error('Failed to play with pet using item:', error);
+                    this.showToast('Could not use this toy');
+                }
+            },
+            onClose: () => {
+                // Do nothing when modal is closed without selecting an item
+                console.log('Play canceled');
             }
-        } catch (error) {
-            console.error('Error playing with pet:', error);
-            this.showToast('Could not play with pet');
-        }
+        });
+        
+        modal.show();
     }
 
     async handleTrain() {
@@ -798,18 +824,36 @@ export class MainMenu extends Scene {
             return;
         }
         
-        try {
-            const result = await this.updatePetInteraction('train');
-            
-            if (result && result.levelUp) {
-                this.showToast(`Pet trained and leveled up to ${this.petData.level}!`);
-            } else if (result) {
-                this.showToast('Pet trained! +20 Experience');
+        // Show inventory modal for equipment selection
+        const modal = new InventoryModal(this, {
+            actionType: 'train',
+            onItemSelect: async (itemId) => {
+                try {
+                    // Play animation when item is selected
+                    if (this.pet && typeof this.pet.playAnimation === 'function') {
+                        this.pet.playAnimation('train');
+                    }
+                    
+                    // Use the selected equipment for training
+                    const result = await this.updatePetInteraction('train', { itemId });
+                    
+                    if (result && result.levelUp) {
+                        this.showToast(`Pet trained with special equipment and leveled up to ${this.petData.level}!`);
+                    } else if (result) {
+                        this.showToast('Pet trained with special equipment! Extra experience gained!');
+                    }
+                } catch (error) {
+                    console.error('Failed to train pet with equipment:', error);
+                    this.showToast('Could not use this equipment for training');
+                }
+            },
+            onClose: () => {
+                // Do nothing when modal is closed without selecting an item
+                console.log('Train canceled');
             }
-        } catch (error) {
-            console.error('Error training pet:', error);
-            this.showToast('Could not train pet');
-        }
+        });
+        
+        modal.show();
     }
 
     async handleMedicine() {
@@ -825,25 +869,47 @@ export class MainMenu extends Scene {
             return;
         }
         
-        try {
-            const result = await this.updatePetInteraction('medicine');
-            
-            if (result) {
-                // Show actual healing amount based on before/after
-                const prevHP = currentHP;
-                const newHP = this.petData.currentHP;
-                const healAmount = Math.floor(newHP - prevHP);
-                
-                this.showToast(`Pet healed! +${healAmount} HP`);
+        // Show inventory modal for medicine selection
+        const modal = new InventoryModal(this, {
+            actionType: 'medicine',
+            onItemSelect: async (itemId) => {
+                try {
+                    // Play animation when item is selected
+                    if (this.pet && typeof this.pet.playAnimation === 'function') {
+                        this.pet.playAnimation('medicine');
+                    }
+                    
+                    // Use the selected medicine for healing
+                    const result = await this.updatePetInteraction('medicine', { itemId });
+                    
+                    if (result) {
+                        // Show actual healing amount based on before/after if available
+                        const newHP = result.data.currentHP;
+                        const healAmount = Math.floor(newHP - currentHP);
+                        
+                        this.showToast(`Pet healed with special medicine! +${healAmount} HP`);
+                    }
+                } catch (error) {
+                    console.error('Failed to heal pet with medicine:', error);
+                    this.showToast('Could not use this medicine');
+                }
+            },
+            onClose: () => {
+                // Do nothing when modal is closed without selecting an item
+                console.log('Medicine canceled');
             }
-        } catch (error) {
-            console.error('Error healing pet:', error);
-            this.showToast('Could not heal pet');
-        }
+        });
+        
+        modal.show();
     }
 
     async handleOutdoor() {
         console.log('Outdoor button clicked');
+        
+        // Play animation immediately
+        if (this.pet && typeof this.pet.playAnimation === 'function') {
+            this.pet.playAnimation('outdoor');
+        }
         
         // Check if pet already has active buffs
         if (this.petData.activeBuffs && this.petData.activeBuffs.expiresAt > new Date().getTime()) {
@@ -852,8 +918,18 @@ export class MainMenu extends Scene {
             return;
         }
         
+        // Check if pet has enough stamina
+        if (this.petData.attributes && this.petData.attributes.stamina < 50) {
+            this.showToast('Not enough stamina for outdoor activity!');
+            return;
+        }
+        
         try {
-            const result = await this.updatePetInteraction('outdoor');
+            const result = await this.updatePetInteraction('outdoor', {
+                hungerIncrease: 30,
+                staminaDecrease: 50,
+                buffDuration: 120 // 2 hours in minutes
+            });
             
             if (result && result.buffDetails) {
                 // Format the buff message with actual values
@@ -868,11 +944,11 @@ export class MainMenu extends Scene {
                         }
                     });
                     
-                    this.showToast(`Pet went outside! ${buffMessage.trim()} for 30 minutes`);
+                    this.showToast(`Pet went outside! ${buffMessage.trim()} for 2 hours`);
                 } else {
                     // Fallback to the old format
                     const buffedStats = result.buffDetails.buffedStats.join(', ').toUpperCase();
-                    this.showToast(`Pet went outside! +10% ${buffedStats} for 30 minutes`);
+                    this.showToast(`Pet went outside! +10% ${buffedStats} for 2 hours`);
                 }
             }
         } catch (error) {

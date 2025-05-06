@@ -131,3 +131,36 @@ exports.updateProfile = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// @desc    Get user inventory with populated item details
+// @route   GET /api/users/me/inventory
+// @access  Private
+exports.getUserInventory = async (req, res) => {
+  try {
+    // Find the user and populate their inventory items with full details
+    const user = await User.findById(req.user.id)
+      .populate({
+        path: 'inventory.item',
+        model: 'Item',
+        select: 'name type description effects rarity'
+      });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: user.inventory
+    });
+  } catch (err) {
+    console.error('Error fetching user inventory:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching inventory'
+    });
+  }
+};

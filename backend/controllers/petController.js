@@ -438,6 +438,7 @@ exports.renamePet = async (req, res, next) => {
 // @access  Private
 exports.trainPet = async (req, res, next) => {
   try {
+    const { itemId } = req.body;
     let pet = await Pet.findById(req.params.id);
     
     if (!pet) {
@@ -463,9 +464,59 @@ exports.trainPet = async (req, res, next) => {
       });
     }
     
-    // Add experience and decrease stamina
-    pet.experience += 20;
-    pet.attributes.stamina = Math.max(0, pet.attributes.stamina - 10);
+    // Handle training with an item if provided
+    if (itemId) {
+      // Find the item in user's inventory
+      const user = await User.findById(req.user.id);
+      const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
+      
+      if (!inventoryItem || inventoryItem.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Item not found in inventory'
+        });
+      }
+      
+      // Get item details
+      const Item = require('../models/itemModel');
+      const item = await Item.findById(itemId);
+      
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          error: 'Item not found'
+        });
+      }
+      
+      // Check if item is equipment for training
+      if (item.type !== 'equipment') {
+        return res.status(400).json({
+          success: false,
+          error: 'This item cannot be used for training'
+        });
+      }
+      
+      // Apply equipment bonuses
+      // Base exp gain + item bonus (additional 30 exp for equipment)
+      pet.experience += 20 + (item.effects.experience || 30);
+      
+      // Reduce stamina cost (equipment makes training more efficient)
+      const staminaCost = Math.max(5, 10 - (item.effects.stamina || 0));
+      pet.attributes.stamina = Math.max(0, pet.attributes.stamina - staminaCost);
+      
+      // Decrease item quantity in inventory
+      inventoryItem.quantity--;
+      if (inventoryItem.quantity <= 0) {
+        user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
+      }
+      
+      await user.save();
+    } else {
+      // Standard training without item
+      // Add experience and decrease stamina
+      pet.experience += 20;
+      pet.attributes.stamina = Math.max(0, pet.attributes.stamina - 10);
+    }
     
     // Check if pet levels up
     const levelUpResult = gameLogic.checkLevelUp(pet);
@@ -490,6 +541,7 @@ exports.trainPet = async (req, res, next) => {
 // @access  Private
 exports.medicinePet = async (req, res, next) => {
   try {
+    const { itemId } = req.body;
     let pet = await Pet.findById(req.params.id);
     
     if (!pet) {
@@ -515,13 +567,65 @@ exports.medicinePet = async (req, res, next) => {
       });
     }
     
-    // Set or increment current HP
-    if (pet.currentHP === undefined) {
-      // Initialize to full HP if undefined
-      pet.currentHP = pet.stats.hp;
+    // Handle medicine item if provided
+    if (itemId) {
+      // Find the item in user's inventory
+      const user = await User.findById(req.user.id);
+      const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
+      
+      if (!inventoryItem || inventoryItem.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Item not found in inventory'
+        });
+      }
+      
+      // Get item details
+      const Item = require('../models/itemModel');
+      const item = await Item.findById(itemId);
+      
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          error: 'Item not found'
+        });
+      }
+      
+      // Check if item is medicine
+      if (item.type !== 'medicine') {
+        return res.status(400).json({
+          success: false,
+          error: 'This item cannot be used for healing'
+        });
+      }
+      
+      // Apply medicine effects
+      // Heal based on health effect or 40% of max HP
+      const healAmount = item.effects.health || Math.floor(pet.stats.hp * 0.4);
+      pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + healAmount);
+      
+      // Some medicines might also improve other stats
+      if (item.effects.happiness) {
+        pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
+      }
+      
+      // Decrease item quantity in inventory
+      inventoryItem.quantity--;
+      if (inventoryItem.quantity <= 0) {
+        user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
+      }
+      
+      await user.save();
     } else {
-      // Regenerate 20% of max HP
-      pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + (pet.stats.hp * 0.2));
+      // Standard healing without item
+      // Set or increment current HP
+      if (pet.currentHP === undefined) {
+        // Initialize to full HP if undefined
+        pet.currentHP = pet.stats.hp;
+      } else {
+        // Regenerate 20% of max HP
+        pet.currentHP = Math.min(pet.stats.hp, pet.currentHP + (pet.stats.hp * 0.2));
+      }
     }
     
     pet.lastInteraction = Date.now();
@@ -567,9 +671,24 @@ exports.outdoorPet = async (req, res, next) => {
       });
     }
     
+    // Check if pet has enough stamina
+    if (pet.attributes.stamina < 50) {
+      return res.status(400).json({
+        success: false,
+        error: 'Not enough stamina for outdoor activity'
+      });
+    }
+    
+    // Get parameters from request or use defaults
+    const { 
+      hungerIncrease = 30, 
+      staminaDecrease = 50, 
+      buffDuration = 120 
+    } = req.body;
+    
     // Generate random buffs - 10% increase to a random combination of stats
     const buffAmount = 0.1; // 10% buff
-    const buffDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const buffDurationMs = buffDuration * 60 * 1000; // Convert minutes to milliseconds
     
     // Initialize activeBuffs if it doesn't exist
     if (!pet.activeBuffs) {
@@ -596,7 +715,13 @@ exports.outdoorPet = async (req, res, next) => {
     });
     
     // Set expiration time
-    pet.activeBuffs.expiresAt = Date.now() + buffDuration;
+    pet.activeBuffs.expiresAt = Date.now() + buffDurationMs;
+    
+    // Update hunger (increase by 30)
+    pet.attributes.hunger = Math.min(100, pet.attributes.hunger + hungerIncrease);
+    
+    // Decrease stamina by 50
+    pet.attributes.stamina = Math.max(0, pet.attributes.stamina - staminaDecrease);
     
     // Update pet interaction time
     pet.lastInteraction = Date.now();
@@ -608,7 +733,7 @@ exports.outdoorPet = async (req, res, next) => {
       data: pet,
       buffDetails: {
         buffedStats: selectedStats,
-        duration: '30 minutes'
+        duration: `${buffDuration} minutes`
       }
     });
   } catch (err) {
