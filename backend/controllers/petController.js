@@ -45,6 +45,50 @@ exports.createPet = async (req, res, next) => {
     } catch (inventoryErr) {
       console.error('Error adding default hp-potions to user inventory:', inventoryErr);
     }
+
+    // Give user 5 sp-potions when they create their first pet
+    try {
+      const Item = require('../models/itemModel');
+      const spPotionItem = await Item.findOne({ name: 'sp-potion' });
+      if (spPotionItem) {
+        // Check if user already has the item in inventory
+        const userDoc = await User.findById(req.user.id);
+        const existingInvItem = userDoc.inventory.find((inv) => inv.item.toString() === spPotionItem._id.toString());
+        if (existingInvItem) {
+          existingInvItem.quantity += 5; // add quantity if already present
+        } else {
+          userDoc.inventory.push({ item: spPotionItem._id, quantity: 5 });
+        }
+        await userDoc.save();
+      } else {
+        console.warn('sp-potion item not found in database. Make sure to seed items.');
+      }
+    } catch (inventoryErr) {
+      console.error('Error adding default sp-potions to user inventory:', inventoryErr);
+    }
+    
+
+    // Give user an idiot sandwich when they create their first pet
+    try {
+      const Item = require('../models/itemModel');
+      const idiotSandwichItem = await Item.findOne({ name: 'idiot sandwich' });
+      if (idiotSandwichItem) {
+        // Check if user already has the item in inventory  
+        const userDoc = await User.findById(req.user.id);
+        const existingInvItem = userDoc.inventory.find((inv) => inv.item.toString() === idiotSandwichItem._id.toString());
+        if (existingInvItem) {
+          existingInvItem.quantity += 1; // add quantity if already present
+        } else {
+          userDoc.inventory.push({ item: idiotSandwichItem._id, quantity: 1 }); 
+        }
+        await userDoc.save();
+      } else {
+        console.warn('idiot sandwich item not found in database. Make sure to seed items.');
+      }
+    } catch (inventoryErr) {
+      console.error('Error adding idiot sandwich to user inventory:', inventoryErr);
+    }
+    
     
     // Update user with the selected pet
     const updatedUser = await User.findByIdAndUpdate(req.user.id, {
@@ -232,9 +276,9 @@ exports.feedPet = async (req, res, next) => {
       pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
       pet.experience += item.effects.experience;
       
-      // Regenerate 10 stamina if not full
+      // Regenerate stamina based on the item's effect
       if (pet.attributes.stamina < 100) {
-        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
+        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + (item.effects.stamina || 10));
       }
       
       const levelUpResult = gameLogic.checkLevelUp(pet);
