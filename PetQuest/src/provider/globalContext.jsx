@@ -43,7 +43,7 @@ export const GlobalProvider = ({ children }) => {
         // Get token from localStorage
         const token = localStorage.getItem('token');
         
-        // If no token exists, don't try to fetch user data
+        // If no token exists, skipping user data fetch
         if (!token) {
           console.log('No token found, skipping user data fetch');
           return;
@@ -152,7 +152,7 @@ export const GlobalProvider = ({ children }) => {
       console.log('Pet selection updated successfully:', responseData);
     } catch (error) {
       console.error('Error updating pet selection:', error.message);
-      // We don't revert local state to maintain good UX even if server update fails
+      // Don't revert local state to maintain good UX even if server update fails
     }
   };
 
