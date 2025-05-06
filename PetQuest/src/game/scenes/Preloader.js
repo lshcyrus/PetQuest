@@ -112,15 +112,21 @@ export class Preloader extends Scene {
             { key: 'dino_rex_train', path: 'Pet_Dino Rex/dino_rex_train.png', frameWidth: 384, frameHeight: 128 },
             { key: 'dino_rex_outdoor', path: 'Pet_Dino Rex/dino_rex_outdoor.png', frameWidth: 384, frameHeight: 128 },
             // badger
-            { key: 'badger_play', path: 'Pet_Badger/badger_play.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'badger_train', path: 'Pet_Badger/badger_train.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'badger_outdoor', path: 'Pet_Badger/badger_outdoor.png', frameWidth: 128, frameHeight: 128 },
-            // dino_tri (example, update as needed)
-            // { key: 'dino_tri_play', path: 'Pet_Dino Tri/dino_tri_play.png', frameWidth: 384, frameHeight: 128 },
-            // { key: 'dino_tri_train', path: 'Pet_Dino Tri/dino_tri_train.png', frameWidth: 384, frameHeight: 128 },
-            // { key: 'dino_tri_outdoor', path: 'Pet_Dino Tri/dino_tri_outdoor.png', frameWidth: 384, frameHeight: 128 },
-            // frogger (add if available)
-            // pengu (add if available)
+            { key: 'badger_play', path: 'Pet_Badger/badger_play.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'badger_train', path: 'Pet_Badger/badger_train.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'badger_outdoor', path: 'Pet_Badger/badger_outdoor.png', frameWidth: 384, frameHeight: 128 },
+            // dino_tri 
+            { key: 'dino_tri_play', path: 'Pet_Dino Tri/dino_tri_play.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_train', path: 'Pet_Dino Tri/dino_tri_train.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_outdoor', path: 'Pet_Dino Tri/dino_tri_outdoor.png', frameWidth: 384, frameHeight: 128 },
+            // frogger
+            { key: 'frogger_play', path: 'Pet_Frogger/frogger_play.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'frogger_train', path: 'Pet_Frogger/frogger_train.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'frogger_outdoor', path: 'Pet_Frogger/frogger_outdoor.png', frameWidth: 384, frameHeight: 128 },
+            // pengu
+            { key: 'pengu_play', path: 'Pet_Pengu/pengu_play.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_train', path: 'Pet_Pengu/pengu_train.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_outdoor', path: 'Pet_Pengu/pengu_outdoor.png', frameWidth: 384, frameHeight: 128 },
         ];
         petActionSheets.forEach(sheet => {
             this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
