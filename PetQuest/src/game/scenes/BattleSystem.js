@@ -75,6 +75,12 @@ class BattleLogic {
     }
 
     attack(attacker, defender, isDefenderDefending) {
+        // Check SP cost (5 for normal attack)
+        if (attacker.data.stats.sp < 5) {
+            this.battleLog.push(`${attacker.data.name} does not have enough SP to attack!`);
+            return false;
+        }
+        attacker.data.stats.sp -= 5;
         const attackerName = attacker.data.name;
         const defenderName = defender.data.name;
         
@@ -100,11 +106,15 @@ class BattleLogic {
     }
 
     useAbility(attacker, defender, abilityIndex, isDefenderDefending) {
-        const attackerName = attacker.data.name;
-        const defenderName = defender.data.name;
-
-        // Skill 1: Strong Attack
+        // Skill 1: Special Attack (costs 10 SP)
         if (abilityIndex === 0) {
+            if (attacker.data.stats.sp < 10) {
+                this.battleLog.push(`${attacker.data.name} does not have enough SP to use Special Attack!`);
+                return false;
+            }
+            attacker.data.stats.sp -= 10;
+            const attackerName = attacker.data.name;
+            const defenderName = defender.data.name;
             const attackStat = attacker.data.stats.atk || 10;
             const defenseStat = defender.data.stats.def || 5;
             let baseDamage = Math.max(2, Math.floor(attackStat * 1.5) - defenseStat);
@@ -122,9 +132,13 @@ class BattleLogic {
             this.battleLog.push(`${defenderName} has ${defender.data.stats.hp} HP remaining.`);
             return true;
         }
-        // Skill 2: Heal Self
+        // Skill 2: Heal Self (costs 10 SP)
         else if (abilityIndex === 1) {
-            // Use maxhp consistently
+            if (attacker.data.stats.sp < 10) {
+                this.battleLog.push(`${attacker.data.name} does not have enough SP to heal!`);
+                return false;
+            }
+            attacker.data.stats.sp -= 10;
             const maxHp = attacker.data.stats.maxhp || 100;
             let healAmount = Math.floor(maxHp * 0.25);
             
@@ -133,8 +147,8 @@ class BattleLogic {
                 attacker.data.stats.hp = maxHp;
             }
             
-            this.battleLog.push(`${attackerName} uses Skill 2 and heals for ${healAmount} HP!`);
-            this.battleLog.push(`${attackerName} now has ${attacker.data.stats.hp}/${maxHp} HP.`);
+            this.battleLog.push(`${attacker.data.name} uses Skill 2 and heals for ${healAmount} HP!`);
+            this.battleLog.push(`${attacker.data.name} now has ${attacker.data.stats.hp}/${maxHp} HP.`);
             return true;
         }
         else {
@@ -144,6 +158,12 @@ class BattleLogic {
     }
 
     defend(character) {
+        // Defend costs 5 SP
+        if (character.data.stats.sp < 5) {
+            this.battleLog.push(`${character.data.name} does not have enough SP to defend!`);
+            return false;
+        }
+        character.data.stats.sp -= 5;
         if (this.currentTurn === 'player' && character === this.playerPet) {
             this.isPlayerDefending = true;
             this.battleLog.push(`${this.playerPet.data.name} takes a defensive stance!`);
@@ -184,21 +204,20 @@ class BattleLogic {
 
     enemyAction() {
         if (this.battleEnded) return false;
-        
-        // Simple AI: Enemy defends if low HP, otherwise attacks or uses skill 1
-        const enemyHpRatio = this.enemy.data.stats.hp / this.enemy.data.stats.maxhp;
-        
-        if (enemyHpRatio < 0.3 && Math.random() < 0.4) {
-            return this.defend(this.enemy) ? 'defend' : 'attack';
-        } 
-        else if (Math.random() < 0.7) {
-            this.attack(this.enemy, this.playerPet, this.isPlayerDefending);
-            return 'attack';
-        } 
-        else {
-            this.useAbility(this.enemy, this.playerPet, 0, this.isPlayerDefending);
-            return 'skill';
+        const enemy = this.enemy;
+        // Simple AI: Try to use special attack if enough SP, else normal attack, else defend if possible
+        if (enemy.data.stats.sp >= 10 && Math.random() < 0.5) {
+            if (this.useAbility(enemy, this.playerPet, 0, this.isPlayerDefending)) return 'skill';
         }
+        if (enemy.data.stats.sp >= 5 && Math.random() < 0.7) {
+            if (this.attack(enemy, this.playerPet, this.isPlayerDefending)) return 'attack';
+        }
+        if (enemy.data.stats.sp >= 5) {
+            if (this.defend(enemy)) return 'defend';
+        }
+        // If not enough SP for any action, skip turn
+        this.battleLog.push(`${enemy.data.name} is too exhausted to act!`);
+        return 'skip';
     }
 
     generateDrops() {
@@ -235,58 +254,47 @@ export class BattleSystem extends Scene {
         } else {
             // Ensure stats has required properties
             const petStats = this.petData.stats;
-            
             // For backward compatibility: convert health to maxhp if it exists
-            if (petStats.health && !petStats.maxhp) {
+            if (petStats.health !== undefined && petStats.maxhp === undefined) {
                 petStats.maxhp = petStats.health;
-            } else if (!petStats.maxhp) {
+            } else if (petStats.maxhp === undefined) {
                 petStats.maxhp = 100;
             }
-            
-            // Set current hp if missing
-            if (!petStats.hp) {
+            // Set current hp if missing (undefined only)
+            if (petStats.hp === undefined) {
                 petStats.hp = petStats.maxhp;
             }
-            
             // Ensure hp doesn't exceed maxhp
             if (petStats.hp > petStats.maxhp) {
                 petStats.hp = petStats.maxhp;
             }
-            
             // Add SP stats
-            if (!petStats.maxsp) {
+            if (petStats.maxsp === undefined) {
                 petStats.maxsp = 50;
             }
-            
-            if (!petStats.sp) {
+            if (petStats.sp === undefined) {
                 petStats.sp = petStats.maxsp;
             }
-            
             // Ensure sp doesn't exceed maxsp
             if (petStats.sp > petStats.maxsp) {
                 petStats.sp = petStats.maxsp;
             }
-            
             // Convert attack/defense to atk/def if needed
-            if (petStats.attack && !petStats.atk) {
+            if (petStats.attack !== undefined && petStats.atk === undefined) {
                 petStats.atk = petStats.attack;
                 delete petStats.attack;
             }
-            
-            if (petStats.defense && !petStats.def) {
+            if (petStats.defense !== undefined && petStats.def === undefined) {
                 petStats.def = petStats.defense;
                 delete petStats.defense;
             }
-            
             // Set other stats if missing
-            if (!petStats.atk) petStats.atk = 50;
-            if (!petStats.def) petStats.def = 50;
-            
+            if (petStats.atk === undefined) petStats.atk = 50;
+            if (petStats.def === undefined) petStats.def = 50;
             // Remove speed stat if it exists
-            if (petStats.speed) {
+            if (petStats.speed !== undefined) {
                 delete petStats.speed;
             }
-            
             // Apply any active buffs from equipment or items
             if (this.petData.buffs) {
                 Object.entries(this.petData.buffs).forEach(([stat, value]) => {
@@ -296,7 +304,6 @@ export class BattleSystem extends Scene {
                     }
                 });
             }
-            
             // Apply equipment stat boosts if present
             if (this.petData.equipment) {
                 Object.values(this.petData.equipment).forEach(item => {
@@ -332,29 +339,21 @@ export class BattleSystem extends Scene {
         } else {
             // Ensure stats has required properties
             const stats = this.enemyData.stats;
-            if (!stats.maxhp) stats.maxhp = 100;
-            if (!stats.hp) stats.hp = stats.maxhp;
-            
-            // Add SP stats
-            if (!stats.maxsp) stats.maxsp = 50;
-            if (!stats.sp) stats.sp = stats.maxsp;
-            
-            // Convert attack/defense to atk/def if needed
-            if (stats.attack && !stats.atk) {
+            if (stats.maxhp === undefined) stats.maxhp = 100;
+            if (stats.hp === undefined) stats.hp = stats.maxhp;
+            if (stats.maxsp === undefined) stats.maxsp = 50;
+            if (stats.sp === undefined) stats.sp = stats.maxsp;
+            if (stats.attack !== undefined && stats.atk === undefined) {
                 stats.atk = stats.attack;
                 delete stats.attack;
             }
-            
-            if (stats.defense && !stats.def) {
+            if (stats.defense !== undefined && stats.def === undefined) {
                 stats.def = stats.defense;
                 delete stats.defense;
             }
-            
-            if (!stats.atk) stats.atk = 10;
-            if (!stats.def) stats.def = 5;
-            
-            // Remove speed stat if it exists
-            if (stats.speed) {
+            if (stats.atk === undefined) stats.atk = 10;
+            if (stats.def === undefined) stats.def = 5;
+            if (stats.speed !== undefined) {
                 delete stats.speed;
             }
         }
@@ -516,85 +515,120 @@ export class BattleSystem extends Scene {
 
     createStatusBars() {
         const { width, height } = this.scale;
-        
         // Create a group for all status bar elements
         this.statusGroup = this.add.group();
-        
         // Pet status (left side)
         const petStats = this.petEntity.data.stats;
-        // Use standardized maxhp property
         const petMaxHp = petStats.maxhp || 100;
+        const petMaxSp = petStats.maxsp || 50;
         const petHpText = `HP: ${petStats.hp}/${petMaxHp}`;
-        
+        const petSpText = `SP: ${petStats.sp}/${petMaxSp}`;
+        const petStatText = `ATK: ${petStats.atk}  DEF: ${petStats.def}`;
         // Status background panel
-        this.petStatusBg = this.add.rectangle(30, height - 80, 200, 60, 0x222222, 0.7)
+        this.petStatusBg = this.add.rectangle(30, height - 80, 200, 90, 0x222222, 0.7)
             .setOrigin(0, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-            
         // HP bar background
-        this.petHpBarBg = this.add.rectangle(40, height - 80, 180, 20, 0x333333)
+        this.petHpBarBg = this.add.rectangle(40, height - 100, 180, 16, 0x333333)
             .setOrigin(0, 0.5);
-            
         // HP bar fill
-        this.petHpBar = this.add.rectangle(40, height - 80, 180 * (petStats.hp / petMaxHp), 20, 0x00ff00)
+        this.petHpBar = this.add.rectangle(40, height - 100, 180 * (petStats.hp / petMaxHp), 16, 0x00ff00)
             .setOrigin(0, 0.5);
-            
         // HP text
-        this.petHpText = this.add.text(130, height - 80, petHpText, {
-            fontSize: '16px', color: '#ffffff', fontFamily: 'monospace'
+        this.petHpText = this.add.text(130, height - 100, petHpText, {
+            fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        
+        // SP bar background
+        this.petSpBarBg = this.add.rectangle(40, height - 80, 180, 12, 0x333366)
+            .setOrigin(0, 0.5);
+        // SP bar fill
+        this.petSpBar = this.add.rectangle(40, height - 80, 180 * (petStats.sp / petMaxSp), 12, 0x3399ff)
+            .setOrigin(0, 0.5);
+        // SP text
+        this.petSpText = this.add.text(130, height - 80, petSpText, {
+            fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
+        }).setOrigin(0.5);
+        // ATK/DEF text
+        this.petStatText = this.add.text(130, height - 60, petStatText, {
+            fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
+        }).setOrigin(0.5);
         // Enemy status (right side)
         const enemyStats = this.enemyEntity.data.stats;
         const enemyMaxHp = enemyStats.maxhp || 100;
+        const enemyMaxSp = enemyStats.maxsp || 50;
         const enemyHpText = `HP: ${enemyStats.hp}/${enemyMaxHp}`;
-        
+        const enemySpText = `SP: ${enemyStats.sp}/${enemyMaxSp}`;
+        const enemyStatText = `ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`;
         // Enemy status background
-        this.enemyStatusBg = this.add.rectangle(width - 30, 80, 200, 60, 0x222222, 0.7)
+        this.enemyStatusBg = this.add.rectangle(width - 30, 80, 200, 90, 0x222222, 0.7)
             .setOrigin(1, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-            
         // Enemy HP bar background
-        this.enemyHpBarBg = this.add.rectangle(width - 40, 80, 180, 20, 0x333333)
+        this.enemyHpBarBg = this.add.rectangle(width - 40, 60, 180, 16, 0x333333)
             .setOrigin(1, 0.5);
-            
-        // Enemy HP bar fill (from right to left)
-        this.enemyHpBar = this.add.rectangle(width - 40, 80, 180 * (enemyStats.hp / enemyMaxHp), 20, 0xff3333)
+        // Enemy HP bar fill
+        this.enemyHpBar = this.add.rectangle(width - 40, 60, 180 * (enemyStats.hp / enemyMaxHp), 16, 0xff3333)
             .setOrigin(1, 0.5);
-            
         // Enemy HP text
-        this.enemyHpText = this.add.text(width - 130, 80, enemyHpText, {
-            fontSize: '16px', color: '#ffffff', fontFamily: 'monospace'
+        this.enemyHpText = this.add.text(width - 130, 60, enemyHpText, {
+            fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        
+        // Enemy SP bar background
+        this.enemySpBarBg = this.add.rectangle(width - 40, 80, 180, 12, 0x333366)
+            .setOrigin(1, 0.5);
+        // Enemy SP bar fill
+        this.enemySpBar = this.add.rectangle(width - 40, 80, 180 * (enemyStats.sp / enemyMaxSp), 12, 0x3399ff)
+            .setOrigin(1, 0.5);
+        // Enemy SP text
+        this.enemySpText = this.add.text(width - 130, 80, enemySpText, {
+            fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
+        }).setOrigin(0.5);
+        // ATK/DEF text
+        this.enemyStatText = this.add.text(width - 130, 100, enemyStatText, {
+            fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
+        }).setOrigin(0.5);
         // Add all elements to the status group
         this.statusGroup.add(this.petStatusBg);
         this.statusGroup.add(this.petHpBarBg);
         this.statusGroup.add(this.petHpBar);
         this.statusGroup.add(this.petHpText);
+        this.statusGroup.add(this.petSpBarBg);
+        this.statusGroup.add(this.petSpBar);
+        this.statusGroup.add(this.petSpText);
+        this.statusGroup.add(this.petStatText);
         this.statusGroup.add(this.enemyStatusBg);
         this.statusGroup.add(this.enemyHpBarBg);
         this.statusGroup.add(this.enemyHpBar);
         this.statusGroup.add(this.enemyHpText);
+        this.statusGroup.add(this.enemySpBarBg);
+        this.statusGroup.add(this.enemySpBar);
+        this.statusGroup.add(this.enemySpText);
+        this.statusGroup.add(this.enemyStatText);
     }
 
     updateStatusBars() {
-        // Update pet HP
+        // Update pet HP/SP
         const petStats = this.petEntity.data.stats;
-        // Use standardized maxhp property
         const petMaxHp = petStats.maxhp || 100;
+        const petMaxSp = petStats.maxsp || 50;
         const petHpRatio = Math.max(0, petStats.hp / petMaxHp);
-        
+        const petSpRatio = Math.max(0, petStats.sp / petMaxSp);
         this.petHpBar.width = 180 * petHpRatio;
         this.petHpText.setText(`HP: ${petStats.hp}/${petMaxHp}`);
-        
-        // Update enemy HP
+        this.petSpBar.width = 180 * petSpRatio;
+        this.petSpText.setText(`SP: ${petStats.sp}/${petMaxSp}`);
+        this.petStatText.setText(`ATK: ${petStats.atk}  DEF: ${petStats.def}`);
+        // Update enemy HP/SP
         const enemyStats = this.enemyEntity.data.stats;
         const enemyMaxHp = enemyStats.maxhp || 100;
+        const enemyMaxSp = enemyStats.maxsp || 50;
         const enemyHpRatio = Math.max(0, enemyStats.hp / enemyMaxHp);
-        
+        const enemySpRatio = Math.max(0, enemyStats.sp / enemyMaxSp);
         this.enemyHpBar.width = 180 * enemyHpRatio;
         this.enemyHpText.setText(`HP: ${enemyStats.hp}/${enemyMaxHp}`);
+        this.enemySpBar.width = 180 * enemySpRatio;
+        this.enemySpText.setText(`SP: ${enemyStats.sp}/${enemyMaxSp}`);
+        this.enemyStatText.setText(`ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`);
     }
 
     createBattleLog() {
@@ -817,17 +851,20 @@ export class BattleSystem extends Scene {
     
     handlePlayerAction(actionType) {
         if (this.battleLogic.battleEnded || this.battleLogic.currentTurn !== 'player') return;
-        
         // Disable menu during action
         this.setActionMenuEnabled(false);
-        
         let actionSuccess = false;
         let animationAction = '';
         let animationTarget = 'enemy';
-        
-        // Process action based on type
+        const petStats = this.petEntity.data.stats;
         switch(actionType) {
             case 'attack':
+                if (petStats.sp < 5) {
+                    this.battleLogic.battleLog.push('Not enough SP to attack!');
+                    this.updateBattleLog();
+                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    return;
+                }
                 animationAction = 'attack';
                 this.animateAction(animationAction, 'pet', 'enemy', () => {
                     this.battleLogic.attack(this.petEntity, this.enemyEntity, this.battleLogic.isEnemyDefending);
@@ -835,44 +872,60 @@ export class BattleSystem extends Scene {
                 });
                 actionSuccess = true;
                 break;
-                
             case 'skill1':
-                animationAction = 'attack'; // Use attack animation for offensive skill
+                if (petStats.sp < 10) {
+                    this.battleLogic.battleLog.push('Not enough SP to use Special Attack!');
+                    this.updateBattleLog();
+                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    return;
+                }
+                animationAction = 'attack';
                 this.animateAction(animationAction, 'pet', 'enemy', () => {
                     actionSuccess = this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
                 break;
-                
             case 'skill2':
-                animationAction = 'medicine'; // Use medicine animation for heal skill
+                if (petStats.sp < 10) {
+                    this.battleLogic.battleLog.push('Not enough SP to heal!');
+                    this.updateBattleLog();
+                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    return;
+                }
+                animationAction = 'medicine';
                 this.animateAction(animationAction, 'pet', null, () => {
                     actionSuccess = this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 1, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
                 break;
-                
             case 'defend':
+                if (petStats.sp < 5) {
+                    this.battleLogic.battleLog.push('Not enough SP to defend!');
+                    this.updateBattleLog();
+                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    return;
+                }
                 actionSuccess = this.battleLogic.defend(this.petEntity);
                 this.updateBattleLog();
                 this.time.delayedCall(800, () => this.afterPlayerAction());
                 break;
-                
             case 'item':
+                if (this.battleLogic.itemUsedThisTurn) {
+                    this.battleLogic.battleLog.push('You can only use one item per turn!');
+                    this.updateBattleLog();
+                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    return;
+                }
                 // For simplicity, use a fixed healing potion
                 const healPotion = { type: 'heal', name: 'Health Potion', value: 30 };
-                
                 this.animateAction('medicine', 'pet', null, () => {
                     actionSuccess = this.battleLogic.useItem(healPotion);
                     this.afterPlayerAction();
                 });
                 break;
-                
             case 'run':
                 this.battleLogic.battleLog.push('Attempting to escape...');
                 this.updateBattleLog();
-                
-                // 50% chance to escape
                 if (Math.random() < 0.5) {
                     this.battleLogic.battleLog.push('Got away safely!');
                     this.battleLogic.battleEnded = true;
@@ -886,8 +939,6 @@ export class BattleSystem extends Scene {
                 actionSuccess = true;
                 break;
         }
-        
-        // If action failed (like invalid skill), re-enable menu
         if (!actionSuccess && actionType !== 'run') {
             this.time.delayedCall(500, () => this.setActionMenuEnabled(true));
         }

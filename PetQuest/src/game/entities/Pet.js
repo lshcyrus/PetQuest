@@ -33,25 +33,23 @@ export class Pet {
         };
         
         // For backward compatibility - ensure both hp and maxhp are set
-        if (this.data.stats.health && !this.data.stats.maxhp) {
+        if (this.data.stats.health !== undefined && this.data.stats.maxhp === undefined) {
             this.data.stats.maxhp = this.data.stats.health;
         }
-        
-        if (!this.data.stats.hp && this.data.stats.maxhp) {
+        if (this.data.stats.hp === undefined && this.data.stats.maxhp !== undefined) {
             this.data.stats.hp = this.data.stats.maxhp;
         }
-        
         // If neither exists, set default values
-        if (!this.data.stats.hp && !this.data.stats.maxhp) {
+        if (this.data.stats.hp === undefined && this.data.stats.maxhp === undefined) {
             this.data.stats.hp = 50;
             this.data.stats.maxhp = 50;
         }
         
         // Ensure SP stats exist
-        if (!this.data.stats.sp) {
+        if (this.data.stats.sp === undefined) {
             this.data.stats.sp = 25;
         }
-        if (!this.data.stats.maxsp) {
+        if (this.data.stats.maxsp === undefined) {
             this.data.stats.maxsp = 25;
         }
         
