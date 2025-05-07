@@ -950,19 +950,23 @@ export class BattleSystem extends Scene {
             // Calculate gem drops (rare chance)
             if (Math.random() < 0.2) { // 20% chance to find a gem
                 this.gemsGained = Math.ceil(Math.random() * 2); // 1-2 gems
-                this.battleLogic.drops.push(`${this.gemsGained} Rare Gem${this.gemsGained > 1 ? 's' : ''}`);
             }
             
             // Add experience and gold to pet data
             if (!this.petEntity.data.experience) this.petEntity.data.experience = 0;
             this.petEntity.data.experience += this.expGained;
             
-            if (!this.petEntity.data.gold) this.petEntity.data.gold = 0;
-            this.petEntity.data.gold += this.goldGained;
+            // Clear any existing drops
+            this.battleLogic.drops = [];
             
             // Add rewards to the drops list
             this.battleLogic.drops.push(`${this.expGained} EXP`);
-            this.battleLogic.drops.push(`${this.goldGained} Gold`);
+            this.battleLogic.drops.push(`${this.goldGained} Coins`);
+            
+            // Add gems to rewards list if any were gained
+            if (this.gemsGained > 0) {
+                this.battleLogic.drops.push(`${this.gemsGained} Gem${this.gemsGained > 1 ? 's' : ''}`);
+            }
             
             this.showResultPopup('victory', this.battleLogic.drops);
         } else if (this.battleLogic.battleEnded) {
@@ -980,10 +984,8 @@ export class BattleSystem extends Scene {
             // Set currentHP and currentSP for backend persistence
             this.petData.currentHP = this.petEntity.data.stats.hp;
             this.petData.currentSP = this.petEntity.data.stats.sp;
-            // Keep current HP/SP in stats for UI compatibility
-            this.petData.stats.hp = this.petEntity.data.stats.hp;
-            this.petData.stats.sp = this.petEntity.data.stats.sp;
-            // Keep track of any stat changes (for buffs/debuffs that persist after battle)
+            
+            // Only transfer combat stats (not health/SP)
             if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
                 this.petData.stats.atk = this.petEntity.data.stats.atk;
             }
@@ -991,37 +993,48 @@ export class BattleSystem extends Scene {
                 this.petData.stats.def = this.petEntity.data.stats.def;
             }
         }
-        if (this.petEntity.data.experience) this.petData.experience = this.petEntity.data.experience;
-        if (this.petEntity.data.gold) this.petData.gold = this.petEntity.data.gold;
-        console.log('Updated pet stats after battle:', this.petData.stats, 'currentHP:', this.petData.currentHP, 'currentSP:', this.petData.currentSP);
+        
+        // Update experience
+        if (this.petEntity.data.experience) {
+            this.petData.experience = this.petEntity.data.experience;
+        }
+        
+        console.log('Updated pet stats after battle:', 
+            'ATK:', this.petData.stats.atk,
+            'DEF:', this.petData.stats.def,
+            'currentHP:', this.petData.currentHP, 
+            'currentSP:', this.petData.currentSP,
+            'EXP:', this.petData.experience);
     }
     
     async updatePetBackend() {
         if (!this.petData || !this.petData._id) return;
-        const token = localStorage.getItem('token');
-        if (!token) return;
+        
         const API_URL = import.meta.env.VITE_API_URL;
-        // Send currentHP/currentSP and experience to backend for persistence
-        const statsPayload = {
-            currentHP: this.petData.currentHP,
-            currentSP: this.petData.currentSP,
-            atk: this.petData.stats.atk,
-            def: this.petData.stats.def,
-            experience: this.petData.experience
-        };
-        let happiness = 100, stamina = 100;
-        if (this.petData.attributes) {
-            happiness = this.petData.attributes.happiness !== undefined ? this.petData.attributes.happiness : 100;
-            stamina = this.petData.attributes.stamina !== undefined ? this.petData.attributes.stamina : 100;
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            console.error('No token found, cannot update pet stats/attributes on backend');
+            return;
         }
-        happiness = Math.max(0, happiness - 10);
-        stamina = Math.max(0, stamina - 10);
-        const attrPayload = { happiness, stamina };
-        if (!this.petData.attributes) this.petData.attributes = {};
-        this.petData.attributes.happiness = happiness;
-        this.petData.attributes.stamina = stamina;
+        
+        // Only update stats that changed
+        const statsPayload = {
+            hp: this.petData.stats.hp,
+            sp: this.petData.stats.sp
+        };
+
+        // Update attributes (decrease stamina)
+        const attrPayload = {
+            stamina: Math.max(0, this.petData.attributes.stamina - 10)
+        };
+        
+        // Get reference to global context
+        const globalContext = typeof getGlobalContext === 'function' ? getGlobalContext() : null;
+
         try {
-            await fetch(`${API_URL}/pets/${this.petData._id}/stats`, {
+            // Update pet stats (HP/SP)
+            const statsResponse = await fetch(`${API_URL}/pets/${this.petData._id}/stats`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1029,7 +1042,9 @@ export class BattleSystem extends Scene {
                 },
                 body: JSON.stringify(statsPayload)
             });
-            await fetch(`${API_URL}/pets/${this.petData._id}/attributes`, {
+            
+            // Update pet attributes
+            const attrResponse = await fetch(`${API_URL}/pets/${this.petData._id}/attributes`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1037,9 +1052,16 @@ export class BattleSystem extends Scene {
                 },
                 body: JSON.stringify(attrPayload)
             });
+            
+            // Track responses for coins and gems to update global context
+            let coinsUpdateSuccess = false;
+            let coinsNewAmount = 0;
+            let gemsUpdateSuccess = false;
+            let gemsNewAmount = 0;
+            
             // Update user coins if goldGained > 0
             if (this.goldGained && this.goldGained > 0) {
-                await fetch(`${API_URL}/users/me/coins`, {
+                const coinsResponse = await fetch(`${API_URL}/users/me/coins`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1047,10 +1069,18 @@ export class BattleSystem extends Scene {
                     },
                     body: JSON.stringify({ delta: this.goldGained })
                 });
+                
+                const coinsData = await coinsResponse.json();
+                if (coinsResponse.ok && coinsData.success) {
+                    coinsUpdateSuccess = true;
+                    coinsNewAmount = coinsData.coins;
+                    console.log(`Updated coins: +${this.goldGained} = ${coinsNewAmount}`);
+                }
             }
+            
             // Update user gems if gemsGained > 0
             if (this.gemsGained && this.gemsGained > 0) {
-                await fetch(`${API_URL}/users/me/gems`, {
+                const gemsResponse = await fetch(`${API_URL}/users/me/gems`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1058,10 +1088,37 @@ export class BattleSystem extends Scene {
                     },
                     body: JSON.stringify({ delta: this.gemsGained })
                 });
+                
+                const gemsData = await gemsResponse.json();
+                if (gemsResponse.ok && gemsData.success) {
+                    gemsUpdateSuccess = true;
+                    gemsNewAmount = gemsData.gems;
+                    console.log(`Updated gems: +${this.gemsGained} = ${gemsNewAmount}`);
+                }
             }
-            const globalContext = typeof getGlobalContext === 'function' ? getGlobalContext() : null;
-            if (globalContext && globalContext.userData) {
+            
+            // Update the global context with all changes
+            if (globalContext) {
+                // Update pet data
                 globalContext.userData.selectedPet = this.petData;
+                
+                // Update coins if successfully updated in the backend
+                if (coinsUpdateSuccess) {
+                    globalContext.updateUserData({ coins: coinsNewAmount });
+                } else if (this.goldGained > 0) {
+                    // Fallback: manually increment coins if we couldn't get the updated amount
+                    globalContext.addCoins(this.goldGained);
+                }
+                
+                // Update gems if successfully updated in the backend
+                if (gemsUpdateSuccess) {
+                    globalContext.updateUserData({ gems: gemsNewAmount });
+                } else if (this.gemsGained > 0) {
+                    // Use addGems function to update gems in global context
+                    globalContext.addGems(this.gemsGained);
+                }
+                
+                console.log('Updated global context with battle results');
             }
         } catch (err) {
             console.error('Failed to update pet stats/attributes/coins/gems after battle:', err);
@@ -1075,11 +1132,20 @@ export class BattleSystem extends Scene {
             alpha: 0,
             duration: 300,
             onComplete: async () => {
-                // Ensure stats are updated before returning to previous scene
-                this.updatePetStats();
-                await this.updatePetBackend();
-                // Return to previous scene (e.g., level selection) with updated pet data
-                this.scene.start('LevelSelector', { pet: this.petData });
+                try {
+                    // Ensure stats are updated before returning to previous scene
+                    this.updatePetStats();
+                    
+                    // Wait for backend updates to complete
+                    await this.updatePetBackend();
+                    
+                    // Return to previous scene with updated data
+                    this.scene.start('LevelSelector', { pet: this.petData });
+                } catch (error) {
+                    console.error("Error during battle end processing:", error);
+                    // Still transition to avoid getting stuck
+                    this.scene.start('LevelSelector', { pet: this.petData });
+                }
             }
         });
     }

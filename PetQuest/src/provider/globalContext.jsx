@@ -175,6 +175,10 @@ export const GlobalProvider = ({ children }) => {
     setUserData(prev => ({ ...prev, coins: prev.coins + amount }));
   };
 
+  const addGems = (amount) => {
+    setUserData(prev => ({ ...prev, gems: prev.gems + amount }));
+  };
+
   const addItem = (item) => {
     setUserData(prev => ({ 
       ...prev, 
@@ -281,6 +285,7 @@ export const GlobalProvider = ({ children }) => {
     updateLevel,
     addExperience,
     addCoins,
+    addGems,
     addItem,
     updateSettings,
     resetUserData,

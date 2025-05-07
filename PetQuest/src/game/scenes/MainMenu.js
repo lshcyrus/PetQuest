@@ -302,22 +302,25 @@ export class MainMenu extends Scene {
             { key: 'def', label: 'DEF' }
         ];
         const stats = this.petData.stats || {};
+        
         // Use currentHP/currentSP if available, else fallback to stats.hp/stats.sp
+        // For max values, use maxhp/maxsp if available, otherwise use stats.hp/stats.sp
         const currentHP = this.petData.currentHP !== undefined ? this.petData.currentHP : stats.hp;
-        const maxHP = stats.hp;
+        const maxHP = this.petData.maxhp !== undefined ? this.petData.maxhp : stats.hp;
         const currentSP = this.petData.currentSP !== undefined ? this.petData.currentSP : stats.sp;
-        const maxSP = stats.sp;
+        const maxSP = this.petData.maxsp !== undefined ? this.petData.maxsp : stats.sp;
+        
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
             let value = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
             let displayStr = `${value}`;
             let color = '#ffffff';
             if (stat.key === 'hp') {
-                displayStr = (maxHP !== undefined) ? `${currentHP}/${maxHP}` : `${currentHP}`;
-                if (maxHP !== undefined && currentHP < maxHP) color = '#ff8888';
+                displayStr = `${currentHP}/${maxHP}`;
+                if (currentHP < maxHP) color = '#ff8888';
             } else if (stat.key === 'sp') {
-                displayStr = (maxSP !== undefined) ? `${currentSP}/${maxSP}` : `${currentSP}`;
-                if (maxSP !== undefined && currentSP < maxSP) color = '#ff8888';
+                displayStr = `${currentSP}/${maxSP}`;
+                if (currentSP < maxSP) color = '#ff8888';
             }
             // Buffs
             let buffValue = 0;
