@@ -11,7 +11,10 @@ const {
   renamePet,
   trainPet,
   medicinePet,
-  outdoorPet
+  outdoorPet,
+  updatePetStats,
+  updatePetAttributes,
+  getPetAttributes
 } = require('../../controllers/petController');
 
 const { protect } = require('../../middleware/auth');
@@ -36,5 +39,8 @@ router.put('/:id/rename', protect, validatePetRename, validateResults, renamePet
 router.put('/:id/train', protect, trainPet);
 router.put('/:id/medicine', protect, medicinePet);
 router.put('/:id/outdoor', protect, outdoorPet);
+router.put('/:id/stats', protect, updatePetStats);
+router.put('/:id/attributes', protect, updatePetAttributes);
+router.get('/:id/attributes', protect, getPetAttributes);
 
 module.exports = router;

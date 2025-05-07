@@ -241,68 +241,35 @@ export class MainMenu extends Scene {
         this.leftStatsPanel.add(levelText);
         // Stats
         const statConfig = [
-            { key: 'hp', label: 'HP', max: 5000 },
-            { key: 'sp', label: 'SP', max: 1000 },
-            { key: 'atk', label: 'ATK', max: 400 },
-            { key: 'def', label: 'DEF', max: 400 }
+            { key: 'hp', label: 'HP' },
+            { key: 'sp', label: 'SP' },
+            { key: 'atk', label: 'ATK' },
+            { key: 'def', label: 'DEF' }
         ];
         const stats = this.petData.stats || {};
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
-
-            // Determine current and maximum values based on stat type
-            let currentValue = '-';
-            let maxValue = stats[stat.key] !== undefined ? stats[stat.key] : undefined;
-
-            if (stat.key === 'hp') {
-                // For HP, use currentHP if available, otherwise use max
-                currentValue = (this.petData.currentHP !== undefined) ? 
-                    this.petData.currentHP : maxValue;
-            } else if (stat.key === 'sp') {
-                // For SP, use currentSP if available, otherwise use max
-                currentValue = (this.petData.currentSP !== undefined) ? 
-                    this.petData.currentSP : maxValue;
-            } else {
-                // For other stats (atk, def, etc.), display the single value (max)
-                currentValue = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
-            }
-
+            // Only show the actual value for each stat
+            let value = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
             // Check for active buffs for this stat
             let buffValue = 0;
             const now = new Date().getTime();
             const hasActiveBuffs = this.petData.activeBuffs && 
                 this.petData.activeBuffs.expiresAt && 
                 new Date(this.petData.activeBuffs.expiresAt).getTime() > now;
-            
             if (hasActiveBuffs && 
                 this.petData.activeBuffs.stats && 
                 this.petData.activeBuffs.stats[stat.key]) {
                 buffValue = this.petData.activeBuffs.stats[stat.key];
             }
-
             // Compose display string
-            let displayStr;
-            if (stat.key === 'hp' || stat.key === 'sp') {
-                // For HP and SP, show current/max format
-                displayStr = `${currentValue}/${maxValue}`;
-                // Add buff indicator if applicable
-                if (buffValue > 0) {
-                    displayStr += ` +${buffValue}`;
-                }
-            } else {
-                displayStr = `${currentValue}`;
-                // Add buff indicator if applicable
-                if (buffValue > 0) {
-                    displayStr += ` +${buffValue}`;
-                }
+            let displayStr = `${value}`;
+            if (buffValue > 0) {
+                displayStr += ` +${buffValue}`;
             }
-
             // Create the stat text
             let baseText = `${stat.label}: `;
-            
-            // If we have a buff, we'll create two text objects to style them differently
             if (buffValue > 0) {
-                // Base text without the buff
                 const mainText = this.add.text(
                     -panelWidth / 2 + 16,
                     yOffset,
@@ -315,8 +282,6 @@ export class MainMenu extends Scene {
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
-                // Buff text with color highlighting
                 const buffText = this.add.text(
                     -panelWidth / 2 + 16 + mainText.width,
                     yOffset,
@@ -324,15 +289,13 @@ export class MainMenu extends Scene {
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#00ff00', // Green color for buffs
+                        color: '#00ff00',
                         stroke: '#000000',
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
                 this.leftStatsPanel.add([mainText, buffText]);
             } else {
-                // Regular stat without buff
                 const statText = this.add.text(
                     -panelWidth / 2 + 16,
                     yOffset,
@@ -345,7 +308,6 @@ export class MainMenu extends Scene {
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
                 this.leftStatsPanel.add(statText);
             }
         });

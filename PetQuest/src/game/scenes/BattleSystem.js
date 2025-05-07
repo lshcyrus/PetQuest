@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { Pet } from '../entities/Pet';
 import { Enemy } from '../entities/enemy';
+import { getGlobalContext } from '../../utils/contextBridge';
 
 // Battle logic separated from rendering
 class BattleLogic {
@@ -247,36 +248,21 @@ export class BattleSystem extends Scene {
 
         // Store the raw pet data with deep copy to avoid reference issues
         this.petData = JSON.parse(JSON.stringify(data.pet));
-        
         // Validate and normalize pet data
         if (!this.petData.stats) {
-            this.petData.stats = { maxhp: 100, hp: 100, maxsp: 50, sp: 50, atk: 50, def: 50 };
+            this.petData.stats = {};
         } else {
-            // Ensure stats has required properties
             const petStats = this.petData.stats;
             // For backward compatibility: convert health to maxhp if it exists
             if (petStats.health !== undefined && petStats.maxhp === undefined) {
                 petStats.maxhp = petStats.health;
-            } else if (petStats.maxhp === undefined) {
-                petStats.maxhp = 100;
             }
-            // Set current hp if missing (undefined only)
-            if (petStats.hp === undefined) {
+            // Only set hp if undefined
+            if (petStats.hp === undefined && petStats.maxhp !== undefined) {
                 petStats.hp = petStats.maxhp;
             }
-            // Ensure hp doesn't exceed maxhp
-            if (petStats.hp > petStats.maxhp) {
-                petStats.hp = petStats.maxhp;
-            }
-            // Add SP stats
-            if (petStats.maxsp === undefined) {
-                petStats.maxsp = 50;
-            }
-            if (petStats.sp === undefined) {
-                petStats.sp = petStats.maxsp;
-            }
-            // Ensure sp doesn't exceed maxsp
-            if (petStats.sp > petStats.maxsp) {
+            // Only set sp if undefined
+            if (petStats.sp === undefined && petStats.maxsp !== undefined) {
                 petStats.sp = petStats.maxsp;
             }
             // Convert attack/defense to atk/def if needed
@@ -288,9 +274,6 @@ export class BattleSystem extends Scene {
                 petStats.def = petStats.defense;
                 delete petStats.defense;
             }
-            // Set other stats if missing
-            if (petStats.atk === undefined) petStats.atk = 50;
-            if (petStats.def === undefined) petStats.def = 50;
             // Remove speed stat if it exists
             if (petStats.speed !== undefined) {
                 delete petStats.speed;
@@ -318,31 +301,28 @@ export class BattleSystem extends Scene {
                 });
             }
         }
-        
         this.enemyData = data.enemy;
-        
         // Validate and set defaults for enemy data if needed
         if (typeof this.enemyData !== 'object') {
             console.error('Enemy data is not an object:', this.enemyData);
-            this.enemyData = { 
-                name: 'Wild Monster',
-                key: 'gorgon_idle',
-                stats: { maxhp: 100, hp: 100, maxsp: 50, sp: 50, atk: 10, def: 5 }
-            };
+            this.enemyData = { name: 'Wild Monster', key: 'gorgon_idle', stats: {} };
         }
-        
         // Ensure enemy has required properties
         if (!this.enemyData.name) this.enemyData.name = 'Wild Monster';
         if (!this.enemyData.key) this.enemyData.key = 'gorgon_idle';
         if (!this.enemyData.stats) {
-            this.enemyData.stats = { maxhp: 100, hp: 100, maxsp: 50, sp: 50, atk: 10, def: 5 };
+            this.enemyData.stats = {};
         } else {
-            // Ensure stats has required properties
             const stats = this.enemyData.stats;
-            if (stats.maxhp === undefined) stats.maxhp = 100;
-            if (stats.hp === undefined) stats.hp = stats.maxhp;
-            if (stats.maxsp === undefined) stats.maxsp = 50;
-            if (stats.sp === undefined) stats.sp = stats.maxsp;
+            if (stats.health !== undefined && stats.maxhp === undefined) {
+                stats.maxhp = stats.health;
+            }
+            if (stats.hp === undefined && stats.maxhp !== undefined) {
+                stats.hp = stats.maxhp;
+            }
+            if (stats.sp === undefined && stats.maxsp !== undefined) {
+                stats.sp = stats.maxsp;
+            }
             if (stats.attack !== undefined && stats.atk === undefined) {
                 stats.atk = stats.attack;
                 delete stats.attack;
@@ -351,18 +331,12 @@ export class BattleSystem extends Scene {
                 stats.def = stats.defense;
                 delete stats.defense;
             }
-            if (stats.atk === undefined) stats.atk = 10;
-            if (stats.def === undefined) stats.def = 5;
             if (stats.speed !== undefined) {
                 delete stats.speed;
             }
         }
-        
         this.levelData = data.levelData || { background: 'battle_background' };
-        
-        // Determine the battle background based on level data
         this.battleBackground = this.levelData.background || 'battle_background';
-        
         // Setup will continue in create()
     }
 
@@ -515,79 +489,57 @@ export class BattleSystem extends Scene {
 
     createStatusBars() {
         const { width, height } = this.scale;
-        // Create a group for all status bar elements
         this.statusGroup = this.add.group();
         // Pet status (left side)
         const petStats = this.petEntity.data.stats;
-        const petMaxHp = petStats.maxhp || 100;
-        const petMaxSp = petStats.maxsp || 50;
-        const petHpText = `HP: ${petStats.hp}/${petMaxHp}`;
-        const petSpText = `SP: ${petStats.sp}/${petMaxSp}`;
+        const petHpText = `HP: ${petStats.hp}`;
+        const petSpText = `SP: ${petStats.sp}`;
         const petStatText = `ATK: ${petStats.atk}  DEF: ${petStats.def}`;
-        // Status background panel
-        this.petStatusBg = this.add.rectangle(30, height - 80, 200, 90, 0x222222, 0.7)
+        this.petStatusBg = this.add.rectangle(30, this.scale.height - 80, 200, 90, 0x222222, 0.7)
             .setOrigin(0, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        // HP bar background
-        this.petHpBarBg = this.add.rectangle(40, height - 100, 180, 16, 0x333333)
+        this.petHpBarBg = this.add.rectangle(40, this.scale.height - 100, 180, 16, 0x333333)
             .setOrigin(0, 0.5);
-        // HP bar fill
-        this.petHpBar = this.add.rectangle(40, height - 100, 180 * (petStats.hp / petMaxHp), 16, 0x00ff00)
+        this.petHpBar = this.add.rectangle(40, this.scale.height - 100, 180, 16, 0x00ff00)
             .setOrigin(0, 0.5);
-        // HP text
-        this.petHpText = this.add.text(130, height - 100, petHpText, {
+        this.petHpText = this.add.text(130, this.scale.height - 100, petHpText, {
             fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        // SP bar background
-        this.petSpBarBg = this.add.rectangle(40, height - 80, 180, 12, 0x333366)
+        this.petSpBarBg = this.add.rectangle(40, this.scale.height - 80, 180, 12, 0x333366)
             .setOrigin(0, 0.5);
-        // SP bar fill
-        this.petSpBar = this.add.rectangle(40, height - 80, 180 * (petStats.sp / petMaxSp), 12, 0x3399ff)
+        this.petSpBar = this.add.rectangle(40, this.scale.height - 80, 180, 12, 0x3399ff)
             .setOrigin(0, 0.5);
-        // SP text
-        this.petSpText = this.add.text(130, height - 80, petSpText, {
+        this.petSpText = this.add.text(130, this.scale.height - 80, petSpText, {
             fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        // ATK/DEF text
-        this.petStatText = this.add.text(130, height - 60, petStatText, {
+        this.petStatText = this.add.text(130, this.scale.height - 60, petStatText, {
             fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
         }).setOrigin(0.5);
         // Enemy status (right side)
         const enemyStats = this.enemyEntity.data.stats;
-        const enemyMaxHp = enemyStats.maxhp || 100;
-        const enemyMaxSp = enemyStats.maxsp || 50;
-        const enemyHpText = `HP: ${enemyStats.hp}/${enemyMaxHp}`;
-        const enemySpText = `SP: ${enemyStats.sp}/${enemyMaxSp}`;
+        const enemyHpText = `HP: ${enemyStats.hp}`;
+        const enemySpText = `SP: ${enemyStats.sp}`;
         const enemyStatText = `ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`;
-        // Enemy status background
         this.enemyStatusBg = this.add.rectangle(width - 30, 80, 200, 90, 0x222222, 0.7)
             .setOrigin(1, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        // Enemy HP bar background
         this.enemyHpBarBg = this.add.rectangle(width - 40, 60, 180, 16, 0x333333)
             .setOrigin(1, 0.5);
-        // Enemy HP bar fill
-        this.enemyHpBar = this.add.rectangle(width - 40, 60, 180 * (enemyStats.hp / enemyMaxHp), 16, 0xff3333)
+        this.enemyHpBar = this.add.rectangle(width - 40, 60, 180, 16, 0xff3333)
             .setOrigin(1, 0.5);
-        // Enemy HP text
         this.enemyHpText = this.add.text(width - 130, 60, enemyHpText, {
             fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        // Enemy SP bar background
         this.enemySpBarBg = this.add.rectangle(width - 40, 80, 180, 12, 0x333366)
             .setOrigin(1, 0.5);
-        // Enemy SP bar fill
-        this.enemySpBar = this.add.rectangle(width - 40, 80, 180 * (enemyStats.sp / enemyMaxSp), 12, 0x3399ff)
+        this.enemySpBar = this.add.rectangle(width - 40, 80, 180, 12, 0x3399ff)
             .setOrigin(1, 0.5);
-        // Enemy SP text
         this.enemySpText = this.add.text(width - 130, 80, enemySpText, {
             fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        // ATK/DEF text
         this.enemyStatText = this.add.text(width - 130, 100, enemyStatText, {
             fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
         }).setOrigin(0.5);
-        // Add all elements to the status group
         this.statusGroup.add(this.petStatusBg);
         this.statusGroup.add(this.petHpBarBg);
         this.statusGroup.add(this.petHpBar);
@@ -607,27 +559,17 @@ export class BattleSystem extends Scene {
     }
 
     updateStatusBars() {
-        // Update pet HP/SP
         const petStats = this.petEntity.data.stats;
-        const petMaxHp = petStats.maxhp || 100;
-        const petMaxSp = petStats.maxsp || 50;
-        const petHpRatio = Math.max(0, petStats.hp / petMaxHp);
-        const petSpRatio = Math.max(0, petStats.sp / petMaxSp);
-        this.petHpBar.width = 180 * petHpRatio;
-        this.petHpText.setText(`HP: ${petStats.hp}/${petMaxHp}`);
-        this.petSpBar.width = 180 * petSpRatio;
-        this.petSpText.setText(`SP: ${petStats.sp}/${petMaxSp}`);
+        this.petHpBar.width = 180;
+        this.petHpText.setText(`HP: ${petStats.hp}`);
+        this.petSpBar.width = 180;
+        this.petSpText.setText(`SP: ${petStats.sp}`);
         this.petStatText.setText(`ATK: ${petStats.atk}  DEF: ${petStats.def}`);
-        // Update enemy HP/SP
         const enemyStats = this.enemyEntity.data.stats;
-        const enemyMaxHp = enemyStats.maxhp || 100;
-        const enemyMaxSp = enemyStats.maxsp || 50;
-        const enemyHpRatio = Math.max(0, enemyStats.hp / enemyMaxHp);
-        const enemySpRatio = Math.max(0, enemyStats.sp / enemyMaxSp);
-        this.enemyHpBar.width = 180 * enemyHpRatio;
-        this.enemyHpText.setText(`HP: ${enemyStats.hp}/${enemyMaxHp}`);
-        this.enemySpBar.width = 180 * enemySpRatio;
-        this.enemySpText.setText(`SP: ${enemyStats.sp}/${enemyMaxSp}`);
+        this.enemyHpBar.width = 180;
+        this.enemyHpText.setText(`HP: ${enemyStats.hp}`);
+        this.enemySpBar.width = 180;
+        this.enemySpText.setText(`SP: ${enemyStats.sp}`);
         this.enemyStatText.setText(`ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`);
     }
 
@@ -1090,16 +1032,64 @@ export class BattleSystem extends Scene {
         console.log('Updated pet stats after battle:', this.petData.stats);
     }
     
-    handleBattleEnd() {
+    async updatePetBackend() {
+        if (!this.petData || !this.petData._id) return;
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const API_URL = import.meta.env.VITE_API_URL;
+        const statsPayload = {
+            hp: this.petData.stats.hp,
+            sp: this.petData.stats.sp,
+            atk: this.petData.stats.atk,
+            def: this.petData.stats.def
+        };
+        let happiness = 100, stamina = 100;
+        if (this.petData.attributes) {
+            happiness = this.petData.attributes.happiness !== undefined ? this.petData.attributes.happiness : 100;
+            stamina = this.petData.attributes.stamina !== undefined ? this.petData.attributes.stamina : 100;
+        }
+        happiness = Math.max(0, happiness - 10);
+        stamina = Math.max(0, stamina - 10);
+        const attrPayload = { happiness, stamina };
+        if (!this.petData.attributes) this.petData.attributes = {};
+        this.petData.attributes.happiness = happiness;
+        this.petData.attributes.stamina = stamina;
+        try {
+            await fetch(`${API_URL}/pets/${this.petData._id}/stats`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(statsPayload)
+            });
+            await fetch(`${API_URL}/pets/${this.petData._id}/attributes`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(attrPayload)
+            });
+            const globalContext = typeof getGlobalContext === 'function' ? getGlobalContext() : null;
+            if (globalContext && globalContext.userData) {
+                globalContext.userData.selectedPet = this.petData;
+            }
+        } catch (err) {
+            console.error('Failed to update pet stats/attributes after battle:', err);
+        }
+    }
+    
+    async handleBattleEnd() {
         // Hide popup with animation
         this.tweens.add({
             targets: this.resultPopup,
             alpha: 0,
             duration: 300,
-            onComplete: () => {
+            onComplete: async () => {
                 // Ensure stats are updated before returning to previous scene
                 this.updatePetStats();
-                
+                await this.updatePetBackend();
                 // Return to previous scene (e.g., level selection) with updated pet data
                 this.scene.start('LevelSelector', { pet: this.petData });
             }

@@ -826,3 +826,83 @@ exports.outdoorPet = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Update pet stats (hp, sp, atk, def, etc.)
+// @route   PUT /api/pets/:id/stats
+// @access  Private
+exports.updatePetStats = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
+    }
+    // Only update provided fields in stats
+    const allowedFields = ['hp', 'maxhp', 'sp', 'maxsp', 'atk', 'def'];
+    let updated = false;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        pet.stats[field] = req.body[field];
+        updated = true;
+      }
+    });
+    if (!updated) {
+      return res.status(400).json({ success: false, error: 'No valid stat fields provided' });
+    }
+    await pet.save();
+    res.status(200).json({ success: true, data: pet });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update pet attributes (happiness, stamina, etc.)
+// @route   PUT /api/pets/:id/attributes
+// @access  Private
+exports.updatePetAttributes = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
+    }
+    // Only update provided fields in attributes
+    const allowedFields = ['happiness', 'stamina', 'hunger'];
+    let updated = false;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        pet.attributes[field] = req.body[field];
+        updated = true;
+      }
+    });
+    if (!updated) {
+      return res.status(400).json({ success: false, error: 'No valid attribute fields provided' });
+    }
+    await pet.save();
+    res.status(200).json({ success: true, data: pet });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get pet attributes (happiness, stamina, etc.)
+// @route   GET /api/pets/:id/attributes
+// @access  Private
+exports.getPetAttributes = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to access this pet' });
+    }
+    res.status(200).json({ success: true, data: pet.attributes });
+  } catch (err) {
+    next(err);
+  }
+};
