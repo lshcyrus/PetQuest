@@ -140,7 +140,8 @@ class BattleLogic {
                 return false;
             }
             attacker.data.stats.sp -= 10;
-            const maxHp = attacker.data.stats.maxhp || 100;
+            // Use maxhp directly from stats
+            const maxHp = attacker.data.stats.maxhp || attacker.data.stats.hp;
             let healAmount = Math.floor(maxHp * 0.25);
             
             attacker.data.stats.hp += healAmount;
@@ -186,8 +187,8 @@ class BattleLogic {
         
         if (item && item.type === 'heal') {
             const healAmount = item.value || 20;
-            // Use maxhp consistently
-            const maxHp = this.playerPet.data.stats.maxhp || 100;
+            // Use maxhp from stats
+            const maxHp = this.playerPet.data.stats.maxhp || this.playerPet.data.stats.hp;
             
             this.playerPet.data.stats.hp += healAmount;
             if (this.playerPet.data.stats.hp > maxHp) {
@@ -248,11 +249,13 @@ export class BattleSystem extends Scene {
 
         // Store the raw pet data with deep copy to avoid reference issues
         this.petData = JSON.parse(JSON.stringify(data.pet));
+        
         // Validate and normalize pet data
         if (!this.petData.stats) {
             this.petData.stats = {};
         } else {
             const petStats = this.petData.stats;
+            
             // Convert attack/defense to atk/def if needed
             if (petStats.attack !== undefined && petStats.atk === undefined) {
                 petStats.atk = petStats.attack;
@@ -266,6 +269,15 @@ export class BattleSystem extends Scene {
             if (petStats.speed !== undefined) {
                 delete petStats.speed;
             }
+            
+            // Use currentHP/SP if they exist, otherwise use stats.hp/sp
+            if (this.petData.currentHP === undefined) {
+                this.petData.currentHP = petStats.hp;
+            }
+            if (this.petData.currentSP === undefined) {
+                this.petData.currentSP = petStats.sp;
+            }
+            
             // Apply any active buffs from equipment or items
             if (this.petData.buffs) {
                 Object.entries(this.petData.buffs).forEach(([stat, value]) => {
@@ -314,6 +326,10 @@ export class BattleSystem extends Scene {
             if (stats.speed !== undefined) {
                 delete stats.speed;
             }
+            
+            // For enemy, set maxhp/maxsp to match their stats.hp/sp
+            this.enemyData.maxhp = stats.hp;
+            this.enemyData.maxsp = stats.sp;
         }
         this.levelData = data.levelData || { background: 'battle_background' };
         this.battleBackground = this.levelData.background || 'battle_background';
@@ -377,10 +393,33 @@ export class BattleSystem extends Scene {
     createCombatants() {
         const { width, height } = this.scale;
         
+        // Create a copy of pet data for battle use
+        const battlePetData = JSON.parse(JSON.stringify(this.petData));
+        
+        // Initialize entity's hp/sp to the current values, not the max values
+        if (this.petData.currentHP !== undefined) {
+            battlePetData.stats.hp = this.petData.currentHP;
+        }
+        
+        if (this.petData.currentSP !== undefined) {
+            battlePetData.stats.sp = this.petData.currentSP;
+        }
+        
+        // Set maxhp/maxsp properties for battle UI
+        battlePetData.stats.maxhp = this.petData.stats.hp;
+        battlePetData.stats.maxsp = this.petData.stats.sp;
+        
+        console.log('Battle Pet Stats:', {
+            hp: battlePetData.stats.hp,
+            maxhp: battlePetData.stats.maxhp,
+            sp: battlePetData.stats.sp,
+            maxsp: battlePetData.stats.maxsp
+        });
+        
         // Player pet positioned on left side of screen
         this.petEntity = new Pet(
             this, 
-            this.petData, 
+            battlePetData, 
             width * 0.3, 
             height * 0.6
         );
@@ -397,6 +436,22 @@ export class BattleSystem extends Scene {
             console.warn('Enemy missing sprite key, using default gorgon_idle');
             this.enemyData.key = 'gorgon_idle'; // Set a default key
         }
+        
+        // Initialize enemy's max values for UI display
+        if (!this.enemyData.stats.maxhp) {
+            this.enemyData.stats.maxhp = this.enemyData.stats.hp;
+        }
+        
+        if (!this.enemyData.stats.maxsp) {
+            this.enemyData.stats.maxsp = this.enemyData.stats.sp;
+        }
+        
+        console.log('Enemy Stats:', {
+            hp: this.enemyData.stats.hp,
+            maxhp: this.enemyData.stats.maxhp,
+            sp: this.enemyData.stats.sp,
+            maxsp: this.enemyData.stats.maxsp
+        });
         
         // Enemy positioned on right side of screen
         this.enemyEntity = new Enemy(
@@ -992,13 +1047,12 @@ export class BattleSystem extends Scene {
     updatePetStats() {
         // Update original pet data with current HP and any stat changes
         if (this.petData.stats) {
-            // Set currentHP and currentSP for backend persistence
+            // Set currentHP and currentSP for backend persistence (these are the current battle values)
             this.petData.currentHP = this.petEntity.data.stats.hp;
             this.petData.currentSP = this.petEntity.data.stats.sp;
             
-            // Keep maxhp and maxsp synchronized with stats.hp and stats.sp
-            this.petData.maxhp = this.petData.stats.hp;
-            this.petData.maxsp = this.petData.stats.sp;
+            // maxhp and maxsp should NOT be synchronized with the current values
+            // They represent the original/full values and remain constant
             
             // Only transfer combat stats (not health/SP)
             if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
@@ -1018,9 +1072,9 @@ export class BattleSystem extends Scene {
             'ATK:', this.petData.stats.atk,
             'DEF:', this.petData.stats.def,
             'currentHP:', this.petData.currentHP, 
+            'maxHP:', this.petData.stats.hp,
             'currentSP:', this.petData.currentSP,
-            'maxHP:', this.petData.maxhp,
-            'maxSP:', this.petData.maxsp,
+            'maxSP:', this.petData.stats.sp,
             'EXP:', this.petData.experience);
     }
     
@@ -1035,7 +1089,7 @@ export class BattleSystem extends Scene {
             return;
         }
         
-        // Create proper stats payload with currentHP/currentSP (not stats.hp/stats.sp)
+        // Create proper stats payload with currentHP/currentSP only (not maxhp/maxsp)
         const statsPayload = {
             currentHP: this.petData.currentHP,
             currentSP: this.petData.currentSP,
@@ -1067,10 +1121,18 @@ export class BattleSystem extends Scene {
             const statsData = await statsResponse.json();
             if (statsResponse.ok && statsData.success) {
                 console.log('Successfully updated pet stats:', statsData.data);
-                // Update local petData with fresh data from server
+                // Update local petData with fresh data from server, preserving our maxhp/maxsp values
                 if (statsData.data) {
                     // Update with the fresh data from server
                     this.petData = statsData.data;
+                    
+                    // Make sure max values are preserved
+                    if (!this.petData.maxhp) {
+                        this.petData.maxhp = this.petData.stats.hp;
+                    }
+                    if (!this.petData.maxsp) {
+                        this.petData.maxsp = this.petData.stats.sp;
+                    }
                 }
             }
             
@@ -1138,7 +1200,7 @@ export class BattleSystem extends Scene {
             
             // Update the global context with all changes
             if (globalContext) {
-                // Update pet data with complete fresh data
+                // Update pet data with complete fresh data, maintaining separation of current/max values
                 globalContext.userData.selectedPet = this.petData;
                 
                 // Update coins if successfully updated in the backend

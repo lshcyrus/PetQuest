@@ -411,7 +411,6 @@ export class LevelSelector extends Scene {
         }
         console.log("Setting up pet status with:", currentPetData);
 
-
         const { width, height } = this.scale;
         // Use consistent positioning logic (adjust as needed for layout)
         const containerX = width * 0.15;
@@ -431,7 +430,14 @@ export class LevelSelector extends Scene {
         const petStats = currentPetData.stats || {};
         const petAttr = currentPetData.attributes || {};
 
-        const petHp = petStats.hp !== undefined ? petStats.hp : 'N/A';
+        // Get current HP (prioritize currentHP, fallback to stats.hp)
+        const currentHP = currentPetData.currentHP !== undefined ? currentPetData.currentHP : petStats.hp;
+        // Get max HP (use stats.hp as the max health)
+        const maxHP = petStats.hp !== undefined ? petStats.hp : 100;
+        
+        // Format HP display as current/max
+        const petHp = `${currentHP}/${maxHP}`;
+        
         const petStamina = (petAttr.stamina !== undefined && petAttr.stamina !== null) ? petAttr.stamina : 'N/A';
         const petLevel = currentPetData.level !== undefined ? currentPetData.level : 'N/A';
         const petExp = currentPetData.experience !== undefined ? currentPetData.experience : 0;
@@ -441,7 +447,6 @@ export class LevelSelector extends Scene {
             { name: 'HP', value: petHp },
             { name: 'Stamina', value: petStamina }, // Use the checked value
             { name: 'Level', value: petLevel },
-
         ];
 
         const textStyle = {

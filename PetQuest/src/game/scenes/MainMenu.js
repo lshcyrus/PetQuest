@@ -326,12 +326,13 @@ export class MainMenu extends Scene {
         ];
         const stats = this.petData.stats || {};
         
-        // Use currentHP/currentSP if available, else fallback to stats.hp/stats.sp
-        // For max values, use maxhp/maxsp if available, otherwise use stats.hp/stats.sp
+        // Get current and max HP/SP values
+        // For current values: prioritize currentHP/SP, fallback to stats.hp/sp
+        // For max values: prioritize stats.hp/sp as the "full" values, fallback to the same value
         const currentHP = this.petData.currentHP !== undefined ? this.petData.currentHP : stats.hp;
-        const maxHP = this.petData.maxhp !== undefined ? this.petData.maxhp : stats.hp;
+        const maxHP = stats.hp;
         const currentSP = this.petData.currentSP !== undefined ? this.petData.currentSP : stats.sp;
-        const maxSP = this.petData.maxsp !== undefined ? this.petData.maxsp : stats.sp;
+        const maxSP = stats.sp;
         
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
