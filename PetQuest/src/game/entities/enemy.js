@@ -299,12 +299,13 @@ export class EnemyFactory {
      * Generate a random enemy based on difficulty and biome
      * @param {number} difficulty - 1 (Easy) to 4 (Expert)
      * @param {string} biome - 'forest', 'iceland', 'desert', or 'neutral'
+     * @param {string} [specificEnemyKey] - Optional specific enemy key to override random selection
      * @param {Object} [scene] - Phaser scene (optional, for sprite creation)
      * @param {number} [x=0] - X position (optional)
      * @param {number} [y=0] - Y position (optional)
      * @returns {Enemy}
      */
-    static generateRandomEnemy(difficulty, biome = 'neutral', scene = null, x = 0, y = 0) {
+    static generateRandomEnemy(difficulty, biome = 'neutral', specificEnemyKey = null, scene = null, x = 0, y = 0) {
         // Base enemy stats by biome, now with sprite keys
         const baseEnemies = {
             forest: [
@@ -342,9 +343,30 @@ export class EnemyFactory {
             ]
         };
 
-        // Select enemy based on biome
-        const enemyList = baseEnemies[biome] || baseEnemies.forest;
-        const base = enemyList[Math.floor(Math.random() * enemyList.length)];
+        // Select enemy based on biome or specific key
+        let base;
+        if (specificEnemyKey) {
+            // Find the enemy with the matching key in any biome
+            for (const biomeType in baseEnemies) {
+                const found = baseEnemies[biomeType].find(e => e.key === specificEnemyKey);
+                if (found) {
+                    base = found;
+                    // Update the biome if we found the enemy in a different biome
+                    biome = biomeType;
+                    break;
+                }
+            }
+            // If not found, fall back to random selection
+            if (!base) {
+                console.warn(`Enemy with key ${specificEnemyKey} not found, using random enemy`);
+                const enemyList = baseEnemies[biome] || baseEnemies.forest;
+                base = enemyList[Math.floor(Math.random() * enemyList.length)];
+            }
+        } else {
+            // Random selection based on biome
+            const enemyList = baseEnemies[biome] || baseEnemies.forest;
+            base = enemyList[Math.floor(Math.random() * enemyList.length)];
+        }
 
         // Determine number of abilities
         let numAbilities;

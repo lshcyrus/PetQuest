@@ -389,6 +389,9 @@ export class BattleSystem extends Scene {
         // Create the pet and enemy entities with proper positioning
         this.createCombatants();
         
+        // Set up attack animations for pet and enemy
+        this.setupAttackAnimations();
+        
         // Create battle UI elements
         this.createUI();
         
@@ -458,6 +461,49 @@ export class BattleSystem extends Scene {
             }
         } else {
             console.error('Enemy is missing sprite key:', this.enemyEntity.data);
+        }
+    }
+    
+    // Ensure attack animations exist for both pet and enemy
+    setupAttackAnimations() {
+        // Set up pet attack animation if not already present
+        if (this.petEntity && this.petEntity.data.key) {
+            const petKey = this.petEntity.data.key;
+            const petAttackKey = `${petKey}_atk`;
+            
+            if (!this.anims.exists(petAttackKey) && this.textures.exists(petKey)) {
+                console.log(`Creating attack animation for pet: ${petAttackKey}`);
+                try {
+                    this.anims.create({
+                        key: petAttackKey,
+                        frames: this.anims.generateFrameNumbers(petKey, { start: 4, end: 7 }),
+                        frameRate: 10,
+                        repeat: 0
+                    });
+                } catch (error) {
+                    console.warn(`Failed to create pet attack animation: ${error.message}`);
+                }
+            }
+        }
+        
+        // Set up enemy attack animation if not already present
+        if (this.enemyEntity && this.enemyEntity.data.key) {
+            const enemyKey = this.enemyEntity.data.key;
+            const enemyAttackKey = `${enemyKey}_atk`;
+            
+            if (!this.anims.exists(enemyAttackKey) && this.textures.exists(enemyKey)) {
+                console.log(`Creating attack animation for enemy: ${enemyAttackKey}`);
+                try {
+                    this.anims.create({
+                        key: enemyAttackKey,
+                        frames: this.anims.generateFrameNumbers(enemyKey, { start: 4, end: 7 }),
+                        frameRate: 10,
+                        repeat: 0
+                    });
+                } catch (error) {
+                    console.warn(`Failed to create enemy attack animation: ${error.message}`);
+                }
+            }
         }
     }
     
@@ -1018,7 +1064,22 @@ export class BattleSystem extends Scene {
         this.time.delayedCall(200, () => {
             // Play source animation
             if (source && source.sprite) {
-                source.playAnimation(actionType);
+                if (actionType === 'attack') {
+                    // Use specific attack animations based on entity key
+                    const sourceKey = source.data.key;
+                    const attackKey = `${sourceKey}_atk`;
+                    
+                    // Check if the attack animation exists, if not fall back to generic attack
+                    if (this.anims.exists(attackKey)) {
+                        console.log(`Playing attack animation: ${attackKey}`);
+                        source.sprite.play(attackKey);
+                    } else {
+                        console.log(`Animation ${attackKey} not found, using fallback`);
+                        source.playAnimation(actionType);
+                    }
+                } else {
+                    source.playAnimation(actionType);
+                }
             }
             
             // If we have a target, play hurt animation after a short delay

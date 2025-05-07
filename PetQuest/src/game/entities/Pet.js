@@ -413,6 +413,17 @@ export class Pet {
             }
             case 'attack': { 
                 if (this.sprite) {
+                    // Try to use the specific attack animation if it exists
+                    const attackAnimKey = `${petKey}_atk`;
+                    let usingCustomAnim = false;
+                    
+                    if (scene.anims.exists(attackAnimKey)) {
+                        this.sprite.play(attackAnimKey);
+                        usingCustomAnim = true;
+                    } else {
+                        console.log(`No custom attack animation found for ${petKey}, using fallback animation`);
+                    }
+                    
                     const originalX = this.sprite.x;
                     const attackMovement = this.sprite.flipX ? -30 : 30; // Movement direction based on flip
                     

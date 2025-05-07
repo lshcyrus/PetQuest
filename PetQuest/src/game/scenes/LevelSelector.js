@@ -92,7 +92,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Mystic', 'Twilight', 'Emerald'],
                 nameSuffix: ['Forest', 'Grove', 'Woods'],
                 background: 'forest',
-                enemyNames: ['Gorgon'],
+                enemyName: 'Gorgon',
+                enemyKey: 'gorgon_idle',
                 descriptions: [
                     'A dense forest with glowing mushrooms.',
                     'A misty woodland hiding ancient secrets.',
@@ -103,7 +104,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Frosty', 'Glacial', 'Arctic'],
                 nameSuffix: ['Tundra', 'Glacier', 'Fjord'],
                 background: 'iceland',
-                enemyNames: ['Blue Golem'],
+                enemyName: 'Blue Golem',
+                enemyKey: 'blue_golem_idle',
                 descriptions: [
                     'A frozen tundra swept by icy winds.',
                     'A glacial expanse with shimmering ice.',
@@ -114,7 +116,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Scorching', 'Mirage', 'Dune'],
                 nameSuffix: ['Desert', 'Dunes', 'Wastes'],
                 background: 'desert',
-                enemyNames: ['Orange Golem'],
+                enemyName: 'Orange Golem',
+                enemyKey: 'orange_golem_idle',
                 descriptions: [
                     'A scorching desert with deadly sands.',
                     'A shimmering wasteland full of illusions.',
@@ -134,8 +137,8 @@ export class LevelSelector extends Scene {
         // Generate description
         const description = biome.descriptions[Math.floor(Math.random() * biome.descriptions.length)];
 
-        // Select one enemy name
-        const enemyName = biome.enemyNames[Math.floor(Math.random() * biome.enemyNames.length)];
+        // Use the specific enemy for this biome
+        const enemyName = biome.enemyName;
 
         // Generate rewards, scaled by difficulty
         const rewards = this.generateLevelRewards(difficulty);
@@ -146,8 +149,8 @@ export class LevelSelector extends Scene {
         // Generate unique ID
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-        // Generate enemy
-        this.enemy = EnemyFactory.generateRandomEnemy(difficulty, biome.background);
+        // Generate enemy with specific key for this biome
+        this.enemy = EnemyFactory.generateRandomEnemy(difficulty, biome.background, biome.enemyKey);
 
         return {
             id,
