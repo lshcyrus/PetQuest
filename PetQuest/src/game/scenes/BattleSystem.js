@@ -253,18 +253,6 @@ export class BattleSystem extends Scene {
             this.petData.stats = {};
         } else {
             const petStats = this.petData.stats;
-            // For backward compatibility: convert health to maxhp if it exists
-            if (petStats.health !== undefined && petStats.maxhp === undefined) {
-                petStats.maxhp = petStats.health;
-            }
-            // Only set hp if undefined
-            if (petStats.hp === undefined && petStats.maxhp !== undefined) {
-                petStats.hp = petStats.maxhp;
-            }
-            // Only set sp if undefined
-            if (petStats.sp === undefined && petStats.maxsp !== undefined) {
-                petStats.sp = petStats.maxsp;
-            }
             // Convert attack/defense to atk/def if needed
             if (petStats.attack !== undefined && petStats.atk === undefined) {
                 petStats.atk = petStats.attack;
@@ -301,6 +289,7 @@ export class BattleSystem extends Scene {
                 });
             }
         }
+
         this.enemyData = data.enemy;
         // Validate and set defaults for enemy data if needed
         if (typeof this.enemyData !== 'object') {
@@ -314,15 +303,6 @@ export class BattleSystem extends Scene {
             this.enemyData.stats = {};
         } else {
             const stats = this.enemyData.stats;
-            if (stats.health !== undefined && stats.maxhp === undefined) {
-                stats.maxhp = stats.health;
-            }
-            if (stats.hp === undefined && stats.maxhp !== undefined) {
-                stats.hp = stats.maxhp;
-            }
-            if (stats.sp === undefined && stats.maxsp !== undefined) {
-                stats.sp = stats.maxsp;
-            }
             if (stats.attack !== undefined && stats.atk === undefined) {
                 stats.atk = stats.attack;
                 delete stats.attack;
@@ -337,6 +317,11 @@ export class BattleSystem extends Scene {
         }
         this.levelData = data.levelData || { background: 'battle_background' };
         this.battleBackground = this.levelData.background || 'battle_background';
+        
+        // Store values for battle rewards
+        this.goldGained = 0;
+        this.expGained = 0;
+        this.gemsGained = 0;
         // Setup will continue in create()
     }
 
@@ -498,77 +483,76 @@ export class BattleSystem extends Scene {
         this.petStatusBg = this.add.rectangle(30, this.scale.height - 80, 200, 90, 0x222222, 0.7)
             .setOrigin(0, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        this.petHpBarBg = this.add.rectangle(40, this.scale.height - 100, 180, 16, 0x333333)
-            .setOrigin(0, 0.5);
-        this.petHpBar = this.add.rectangle(40, this.scale.height - 100, 180, 16, 0x00ff00)
-            .setOrigin(0, 0.5);
-        this.petHpText = this.add.text(130, this.scale.height - 100, petHpText, {
-            fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
-        }).setOrigin(0.5);
-        this.petSpBarBg = this.add.rectangle(40, this.scale.height - 80, 180, 12, 0x333366)
-            .setOrigin(0, 0.5);
-        this.petSpBar = this.add.rectangle(40, this.scale.height - 80, 180, 12, 0x3399ff)
-            .setOrigin(0, 0.5);
-        this.petSpText = this.add.text(130, this.scale.height - 80, petSpText, {
-            fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
-        }).setOrigin(0.5);
-        this.petStatText = this.add.text(130, this.scale.height - 60, petStatText, {
-            fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
-        }).setOrigin(0.5);
+        this.petNameText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y - 30, this.petEntity.data.name, {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        this.petHpText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y - 10, petHpText, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#ff8080'
+        }).setOrigin(0, 0.5);
+        this.petSpText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y + 10, petSpText, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#80a0ff'
+        }).setOrigin(0, 0.5);
+        this.petStatText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y + 30, petStatText, {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#ffffff'
+        }).setOrigin(0, 0.5);
+        
         // Enemy status (right side)
         const enemyStats = this.enemyEntity.data.stats;
         const enemyHpText = `HP: ${enemyStats.hp}`;
         const enemySpText = `SP: ${enemyStats.sp}`;
         const enemyStatText = `ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`;
-        this.enemyStatusBg = this.add.rectangle(width - 30, 80, 200, 90, 0x222222, 0.7)
+        this.enemyStatusBg = this.add.rectangle(this.scale.width - 30, 80, 200, 90, 0x222222, 0.7)
             .setOrigin(1, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        this.enemyHpBarBg = this.add.rectangle(width - 40, 60, 180, 16, 0x333333)
-            .setOrigin(1, 0.5);
-        this.enemyHpBar = this.add.rectangle(width - 40, 60, 180, 16, 0xff3333)
-            .setOrigin(1, 0.5);
-        this.enemyHpText = this.add.text(width - 130, 60, enemyHpText, {
-            fontSize: '14px', color: '#ffffff', fontFamily: 'monospace'
-        }).setOrigin(0.5);
-        this.enemySpBarBg = this.add.rectangle(width - 40, 80, 180, 12, 0x333366)
-            .setOrigin(1, 0.5);
-        this.enemySpBar = this.add.rectangle(width - 40, 80, 180, 12, 0x3399ff)
-            .setOrigin(1, 0.5);
-        this.enemySpText = this.add.text(width - 130, 80, enemySpText, {
-            fontSize: '13px', color: '#99ccff', fontFamily: 'monospace'
-        }).setOrigin(0.5);
-        this.enemyStatText = this.add.text(width - 130, 100, enemyStatText, {
-            fontSize: '13px', color: '#ffff99', fontFamily: 'monospace'
-        }).setOrigin(0.5);
+        this.enemyNameText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y - 30, this.enemyEntity.data.name, {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(1, 0.5);
+        this.enemyHpText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y - 10, enemyHpText, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#ff8080'
+        }).setOrigin(1, 0.5);
+        this.enemySpText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y + 10, enemySpText, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#80a0ff'
+        }).setOrigin(1, 0.5);
+        this.enemyStatText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y + 30, enemyStatText, {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#ffffff'
+        }).setOrigin(1, 0.5);
+        
+        // Add all to group for easy management
         this.statusGroup.add(this.petStatusBg);
-        this.statusGroup.add(this.petHpBarBg);
-        this.statusGroup.add(this.petHpBar);
+        this.statusGroup.add(this.petNameText);
         this.statusGroup.add(this.petHpText);
-        this.statusGroup.add(this.petSpBarBg);
-        this.statusGroup.add(this.petSpBar);
         this.statusGroup.add(this.petSpText);
         this.statusGroup.add(this.petStatText);
         this.statusGroup.add(this.enemyStatusBg);
-        this.statusGroup.add(this.enemyHpBarBg);
-        this.statusGroup.add(this.enemyHpBar);
+        this.statusGroup.add(this.enemyNameText);
         this.statusGroup.add(this.enemyHpText);
-        this.statusGroup.add(this.enemySpBarBg);
-        this.statusGroup.add(this.enemySpBar);
         this.statusGroup.add(this.enemySpText);
         this.statusGroup.add(this.enemyStatText);
     }
 
     updateStatusBars() {
         const petStats = this.petEntity.data.stats;
-        this.petHpBar.width = 180;
         this.petHpText.setText(`HP: ${petStats.hp}`);
-        this.petSpBar.width = 180;
         this.petSpText.setText(`SP: ${petStats.sp}`);
         this.petStatText.setText(`ATK: ${petStats.atk}  DEF: ${petStats.def}`);
         const enemyStats = this.enemyEntity.data.stats;
-        this.enemyHpBar.width = 180;
         this.enemyHpText.setText(`HP: ${enemyStats.hp}`);
-        this.enemySpBar.width = 180;
         this.enemySpText.setText(`SP: ${enemyStats.sp}`);
         this.enemyStatText.setText(`ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`);
     }
@@ -951,31 +935,34 @@ export class BattleSystem extends Scene {
     
     handleBattleResult() {
         // Calculate battle rewards and experience
-        let expGained = 0;
-        let goldGained = 0;
         
         // Determine result and show appropriate popup
         if (this.petEntity.data.stats.hp <= 0) {
             // Defeat: Pet is injured, restore some HP (50%)
-            const maxHp = this.petEntity.data.stats.maxhp || 100;
-            this.petEntity.data.stats.hp = Math.floor(maxHp * 0.5);
+            this.petEntity.data.stats.hp = Math.max(1, Math.floor(this.petEntity.data.stats.hp * 0.5));
             this.showResultPopup('defeat');
         } else if (this.enemyEntity.data.stats.hp <= 0) {
             // Victory: Calculate rewards
             const enemyLevel = this.enemyData.level || 1;
-            expGained = Math.floor(enemyLevel * 20 + Math.random() * 10);
-            goldGained = Math.floor(enemyLevel * 10 + Math.random() * enemyLevel * 5);
+            this.expGained = Math.floor(enemyLevel * 20 + Math.random() * 10);
+            this.goldGained = Math.floor(enemyLevel * 10 + Math.random() * enemyLevel * 5);
+            
+            // Calculate gem drops (rare chance)
+            if (Math.random() < 0.2) { // 20% chance to find a gem
+                this.gemsGained = Math.ceil(Math.random() * 2); // 1-2 gems
+                this.battleLogic.drops.push(`${this.gemsGained} Rare Gem${this.gemsGained > 1 ? 's' : ''}`);
+            }
             
             // Add experience and gold to pet data
             if (!this.petEntity.data.experience) this.petEntity.data.experience = 0;
-            this.petEntity.data.experience += expGained;
+            this.petEntity.data.experience += this.expGained;
             
             if (!this.petEntity.data.gold) this.petEntity.data.gold = 0;
-            this.petEntity.data.gold += goldGained;
+            this.petEntity.data.gold += this.goldGained;
             
             // Add rewards to the drops list
-            this.battleLogic.drops.push(`${expGained} EXP`);
-            this.battleLogic.drops.push(`${goldGained} Gold`);
+            this.battleLogic.drops.push(`${this.expGained} EXP`);
+            this.battleLogic.drops.push(`${this.goldGained} Gold`);
             
             this.showResultPopup('victory', this.battleLogic.drops);
         } else if (this.battleLogic.battleEnded) {
@@ -1002,18 +989,6 @@ export class BattleSystem extends Scene {
             }
             if (this.petEntity.data.stats.def !== this.petData.stats.def) {
                 this.petData.stats.def = this.petEntity.data.stats.def;
-            }
-            // Update maxhp if it was changed
-            if (this.petEntity.data.stats.maxhp && this.petEntity.data.stats.maxhp !== this.petData.stats.maxhp) {
-                this.petData.stats.maxhp = this.petEntity.data.stats.maxhp;
-            }
-            // Update maxsp if it was changed
-            if (this.petEntity.data.stats.maxsp && this.petEntity.data.stats.maxsp !== this.petData.stats.maxsp) {
-                this.petData.stats.maxsp = this.petEntity.data.stats.maxsp;
-            }
-            // For backward compatibility, also update health property if it exists
-            if (this.petData.stats.health) {
-                this.petData.stats.health = this.petEntity.data.stats.maxhp;
             }
         }
         if (this.petEntity.data.experience) this.petData.experience = this.petEntity.data.experience;
@@ -1063,14 +1038,25 @@ export class BattleSystem extends Scene {
                 body: JSON.stringify(attrPayload)
             });
             // Update user coins if goldGained > 0
-            if (goldGained && goldGained > 0) {
+            if (this.goldGained && this.goldGained > 0) {
                 await fetch(`${API_URL}/users/me/coins`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ delta: goldGained })
+                    body: JSON.stringify({ delta: this.goldGained })
+                });
+            }
+            // Update user gems if gemsGained > 0
+            if (this.gemsGained && this.gemsGained > 0) {
+                await fetch(`${API_URL}/users/me/gems`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ delta: this.gemsGained })
                 });
             }
             const globalContext = typeof getGlobalContext === 'function' ? getGlobalContext() : null;
@@ -1078,7 +1064,7 @@ export class BattleSystem extends Scene {
                 globalContext.userData.selectedPet = this.petData;
             }
         } catch (err) {
-            console.error('Failed to update pet stats/attributes/coins after battle:', err);
+            console.error('Failed to update pet stats/attributes/coins/gems after battle:', err);
         }
     }
     

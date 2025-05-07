@@ -840,7 +840,7 @@ exports.updatePetStats = async (req, res, next) => {
       return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
     }
     // Allow updating stats, current values, experience, and gold
-    const allowedFields = ['hp', 'maxhp', 'sp', 'maxsp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold'];
+    const allowedFields = ['hp', 'sp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold'];
     let updated = false;
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {

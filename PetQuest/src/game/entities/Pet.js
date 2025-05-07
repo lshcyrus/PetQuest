@@ -22,35 +22,38 @@ export class Pet {
         this.x = x;
         this.y = y;
         
-        // Default stats if not provided
-        this.data.stats = data.stats || {
-            hp: 50,
-            maxhp: 50,
-            sp: 25,
-            maxsp: 25,
-            atk: 50,
-            def: 50
-        };
+        // Default stats if none provided
+        if (!this.data.stats) {
+            this.data.stats = {
+                hp: 50,
+                sp: 25,
+                atk: 15,
+                def: 10
+            };
+        }
         
         // For backward compatibility - ensure both hp and maxhp are set
-        if (this.data.stats.health !== undefined && this.data.stats.maxhp === undefined) {
-            this.data.stats.maxhp = this.data.stats.health;
-        }
-        if (this.data.stats.hp === undefined && this.data.stats.maxhp !== undefined) {
-            this.data.stats.hp = this.data.stats.maxhp;
-        }
-        // If neither exists, set default values
-        if (this.data.stats.hp === undefined && this.data.stats.maxhp === undefined) {
-            this.data.stats.hp = 50;
-            this.data.stats.maxhp = 50;
+        if (this.data.stats.health !== undefined && this.data.stats.hp === undefined) {
+            this.data.stats.hp = this.data.stats.health;
         }
         
-        // Ensure SP stats exist
+        // If hp doesn't exist, set default
+        if (this.data.stats.hp === undefined) {
+            this.data.stats.hp = 50;
+        }
+        
+        // Ensure SP stat exists
         if (this.data.stats.sp === undefined) {
             this.data.stats.sp = 25;
         }
-        if (this.data.stats.maxsp === undefined) {
-            this.data.stats.maxsp = 25;
+        
+        // Ensure ATK and DEF exist
+        if (this.data.stats.atk === undefined) {
+            this.data.stats.atk = this.data.stats.attack || 15;
+        }
+        
+        if (this.data.stats.def === undefined) {
+            this.data.stats.def = this.data.stats.defense || 10;
         }
         
         // Convert old attack/defense to atk/def if needed
@@ -62,14 +65,6 @@ export class Pet {
         if (this.data.stats.defense && !this.data.stats.def) {
             this.data.stats.def = this.data.stats.defense;
             delete this.data.stats.defense;
-        }
-        
-        // Set default atk/def if missing
-        if (!this.data.stats.atk) {
-            this.data.stats.atk = 50;
-        }
-        if (!this.data.stats.def) {
-            this.data.stats.def = 50;
         }
         
         // Remove speed stat if it exists

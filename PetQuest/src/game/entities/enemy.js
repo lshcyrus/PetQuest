@@ -1,83 +1,70 @@
 // Enemy entity and generator for PetQuest
 // Inspired by Pet.js structure and the old EnemyGenerator.js
 
-export class Enemy {
-    /**
-     * Create a new Enemy
-     * @param {Object} scene - The Phaser scene this enemy belongs to
-     * @param {Object} data - Enemy data (name, stats, abilities, biome, key, etc.)
-     * @param {string} data.name - Enemy name
-     * @param {string} [data.key] - Sprite key for the enemy's images
-     * @param {Object} data.stats - Enemy stats (hp, maxhp, sp, maxsp, atk, def)
-     * @param {string[]} data.abilities - List of ability IDs
-     * @param {string} [data.biome] - Biome type
-     * @param {number} [x=0] - X position
-     * @param {number} [y=0] - Y position
-     */
-    constructor(scene, data, x = 0, y = 0) {
+/**
+ * Enemy class representing an opposing entity in battle.
+ * @class
+ * @extends Phaser.GameObjects.Container
+ * @param {Phaser.Scene} scene - The Scene to which this enemy belongs
+ * @param {Object} data - Enemy data and configuration
+ * @param {string} data.name - Enemy name
+ * @param {string} data.key - Sprite key for animations
+ * @param {Object} data.stats - Enemy stats (hp, sp, atk, def)
+ * @param {number} x - The x position of the enemy
+ * @param {number} y - The y position of the enemy
+ */
+export class Enemy extends Phaser.GameObjects.Container {
+    constructor(scene, data, x, y) {
+        super(scene, x, y);
+        
         this.scene = scene;
-        this.data = data;
-        this.x = x;
-        this.y = y;
+        this.data = data || {};
+        
+        if (!this.data.stats) {
+            this.data.stats = {
+                hp: 100,
+                sp: 30,
+                atk: 15,
+                def: 10
+            };
+        } else {
+            // For backward compatibility
+            if (this.data.stats.health && !this.data.stats.hp) {
+                this.data.stats.hp = this.data.stats.health;
+            }
+            
+            // Ensure basic stats exist
+            if (!this.data.stats.hp) {
+                this.data.stats.hp = 100;
+            }
+            
+            if (!this.data.stats.sp) {
+                this.data.stats.sp = 30;
+            }
+            
+            // Convert attack/defense to atk/def if needed
+            if (this.data.stats.attack && !this.data.stats.atk) {
+                this.data.stats.atk = this.data.stats.attack;
+                delete this.data.stats.attack;
+            }
+            
+            if (this.data.stats.defense && !this.data.stats.def) {
+                this.data.stats.def = this.data.stats.defense;
+                delete this.data.stats.defense;
+            }
+            
+            // Set defaults if missing
+            if (!this.data.stats.atk) {
+                this.data.stats.atk = 15;
+            }
+            
+            if (!this.data.stats.def) {
+                this.data.stats.def = 10;
+            }
+        }
+        
         this.sprite = null;
         this.nameText = null;
-        
-        // Default stats if not provided
-        this.data.stats = data.stats || { 
-            hp: 50, 
-            maxhp: 50, 
-            sp: 25, 
-            maxsp: 25, 
-            atk: 10, 
-            def: 10 
-        };
-        
-        // Ensure both hp and maxhp are set consistently
-        if (!this.data.stats.maxhp && this.data.stats.hp) {
-            this.data.stats.maxhp = this.data.stats.hp;
-        }
-        
-        if (!this.data.stats.hp && this.data.stats.maxhp) {
-            this.data.stats.hp = this.data.stats.maxhp;
-        }
-        
-        // If neither exists, set default values
-        if (!this.data.stats.hp && !this.data.stats.maxhp) {
-            this.data.stats.hp = 50;
-            this.data.stats.maxhp = 50;
-        }
-        
-        // Ensure SP stats exist
-        if (!this.data.stats.sp) {
-            this.data.stats.sp = 25;
-        }
-        if (!this.data.stats.maxsp) {
-            this.data.stats.maxsp = 25;
-        }
-        
-        // Convert old attack/defense to atk/def if needed
-        if (this.data.stats.attack && !this.data.stats.atk) {
-            this.data.stats.atk = this.data.stats.attack;
-            delete this.data.stats.attack;
-        }
-        
-        if (this.data.stats.defense && !this.data.stats.def) {
-            this.data.stats.def = this.data.stats.defense;
-            delete this.data.stats.defense;
-        }
-        
-        // Set default atk/def if missing
-        if (!this.data.stats.atk) {
-            this.data.stats.atk = 10;
-        }
-        if (!this.data.stats.def) {
-            this.data.stats.def = 10;
-        }
-        
-        // Remove speed stat if it exists
-        if (this.data.stats.speed) {
-            delete this.data.stats.speed;
-        }
     }
 
     /**
@@ -294,139 +281,75 @@ export class Enemy {
     }
 }
 
-export class EnemyFactory {
-    /**
-     * Generate a random enemy based on difficulty and biome
-     * @param {number} difficulty - 1 (Easy) to 4 (Expert)
-     * @param {string} biome - 'forest', 'iceland', 'desert', or 'neutral'
-     * @param {string} [specificEnemyKey] - Optional specific enemy key to override random selection
-     * @param {Object} [scene] - Phaser scene (optional, for sprite creation)
-     * @param {number} [x=0] - X position (optional)
-     * @param {number} [y=0] - Y position (optional)
-     * @returns {Enemy}
-     */
-    static generateRandomEnemy(difficulty, biome = 'neutral', specificEnemyKey = null, scene = null, x = 0, y = 0) {
-        // Base enemy stats by biome, now with sprite keys
-        const baseEnemies = {
-            forest: [
-                { name: 'Gorgon', key: 'gorgon_idle', hp: 120, maxhp: 120, sp: 60, maxsp: 60, atk: 22, def: 18 }
-            ],
-            iceland: [
-                { name: 'Blue Golem', key: 'blue_golem_idle', hp: 180, maxhp: 180, sp: 40, maxsp: 40, atk: 18, def: 25 }
-            ],
-            desert: [
-                { name: 'Orange Golem', key: 'orange_golem_idle', hp: 160, maxhp: 160, sp: 50, maxsp: 50, atk: 20, def: 22 }
-            ]
-        };
+/**
+ * Predefined enemy types
+ */
+export const EnemyTypes = {
+    EASY: [
+        { name: 'Slime', key: 'slime_idle', hp: 50, sp: 20, atk: 10, def: 5 },
+        { name: 'Bat', key: 'bat_idle', hp: 40, sp: 25, atk: 12, def: 3 },
+        { name: 'Rat', key: 'rat_idle', hp: 45, sp: 15, atk: 8, def: 6 }
+    ],
+    MEDIUM: [
+        { name: 'Goblin', key: 'goblin_idle', hp: 80, sp: 30, atk: 15, def: 10 },
+        { name: 'Skeleton', key: 'skeleton_idle', hp: 70, sp: 35, atk: 18, def: 8 },
+        { name: 'Wolf', key: 'wolf_idle', hp: 75, sp: 25, atk: 16, def: 12 }
+    ],
+    HARD: [
+        { name: 'Gorgon', key: 'gorgon_idle', hp: 120, sp: 60, atk: 22, def: 18 },
+        { name: 'Orc', key: 'orc_idle', hp: 150, sp: 40, atk: 25, def: 15 },
+        { name: 'Blue Golem', key: 'blue_golem_idle', hp: 180, sp: 40, atk: 18, def: 25 },
+        { name: 'Orange Golem', key: 'orange_golem_idle', hp: 160, sp: 50, atk: 20, def: 22 }
+    ],
+    BOSS: [
+        { name: 'Dragon', key: 'dragon_idle', hp: 300, sp: 100, atk: 35, def: 30 },
+        { name: 'Necromancer', key: 'necromancer_idle', hp: 200, sp: 150, atk: 40, def: 15 },
+        { name: 'Demon', key: 'demon_idle', hp: 250, sp: 120, atk: 38, def: 25 }
+    ]
+};
 
-        // Ability pool by biome
-        const abilitiesByBiome = {
-            forest: [
-                { id: 'vine_thrash', type: 'offensive' },
-                { id: 'bark_armor', type: 'defensive' },
-                { id: 'entangle', type: 'status' }
-            ],
-            iceland: [
-                { id: 'frost_blast', type: 'offensive' },
-                { id: 'glacial_shield', type: 'defensive' },
-                { id: 'blizzard', type: 'status' }
-            ],
-            desert: [
-                { id: 'flame_strike', type: 'offensive' },
-                { id: 'ember_aura', type: 'defensive' },
-                { id: 'scorch', type: 'status' }
-            ],
-            neutral: [
-                { id: 'thunder_strike', type: 'offensive' },
-                { id: 'quick_heal', type: 'support' },
-                { id: 'agility_boost', type: 'status' }
-            ]
-        };
-
-        // Select enemy based on biome or specific key
-        let base;
-        if (specificEnemyKey) {
-            // Find the enemy with the matching key in any biome
-            for (const biomeType in baseEnemies) {
-                const found = baseEnemies[biomeType].find(e => e.key === specificEnemyKey);
-                if (found) {
-                    base = found;
-                    // Update the biome if we found the enemy in a different biome
-                    biome = biomeType;
-                    break;
-                }
-            }
-            // If not found, fall back to random selection
-            if (!base) {
-                console.warn(`Enemy with key ${specificEnemyKey} not found, using random enemy`);
-                const enemyList = baseEnemies[biome] || baseEnemies.forest;
-                base = enemyList[Math.floor(Math.random() * enemyList.length)];
-            }
-        } else {
-            // Random selection based on biome
-            const enemyList = baseEnemies[biome] || baseEnemies.forest;
-            base = enemyList[Math.floor(Math.random() * enemyList.length)];
-        }
-
-        // Determine number of abilities
-        let numAbilities;
-        switch (difficulty) {
-            case 1: numAbilities = 1; break;
-            case 2: numAbilities = Math.random() < 0.5 ? 1 : 2; break;
-            case 3: numAbilities = 2; break;
-            case 4: numAbilities = Math.random() < 0.5 ? 2 : 3; break;
-            default: numAbilities = 1;
-        }
-
-        // Select abilities
-        const biomeAbilities = abilitiesByBiome[biome] || abilitiesByBiome.forest;
-        const neutralAbilities = abilitiesByBiome.neutral;
-        const selectedAbilities = [];
-        const usedTypes = new Set();
-
-        for (let i = 0; i < numAbilities; i++) {
-            let abilityPool = Math.random() < 0.8 ? biomeAbilities : neutralAbilities;
-            let available = abilityPool.filter(a => difficulty === 4 || !usedTypes.has(a.type));
-            if (available.length === 0) available = abilityPool;
-            if (available.length === 0) break;
-            const ability = available[Math.floor(Math.random() * available.length)];
-            selectedAbilities.push(ability.id);
-            usedTypes.add(ability.type);
-        }
-
-        // Stat multiplier
-        const multiplier = 1 + (difficulty - 1) * 0.5;
-        let hp = base.hp;
-        let sp = base.sp;
-        if (selectedAbilities.includes('quick_heal')) {
-            hp *= 1.1;
-            sp *= 1.2;
-        }
-
-        // Calculate final stats
-        const finalHp = Math.round(hp * multiplier);
-        const finalSp = Math.round(sp * multiplier);
-        
-        const stats = {
-            hp: finalHp,
-            maxhp: finalHp,
-            sp: finalSp,
-            maxsp: finalSp,
-            atk: Math.round(base.atk * multiplier),
-            def: Math.round(base.def * multiplier)
-        };
-
-        return new Enemy(
-            scene,
-            {
-                name: base.name,
-                key: base.key,
-                stats,
-                abilities: selectedAbilities,
-                biome
-            },
-            x,
-            y
-        );
+/**
+ * Generate a random enemy based on difficulty level
+ * @param {number} levelDifficulty - Difficulty level (1-10)
+ * @returns {Object} Enemy data object
+ */
+export function generateRandomEnemy(levelDifficulty = 1) {
+    // Clamp difficulty between 1 and 10
+    const difficulty = Math.max(1, Math.min(10, levelDifficulty));
+    
+    // Determine enemy tier based on difficulty
+    let tier;
+    if (difficulty <= 3) {
+        tier = 'EASY';
+    } else if (difficulty <= 6) {
+        tier = 'MEDIUM';
+    } else if (difficulty <= 9) {
+        tier = 'HARD';
+    } else {
+        tier = 'BOSS';
     }
+    
+    // Get random enemy from tier
+    const enemyList = EnemyTypes[tier];
+    const baseEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+    
+    // Scale stats based on difficulty
+    const scaleFactor = 1 + (difficulty - 1) * 0.1; // 10% increase per level
+    const finalHp = Math.floor(baseEnemy.hp * scaleFactor);
+    const finalSp = Math.floor(baseEnemy.sp * scaleFactor);
+    const finalAtk = Math.floor(baseEnemy.atk * scaleFactor);
+    const finalDef = Math.floor(baseEnemy.def * scaleFactor);
+    
+    // Create enemy data object
+    return {
+        name: baseEnemy.name,
+        key: baseEnemy.key,
+        level: difficulty,
+        stats: {
+            hp: finalHp,
+            sp: finalSp,
+            atk: finalAtk,
+            def: finalDef
+        }
+    };
 } 

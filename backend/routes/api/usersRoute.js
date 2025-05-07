@@ -145,4 +145,7 @@ router.get("/me/inventory", protect, getUserInventory);
 // Add route to update user coins
 router.put('/me/coins', protect, userController.updateUserCoins);
 
+// Add route to update user gems
+router.put('/me/gems', protect, userController.updateUserGems);
+
 module.exports = router;

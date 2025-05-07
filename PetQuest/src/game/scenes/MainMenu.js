@@ -71,6 +71,61 @@ export class MainMenu extends Scene {
         EventBus.emit('current-scene-ready', this);
     }
 
+    // Add wake method to refresh pet data when returning from other scenes
+    wake() {
+        console.log('MainMenu waking up - refreshing pet data');
+        this.refreshPetData().then(() => {
+            // Refresh UI with updated pet data
+            this.refreshUI();
+        }).catch(err => {
+            console.error('Error refreshing pet data:', err);
+        });
+    }
+
+    // Method to fetch latest pet data from backend
+    async refreshPetData() {
+        try {
+            const token = localStorage.getItem('token');
+            const globalContext = getGlobalContext();
+            
+            if (!token || !globalContext || !globalContext.userData || !globalContext.userData.selectedPet) {
+                console.warn('Cannot refresh pet: missing token or pet data');
+                return;
+            }
+            
+            const API_URL = import.meta.env.VITE_API_URL;
+            const petId = globalContext.userData.selectedPet._id;
+            
+            // Fetch latest pet data from backend
+            const response = await fetch(`${API_URL}/pets/${petId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const responseData = await response.json();
+            
+            if (response.ok && responseData.success) {
+                console.log('Pet data refreshed:', responseData.data);
+                
+                // Update global context
+                globalContext.userData.selectedPet = responseData.data;
+                
+                // Update local reference
+                this.petData = responseData.data;
+                
+                return responseData.data;
+            } else {
+                console.error('Failed to refresh pet data:', responseData.error || 'Unknown error');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error refreshing pet data:', error.message);
+            return null;
+        }
+    }
+
     // method for setting up the background
     setupBackground() {
         const { width, height } = this.scale;

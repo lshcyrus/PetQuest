@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { getGlobalContext } from '../../utils/contextBridge';
-import { EnemyFactory } from '../entities/enemy';
+import { generateRandomEnemy } from '../entities/enemy';
 
 // LevelSelector scene: Player selects difficulty, then a random level is generated
 export class LevelSelector extends Scene {
@@ -149,8 +149,14 @@ export class LevelSelector extends Scene {
         // Generate unique ID
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-        // Generate enemy with specific key for this biome
-        this.enemy = EnemyFactory.generateRandomEnemy(difficulty, biome.background, biome.enemyKey);
+        // Generate enemy using the new function
+        const enemyData = generateRandomEnemy(difficulty);
+        
+        // Override the enemy key to match the biome if needed
+        enemyData.key = biome.enemyKey;
+        enemyData.name = biome.enemyName;
+        
+        this.enemy = enemyData;
 
         return {
             id,
@@ -619,8 +625,15 @@ export class LevelSelector extends Scene {
             // Add fade out and transition
             this.cameras.main.fadeOut(500, 0, 0, 0);
             this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                // Pass necessary data back if needed, though MainMenu re-fetches context
-                this.scene.start('MainMenu', { username: this.username }); 
+                // Check if MainMenu scene exists and wake it instead of starting it
+                if (this.scene.get('MainMenu').scene.isActive() || this.scene.get('MainMenu').scene.isSleeping()) {
+                    // Wake the MainMenu scene which will refresh pet data
+                    this.scene.wake('MainMenu');
+                    this.scene.stop('LevelSelector');
+                } else {
+                    // Otherwise start MainMenu normally
+                    this.scene.start('MainMenu', { username: this.username });
+                }
             });
         });
         this.petStatusElements.push(this.returnButton); // Add for cleanup
