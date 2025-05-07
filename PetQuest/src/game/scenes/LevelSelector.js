@@ -20,15 +20,36 @@ export class LevelSelector extends Scene {
         // Fetch initial data from context if available, fallback to data or defaults
         const globalContext = getGlobalContext();
         this.username = (globalContext?.userData?.username) || data.username || 'Player';
-        // Use pet data from context primarily, fallback to data passed in init
-        this.petData = globalContext?.userData?.selectedPet || data.pet || {
-            key: 'fire_dragon',
-            name: 'Ember',
-            stats: { hp: 80, stamina: 100 }, // Ensure stats object exists in fallback
-            level: 1,
-            experience: 0
-        };
-        console.log('Initialized with Pet Data:', this.petData);
+        
+        // First, check if we're returning from battle with updated data
+        if (data && data.pet && data.pet._id) {
+            console.log('Returning from battle with updated pet data');
+            this.petData = data.pet;
+            
+            // Update the global context with the latest pet data
+            if (globalContext) {
+                globalContext.userData.selectedPet = data.pet;
+                console.log('Updated global context with fresh pet data from battle');
+            }
+        } 
+        // Otherwise use pet data from context primarily, fallback to data passed in init
+        else {
+            this.petData = globalContext?.userData?.selectedPet || data.pet || {
+                key: 'fire_dragon',
+                name: 'Ember',
+                stats: { hp: 80, stamina: 100 }, // Ensure stats object exists in fallback
+                level: 1,
+                experience: 0
+            };
+        }
+        
+        console.log('Initialized with Pet Data:', {
+            name: this.petData.name,
+            stats: this.petData.stats,
+            currentHP: this.petData.currentHP,
+            currentSP: this.petData.currentSP,
+            exp: this.petData.experience
+        });
     }
 
     // Preload assets

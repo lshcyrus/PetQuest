@@ -477,8 +477,10 @@ export class BattleSystem extends Scene {
         this.statusGroup = this.add.group();
         // Pet status (left side)
         const petStats = this.petEntity.data.stats;
-        const petHpText = `HP: ${petStats.hp}`;
-        const petSpText = `SP: ${petStats.sp}`;
+        const maxPetHP = petStats.maxhp || petStats.hp;
+        const maxPetSP = petStats.maxsp || petStats.sp;
+        const petHpText = `HP: ${petStats.hp}/${maxPetHP}`;
+        const petSpText = `SP: ${petStats.sp}/${maxPetSP}`;
         const petStatText = `ATK: ${petStats.atk}  DEF: ${petStats.def}`;
         this.petStatusBg = this.add.rectangle(30, this.scale.height - 80, 200, 90, 0x222222, 0.7)
             .setOrigin(0, 0.5)
@@ -506,8 +508,10 @@ export class BattleSystem extends Scene {
         
         // Enemy status (right side)
         const enemyStats = this.enemyEntity.data.stats;
-        const enemyHpText = `HP: ${enemyStats.hp}`;
-        const enemySpText = `SP: ${enemyStats.sp}`;
+        const maxEnemyHP = enemyStats.maxhp || enemyStats.hp;
+        const maxEnemySP = enemyStats.maxsp || enemyStats.sp;
+        const enemyHpText = `HP: ${enemyStats.hp}/${maxEnemyHP}`;
+        const enemySpText = `SP: ${enemyStats.sp}/${maxEnemySP}`;
         const enemyStatText = `ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`;
         this.enemyStatusBg = this.add.rectangle(this.scale.width - 30, 80, 200, 90, 0x222222, 0.7)
             .setOrigin(1, 0.5)
@@ -548,12 +552,19 @@ export class BattleSystem extends Scene {
 
     updateStatusBars() {
         const petStats = this.petEntity.data.stats;
-        this.petHpText.setText(`HP: ${petStats.hp}`);
-        this.petSpText.setText(`SP: ${petStats.sp}`);
+        const maxPetHP = petStats.maxhp || petStats.hp;
+        const maxPetSP = petStats.maxsp || petStats.sp;
+        
+        this.petHpText.setText(`HP: ${petStats.hp}/${maxPetHP}`);
+        this.petSpText.setText(`SP: ${petStats.sp}/${maxPetSP}`);
         this.petStatText.setText(`ATK: ${petStats.atk}  DEF: ${petStats.def}`);
+        
         const enemyStats = this.enemyEntity.data.stats;
-        this.enemyHpText.setText(`HP: ${enemyStats.hp}`);
-        this.enemySpText.setText(`SP: ${enemyStats.sp}`);
+        const maxEnemyHP = enemyStats.maxhp || enemyStats.hp;
+        const maxEnemySP = enemyStats.maxsp || enemyStats.sp;
+        
+        this.enemyHpText.setText(`HP: ${enemyStats.hp}/${maxEnemyHP}`);
+        this.enemySpText.setText(`SP: ${enemyStats.sp}/${maxEnemySP}`);
         this.enemyStatText.setText(`ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`);
     }
 
@@ -985,6 +996,10 @@ export class BattleSystem extends Scene {
             this.petData.currentHP = this.petEntity.data.stats.hp;
             this.petData.currentSP = this.petEntity.data.stats.sp;
             
+            // Keep maxhp and maxsp synchronized with stats.hp and stats.sp
+            this.petData.maxhp = this.petData.stats.hp;
+            this.petData.maxsp = this.petData.stats.sp;
+            
             // Only transfer combat stats (not health/SP)
             if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
                 this.petData.stats.atk = this.petEntity.data.stats.atk;
@@ -1004,6 +1019,8 @@ export class BattleSystem extends Scene {
             'DEF:', this.petData.stats.def,
             'currentHP:', this.petData.currentHP, 
             'currentSP:', this.petData.currentSP,
+            'maxHP:', this.petData.maxhp,
+            'maxSP:', this.petData.maxsp,
             'EXP:', this.petData.experience);
     }
     
@@ -1018,11 +1035,14 @@ export class BattleSystem extends Scene {
             return;
         }
         
-        // Only update stats that changed
+        // Create proper stats payload with currentHP/currentSP (not stats.hp/stats.sp)
         const statsPayload = {
-            hp: this.petData.stats.hp,
-            sp: this.petData.stats.sp
+            currentHP: this.petData.currentHP,
+            currentSP: this.petData.currentSP,
+            experience: this.petData.experience // Add experience to stats payload
         };
+
+        console.log('Updating pet stats to backend:', statsPayload);
 
         // Update attributes (decrease stamina)
         const attrPayload = {
@@ -1043,6 +1063,17 @@ export class BattleSystem extends Scene {
                 body: JSON.stringify(statsPayload)
             });
             
+            // Get updated pet data from response
+            const statsData = await statsResponse.json();
+            if (statsResponse.ok && statsData.success) {
+                console.log('Successfully updated pet stats:', statsData.data);
+                // Update local petData with fresh data from server
+                if (statsData.data) {
+                    // Update with the fresh data from server
+                    this.petData = statsData.data;
+                }
+            }
+            
             // Update pet attributes
             const attrResponse = await fetch(`${API_URL}/pets/${this.petData._id}/attributes`, {
                 method: 'PUT',
@@ -1052,6 +1083,14 @@ export class BattleSystem extends Scene {
                 },
                 body: JSON.stringify(attrPayload)
             });
+            
+            // Get updated pet data from response
+            const attrData = await attrResponse.json();
+            if (attrResponse.ok && attrData.success && attrData.data) {
+                console.log('Successfully updated pet attributes:', attrData.data);
+                // Update attributes in our local pet data
+                this.petData.attributes = attrData.data.attributes;
+            }
             
             // Track responses for coins and gems to update global context
             let coinsUpdateSuccess = false;
@@ -1099,7 +1138,7 @@ export class BattleSystem extends Scene {
             
             // Update the global context with all changes
             if (globalContext) {
-                // Update pet data
+                // Update pet data with complete fresh data
                 globalContext.userData.selectedPet = this.petData;
                 
                 // Update coins if successfully updated in the backend
@@ -1133,11 +1172,22 @@ export class BattleSystem extends Scene {
             duration: 300,
             onComplete: async () => {
                 try {
+                    console.log('Battle ending, updating stats...');
+                    
                     // Ensure stats are updated before returning to previous scene
                     this.updatePetStats();
                     
                     // Wait for backend updates to complete
                     await this.updatePetBackend();
+                    
+                    console.log('Pet data after backend update:', this.petData);
+                    
+                    // Refresh global context, ensuring it's up to date
+                    const globalContext = getGlobalContext();
+                    if (globalContext) {
+                        // Force a fresh pet fetch when returning to MainMenu
+                        globalContext.userData.shouldRefreshPet = true;
+                    }
                     
                     // Return to previous scene with updated data
                     this.scene.start('LevelSelector', { pet: this.petData });

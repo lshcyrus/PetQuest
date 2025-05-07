@@ -74,6 +74,20 @@ export class MainMenu extends Scene {
     // Add wake method to refresh pet data when returning from other scenes
     wake() {
         console.log('MainMenu waking up - refreshing pet data');
+        
+        // Get global context
+        const globalContext = getGlobalContext();
+        const shouldRefresh = globalContext?.userData?.shouldRefreshPet || false;
+        
+        if (shouldRefresh) {
+            console.log('Force refresh flag detected, fetching fresh pet data');
+            // Reset the flag immediately
+            if (globalContext) {
+                globalContext.userData.shouldRefreshPet = false;
+            }
+        }
+        
+        // Always refresh when waking up to ensure data is current
         this.refreshPetData().then(() => {
             // Refresh UI with updated pet data
             this.refreshUI();
@@ -96,6 +110,8 @@ export class MainMenu extends Scene {
             const API_URL = import.meta.env.VITE_API_URL;
             const petId = globalContext.userData.selectedPet._id;
             
+            console.log('Refreshing pet data from backend for pet:', petId);
+            
             // Fetch latest pet data from backend
             const response = await fetch(`${API_URL}/pets/${petId}`, {
                 method: 'GET',
@@ -109,11 +125,18 @@ export class MainMenu extends Scene {
             if (response.ok && responseData.success) {
                 console.log('Pet data refreshed:', responseData.data);
                 
-                // Update global context
-                globalContext.userData.selectedPet = responseData.data;
+                // Update global context with the refreshed pet data
+                if (globalContext && globalContext.userData) {
+                    globalContext.userData.selectedPet = responseData.data;
+                }
                 
                 // Update local reference
                 this.petData = responseData.data;
+                
+                console.log('Pet stats updated in MainMenu:', 
+                    'HP:', this.petData.currentHP, 
+                    'SP:', this.petData.currentSP,
+                    'EXP:', this.petData.experience);
                 
                 return responseData.data;
             } else {
