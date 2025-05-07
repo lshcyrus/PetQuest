@@ -9,7 +9,7 @@ export class Pet {
      * @param {Object} data - Pet data including name, key, stats, etc.
      * @param {string} data.name - The name of the pet
      * @param {string} data.key - The sprite key for the pet's images
-     * @param {Object} data.stats - The pet's stats (hp, maxhp, sp, maxsp, atk, def)
+     * @param {Object} data.stats - The pet's stats (hp, sp, atk, def)
      * @param {string} [data._id] - The pet's database ID (if available)
      * @param {number} [x=0] - The x position to place the pet
      * @param {number} [y=0] - The y position to place the pet

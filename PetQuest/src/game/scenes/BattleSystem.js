@@ -988,19 +988,14 @@ export class BattleSystem extends Scene {
     }
     
     updatePetStats() {
-        // Return the pet to normal state for non-combat
-        // HP should be preserved, but we should update any combat-only stats
-        
         // Update original pet data with current HP and any stat changes
         if (this.petData.stats) {
-            // Keep current HP level
+            // Set currentHP and currentSP for backend persistence
+            this.petData.currentHP = this.petEntity.data.stats.hp;
+            this.petData.currentSP = this.petEntity.data.stats.sp;
+            // Keep current HP/SP in stats for UI compatibility
             this.petData.stats.hp = this.petEntity.data.stats.hp;
-            
-            // Keep current SP level
-            if (this.petEntity.data.stats.sp !== undefined) {
-                this.petData.stats.sp = this.petEntity.data.stats.sp;
-            }
-            
+            this.petData.stats.sp = this.petEntity.data.stats.sp;
             // Keep track of any stat changes (for buffs/debuffs that persist after battle)
             if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
                 this.petData.stats.atk = this.petEntity.data.stats.atk;
@@ -1008,28 +1003,22 @@ export class BattleSystem extends Scene {
             if (this.petEntity.data.stats.def !== this.petData.stats.def) {
                 this.petData.stats.def = this.petEntity.data.stats.def;
             }
-            
             // Update maxhp if it was changed
             if (this.petEntity.data.stats.maxhp && this.petEntity.data.stats.maxhp !== this.petData.stats.maxhp) {
                 this.petData.stats.maxhp = this.petEntity.data.stats.maxhp;
             }
-            
             // Update maxsp if it was changed
             if (this.petEntity.data.stats.maxsp && this.petEntity.data.stats.maxsp !== this.petData.stats.maxsp) {
                 this.petData.stats.maxsp = this.petEntity.data.stats.maxsp;
             }
-            
             // For backward compatibility, also update health property if it exists
             if (this.petData.stats.health) {
                 this.petData.stats.health = this.petEntity.data.stats.maxhp;
             }
         }
-        
-        // Copy any new properties added during battle
         if (this.petEntity.data.experience) this.petData.experience = this.petEntity.data.experience;
         if (this.petEntity.data.gold) this.petData.gold = this.petEntity.data.gold;
-        
-        console.log('Updated pet stats after battle:', this.petData.stats);
+        console.log('Updated pet stats after battle:', this.petData.stats, 'currentHP:', this.petData.currentHP, 'currentSP:', this.petData.currentSP);
     }
     
     async updatePetBackend() {
@@ -1037,11 +1026,13 @@ export class BattleSystem extends Scene {
         const token = localStorage.getItem('token');
         if (!token) return;
         const API_URL = import.meta.env.VITE_API_URL;
+        // Send currentHP/currentSP and experience to backend for persistence
         const statsPayload = {
-            hp: this.petData.stats.hp,
-            sp: this.petData.stats.sp,
+            currentHP: this.petData.currentHP,
+            currentSP: this.petData.currentSP,
             atk: this.petData.stats.atk,
-            def: this.petData.stats.def
+            def: this.petData.stats.def,
+            experience: this.petData.experience
         };
         let happiness = 100, stamina = 100;
         if (this.petData.attributes) {
@@ -1071,12 +1062,23 @@ export class BattleSystem extends Scene {
                 },
                 body: JSON.stringify(attrPayload)
             });
+            // Update user coins if goldGained > 0
+            if (goldGained && goldGained > 0) {
+                await fetch(`${API_URL}/users/me/coins`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ delta: goldGained })
+                });
+            }
             const globalContext = typeof getGlobalContext === 'function' ? getGlobalContext() : null;
             if (globalContext && globalContext.userData) {
                 globalContext.userData.selectedPet = this.petData;
             }
         } catch (err) {
-            console.error('Failed to update pet stats/attributes after battle:', err);
+            console.error('Failed to update pet stats/attributes/coins after battle:', err);
         }
     }
     

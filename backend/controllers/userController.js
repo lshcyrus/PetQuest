@@ -164,3 +164,28 @@ exports.getUserInventory = async (req, res) => {
     });
   }
 };
+
+// @desc    Update user coins (add or set)
+// @route   PUT /api/users/me/coins
+// @access  Private
+exports.updateUserCoins = async (req, res) => {
+  try {
+    const { coins, delta } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    if (typeof delta === 'number') {
+      user.coins = Math.max(0, user.coins + delta);
+    } else if (typeof coins === 'number') {
+      user.coins = Math.max(0, coins);
+    } else {
+      return res.status(400).json({ success: false, error: 'No coins or delta provided' });
+    }
+    await user.save();
+    res.status(200).json({ success: true, coins: user.coins });
+  } catch (err) {
+    console.error('Error updating user coins:', err);
+    res.status(500).json({ success: false, error: 'Server error while updating coins' });
+  }
+};

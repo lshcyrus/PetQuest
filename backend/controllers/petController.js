@@ -839,12 +839,18 @@ exports.updatePetStats = async (req, res, next) => {
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
     }
-    // Only update provided fields in stats
-    const allowedFields = ['hp', 'maxhp', 'sp', 'maxsp', 'atk', 'def'];
+    // Allow updating stats, current values, experience, and gold
+    const allowedFields = ['hp', 'maxhp', 'sp', 'maxsp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold'];
     let updated = false;
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        pet.stats[field] = req.body[field];
+        if (field === 'currentHP' || field === 'currentSP') {
+          pet[field] = req.body[field];
+        } else if (field === 'experience' || field === 'gold') {
+          pet[field] = req.body[field];
+        } else {
+          pet.stats[field] = req.body[field];
+        }
         updated = true;
       }
     });

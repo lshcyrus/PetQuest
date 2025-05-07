@@ -4,6 +4,7 @@ const { check, validationResult } = require('express-validator'); // from the ex
 const {protect} = require('../../middleware/auth.js');
 const User = require('../../models/userModel.js');
 const { getUserInventory } = require('../../controllers/userController');
+const userController = require('../../controllers/userController');
 
 // @route   GET api/users
 // @desc    Get all users  
@@ -140,5 +141,8 @@ router.delete('/me', protect, async (req, res) => {
 
 // Get user inventory
 router.get("/me/inventory", protect, getUserInventory);
+
+// Add route to update user coins
+router.put('/me/coins', protect, userController.updateUserCoins);
 
 module.exports = router;

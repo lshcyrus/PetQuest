@@ -247,11 +247,24 @@ export class MainMenu extends Scene {
             { key: 'def', label: 'DEF' }
         ];
         const stats = this.petData.stats || {};
+        // Use currentHP/currentSP if available, else fallback to stats.hp/stats.sp
+        const currentHP = this.petData.currentHP !== undefined ? this.petData.currentHP : stats.hp;
+        const maxHP = stats.hp;
+        const currentSP = this.petData.currentSP !== undefined ? this.petData.currentSP : stats.sp;
+        const maxSP = stats.sp;
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
-            // Only show the actual value for each stat
             let value = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
-            // Check for active buffs for this stat
+            let displayStr = `${value}`;
+            let color = '#ffffff';
+            if (stat.key === 'hp') {
+                displayStr = (maxHP !== undefined) ? `${currentHP}/${maxHP}` : `${currentHP}`;
+                if (maxHP !== undefined && currentHP < maxHP) color = '#ff8888';
+            } else if (stat.key === 'sp') {
+                displayStr = (maxSP !== undefined) ? `${currentSP}/${maxSP}` : `${currentSP}`;
+                if (maxSP !== undefined && currentSP < maxSP) color = '#ff8888';
+            }
+            // Buffs
             let buffValue = 0;
             const now = new Date().getTime();
             const hasActiveBuffs = this.petData.activeBuffs && 
@@ -262,22 +275,16 @@ export class MainMenu extends Scene {
                 this.petData.activeBuffs.stats[stat.key]) {
                 buffValue = this.petData.activeBuffs.stats[stat.key];
             }
-            // Compose display string
-            let displayStr = `${value}`;
-            if (buffValue > 0) {
-                displayStr += ` +${buffValue}`;
-            }
-            // Create the stat text
             let baseText = `${stat.label}: `;
             if (buffValue > 0) {
                 const mainText = this.add.text(
                     -panelWidth / 2 + 16,
                     yOffset,
-                    baseText + displayStr.replace(` +${buffValue}`, ''),
+                    baseText + displayStr,
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#ffffff',
+                        color,
                         stroke: '#000000',
                         strokeThickness: 2
                     }
@@ -303,7 +310,7 @@ export class MainMenu extends Scene {
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#ffffff',
+                        color,
                         stroke: '#000000',
                         strokeThickness: 2
                     }
