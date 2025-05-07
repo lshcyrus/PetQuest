@@ -110,10 +110,6 @@ petSchema.methods.updateStats = function() {
     // Update stamina recovery
     this.attributes.stamina = Math.min(100, this.attributes.stamina + (hoursSinceLastInteraction * 15));
     
-    // Update timestamps
-    this.lastFed = now;
-    this.lastInteraction = now;
-    
     return this.save();
 };
 
