@@ -95,9 +95,6 @@ export class Preloader extends Scene {
         this.load.spritesheet('frogger', 'Pet_Frogger/frogger_idle.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('pengu', 'Pet_Pengu/pengu_idle.png', { frameWidth: 128, frameHeight: 128 });
 
-        this.load.spritesheet('fire_dragon', 'fire_dragon/fire_dragon.png', { frameWidth: 640, frameHeight: 400 });
-        this.load.spritesheet('ice_dragon', 'ice_dragon/ice_dragon.png', { frameWidth: 512, frameHeight: 512 });
-        this.load.spritesheet('enemy_dragon', 'enemy_dragon/enemy_dragon.png', { frameWidth: 512, frameHeight: 512 });
 
         this.load.image('pet_feed', 'UI/pet_feed.png');
         this.load.image('pet_play', 'UI/pet_play.png');
@@ -117,7 +114,20 @@ export class Preloader extends Scene {
         this.load.image('feather', 'items/toy/feather.png');
         this.load.image('cup', 'items/toy/cup.png');
         this.load.image('chess', 'items/toy/chess.png');
+
+        // Load equipment images
+        this.load.image('sword', 'items/equipment/sword.png');
+        this.load.image('magic wand', 'items/equipment/magic-wand.png');
+        this.load.image('the sword of light', 'items/equipment/the-sword-of-light.png');
+        this.load.image('demons blade', 'items/equipment/demons-blade.png');
         
+        // Load food images
+        this.load.image('cake', 'items/food/cake.png');
+        this.load.image('donut', 'items/food/donut.png');
+        this.load.image('fish', 'items/food/fish.png');
+        this.load.image('idiot sandwich', 'items/food/sandwich.png');
+        this.load.image('strawberry', 'items/food/strawberry.png');
+
         // Load play, train, outdoor spritesheets for each pet with correct frame sizes
         const petActionSheets = [
             // dino_rex
@@ -145,6 +155,68 @@ export class Preloader extends Scene {
             this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
         });
 
+        // Load pet attack animations
+        console.log('Loading pet attack animations');
+        const petAttacks = [
+            { key: 'dino_rex_attack', path: 'Pet_Dino Rex/dino_rex_attack.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'badger_attack', path: 'Pet_Badger/badger_attack.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'dino_tri_attack', path: 'Pet_Dino Tri/dino_tri_attack.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'frogger_attack', path: 'Pet_Frogger/frogger_attack.png', frameWidth: 128, frameHeight: 128 },
+            { key: 'pengu_attack', path: 'Pet_Pengu/pengu_attack.png', frameWidth: 128, frameHeight: 128 }
+        ];
+        
+        petAttacks.forEach(attack => {
+            this.load.spritesheet(attack.key, attack.path, { frameWidth: attack.frameWidth, frameHeight: attack.frameHeight });
+        });
+
+        // --- ENEMY SPRITES ---
+        // Gorgon - Note the proper spelling is Gorgan for the files but gorgon for the keys
+        console.log('Loading Gorgon sprites');
+        this.load.spritesheet('gorgon_idle', 'Enemy_Gorgon/Gorgan_idle.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_walk', 'Enemy_Gorgon/Gorgan_walk.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_attack', 'Enemy_Gorgon/Gorgan_attack.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_hurt', 'Enemy_Gorgon/Gorgan_hurt.png', { frameWidth: 128, frameHeight: 128 });
+        this.load.spritesheet('gorgon_die', 'Enemy_Gorgon/Gorgan_die.png', { frameWidth: 128, frameHeight: 128 });
+        
+        // Add fallback for Gorgon attack with _atk suffix for compatibility
+        this.load.spritesheet('gorgon_atk', 'Enemy_Gorgon/Gorgan_attack.png', { frameWidth: 128, frameHeight: 128 });
+        
+        // Fix for Blue Golem sprites - adjusted dimensions based on file structure
+        console.log('Loading Blue Golem sprites with adjusted dimensions');
+        this.load.spritesheet('blue_golem_idle', 'Enemy_Blue Golem/Blue Golem_idle.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_walk', 'Enemy_Blue Golem/Blue Golem_walk.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_attack', 'Enemy_Blue Golem/Blue Golem_attack.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_hurt', 'Enemy_Blue Golem/Blue Golem_hurt.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_die', 'Enemy_Blue Golem/Blue Golem_die.png', { frameWidth: 64, frameHeight: 64 });
+        
+        // Fix for Orange Golem sprites - adjusted dimensions based on file structure
+        console.log('Loading Orange Golem sprites with adjusted dimensions');
+        this.load.spritesheet('orange_golem_idle', 'Enemy_Orange Golem/Orange Golem_idle.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_walk', 'Enemy_Orange Golem/Orange Golem_walk.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_attack', 'Enemy_Orange Golem/Orange Golem_attack.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_hurt', 'Enemy_Orange Golem/Orange Golem_hurt.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_die', 'Enemy_Orange Golem/Orange Golem_die.png', { frameWidth: 64, frameHeight: 64 });
+
+        // Add error handling for sprite loading
+        this.load.on('filecomplete', (key, type, data) => {
+            if (type === 'spritesheet') {
+                if (key.includes('attack') || key.includes('_atk')) {
+                    console.log(`Successfully loaded attack spritesheet: ${key}`);
+                } else if (key.includes('golem') || key.includes('gorgon')) {
+                    console.log(`Successfully loaded enemy spritesheet: ${key}`);
+                }
+            }
+        });
+        
+        this.load.on('loaderror', (file) => {
+            console.error(`Error loading file: ${file.key} (${file.url})`);
+            
+            // If an attack animation fails to load, provide a message to help debug
+            if (file.key.includes('attack') || file.key.includes('_atk')) {
+                console.warn(`Attack animation failed to load: ${file.key}. Check that the file exists and path is correct.`);
+            }
+        });
+
         WebFontLoader.load({
             google: {
                 families: ['Silkscreen:400,500,600,700', 'Caveat:400,500,600,700', 'Jersey 10: 400,500,600,700']
@@ -157,9 +229,6 @@ export class Preloader extends Scene {
 
     create() {
         console.log("Preloader create method started");
-        
-        // Create pet animations
-        this.createPetAnimations();
         
         // Get global context to check if user has selected a pet
         const globalContext = getGlobalContext();
@@ -213,35 +282,5 @@ export class Preloader extends Scene {
         });
     }
 
-    createPetAnimations() {
-        // Create animations for fire dragon
-        if (!this.anims.exists('fire_dragon_idle')) {
-            this.anims.create({
-                key: 'fire_dragon_idle',
-                frames: this.anims.generateFrameNumbers('fire_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-        
-        // Create animations for ice dragon
-        if (!this.anims.exists('ice_dragon_idle')) {
-            this.anims.create({
-                key: 'ice_dragon_idle',
-                frames: this.anims.generateFrameNumbers('ice_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-        
-        // Create animations for enemy dragon
-        if (!this.anims.exists('enemy_dragon_idle')) {
-            this.anims.create({
-                key: 'enemy_dragon_idle',
-                frames: this.anims.generateFrameNumbers('enemy_dragon', { start: 0, end: 3 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
-    }
+    
 }

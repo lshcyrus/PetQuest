@@ -79,7 +79,7 @@ exports.updateItem = async (req, res) => {
       return res.status(404).json({ message: 'Item not found' });
     }
     
-    // Check if user owns the item ?????????????????????????
+    // Check if user owns the item
     if (item.user.toString() !== req.user.id) {
       return res.status(401).json({ message: 'Not authorized' });
     }

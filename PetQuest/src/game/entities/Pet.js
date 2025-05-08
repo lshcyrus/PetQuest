@@ -9,7 +9,7 @@ export class Pet {
      * @param {Object} data - Pet data including name, key, stats, etc.
      * @param {string} data.name - The name of the pet
      * @param {string} data.key - The sprite key for the pet's images
-     * @param {Object} data.stats - The pet's stats (health, attack, defense, speed)
+     * @param {Object} data.stats - The pet's stats (hp, sp, atk, def)
      * @param {string} [data._id] - The pet's database ID (if available)
      * @param {number} [x=0] - The x position to place the pet
      * @param {number} [y=0] - The y position to place the pet
@@ -22,13 +22,55 @@ export class Pet {
         this.x = x;
         this.y = y;
         
-        // Default stats if not provided
-        this.data.stats = data.stats || {
-            health: 50,
-            attack: 50,
-            defense: 50,
-            speed: 50
-        };
+        // Default stats if none provided
+        if (!this.data.stats) {
+            this.data.stats = {
+                hp: 50,
+                sp: 25,
+                atk: 15,
+                def: 10
+            };
+        }
+        
+        // For backward compatibility - ensure both hp and maxhp are set
+        if (this.data.stats.health !== undefined && this.data.stats.hp === undefined) {
+            this.data.stats.hp = this.data.stats.health;
+        }
+        
+        // If hp doesn't exist, set default
+        if (this.data.stats.hp === undefined) {
+            this.data.stats.hp = 50;
+        }
+        
+        // Ensure SP stat exists
+        if (this.data.stats.sp === undefined) {
+            this.data.stats.sp = 25;
+        }
+        
+        // Ensure ATK and DEF exist
+        if (this.data.stats.atk === undefined) {
+            this.data.stats.atk = this.data.stats.attack || 15;
+        }
+        
+        if (this.data.stats.def === undefined) {
+            this.data.stats.def = this.data.stats.defense || 10;
+        }
+        
+        // Convert old attack/defense to atk/def if needed
+        if (this.data.stats.attack && !this.data.stats.atk) {
+            this.data.stats.atk = this.data.stats.attack;
+            delete this.data.stats.attack;
+        }
+        
+        if (this.data.stats.defense && !this.data.stats.def) {
+            this.data.stats.def = this.data.stats.defense;
+            delete this.data.stats.defense;
+        }
+        
+        // Remove speed stat if it exists
+        if (this.data.stats.speed) {
+            delete this.data.stats.speed;
+        }
     }
     
     /**
@@ -214,19 +256,25 @@ export class Pet {
     
     /**
      * Play a specific animation or visual effect for the pet
-     * @param {string} action - One of: 'play', 'train', 'outdoor', 'feed', 'medicine'
+     * @param {string} action - One of: 'play', 'train', 'outdoor', 'feed', 'medicine', 'attack', 'hurt'
      */
     playAnimation(action) {
         if (!this.sprite) return;
         const petKey = this.data.key;
         const scene = this.scene;
-        // Helper to restore idle after anim
+        
+        // Helper to restore idle after anim, ensuring tint is cleared
         const playIdle = (delay = 600) => {
             scene.time.delayedCall(delay, () => {
-                this.sprite.play(`${petKey}_idle`);
-                this.sprite.clearTint();
+                if (this.sprite) { // Check if sprite still exists
+                    // Ensure the idle animation key matches the one created in Pet.create()
+                    const idleAnimKey = `${petKey}_idle`; 
+                    this.sprite.play(idleAnimKey);
+                    this.sprite.clearTint(); // Important: clear tint when returning to idle
+                }
             });
         };
+
         // Remove any overlays from previous effects
         if (this._effectOverlay) {
             this._effectOverlay.destroy();
@@ -236,6 +284,12 @@ export class Pet {
             this._effectText.destroy();
             this._effectText = null;
         }
+
+        // Clear any persistent tint before starting a new animation (except for hurt itself)
+        if (action !== 'hurt' && this.sprite) {
+            this.sprite.clearTint();
+        }
+
         switch (action) {
             case 'play': {
                 const animKey = `${petKey}_play`;
@@ -350,9 +404,120 @@ export class Pet {
                 playIdle(900);
                 break;
             }
+            case 'attack': { 
+                if (this.sprite) {
+                    // Try to use the specific attack animation if it exists
+                    const attackAnimKey = `${petKey}_atk`;
+                    let usingCustomAnim = false;
+                    
+                    if (scene.anims.exists(attackAnimKey)) {
+                        this.sprite.play(attackAnimKey);
+                        usingCustomAnim = true;
+                    } else {
+                        console.log(`No custom attack animation found for ${petKey}, using fallback animation`);
+                    }
+                    
+                    const originalX = this.sprite.x;
+                    const attackMovement = this.sprite.flipX ? -30 : 30; // Movement direction based on flip
+                    
+                    // Optional attack effect - glowing outline
+                    this.sprite.setTint(0x00aaff); // Blue glow for pet attack
+                    
+                    // Move forward quickly
+                    scene.tweens.add({
+                        targets: this.sprite,
+                        x: originalX + attackMovement,
+                        duration: 150,
+                        ease: 'Power1',
+                        onComplete: () => {
+                            // Add attack effect - slashing line with pet-themed colors
+                            const slashX = this.sprite.x + (this.sprite.flipX ? -50 : 50);
+                            const slash = scene.add.graphics();
+                            slash.lineStyle(3, 0x00ffff, 1); // Cyan color for pet
+                            slash.beginPath();
+                            slash.moveTo(slashX - 20, this.sprite.y - 20);
+                            slash.lineTo(slashX + 20, this.sprite.y + 20);
+                            slash.moveTo(slashX + 20, this.sprite.y - 20);
+                            slash.lineTo(slashX - 20, this.sprite.y + 20);
+                            slash.closePath();
+                            slash.stroke();
+                            this._effectOverlay = slash;
+                            
+                            // Add a sparkle effect at the slash point
+                            const sparkleText = scene.add.text(
+                                slashX, 
+                                this.sprite.y, 
+                                '✦', 
+                                {
+                                    fontSize: '32px',
+                                    color: '#00ffff'
+                                }
+                            ).setOrigin(0.5);
+                            this._effectText = sparkleText;
+                            
+                            // Move back after delay
+                            scene.time.delayedCall(100, () => {
+                                scene.tweens.add({
+                                    targets: this.sprite,
+                                    x: originalX,
+                                    duration: 150,
+                                    ease: 'Power1',
+                                    onComplete: () => {
+                                        // Fade out the slash effect
+                                        if (slash) {
+                                            scene.tweens.add({
+                                                targets: [slash, sparkleText],
+                                                alpha: 0,
+                                                duration: 200,
+                                                onComplete: () => {
+                                                    if (slash && !slash.destroyed) {
+                                                        slash.destroy();
+                                                    }
+                                                    if (sparkleText && !sparkleText.destroyed) {
+                                                        sparkleText.destroy();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                        // Return to idle
+                                        playIdle(50);
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } else {
+                    playIdle(50); // Fallback if no sprite
+                }
+                break;
+            }
+            case 'hurt': { 
+                if (this.sprite) {
+                    this.sprite.setTint(0xff6666); // Red tint for hurt
+                    const originalX = this.sprite.x;
+                    // Quick shake effect
+                    scene.tweens.add({
+                        targets: this.sprite,
+                        x: originalX + (Math.random() > 0.5 ? 6 : -6), // Small random shake
+                        yoyo: true,
+                        repeat: 2, // Shake back and forth a couple of times
+                        duration: 60, // Quick shake
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                            this.sprite.setX(originalX); // Ensure sprite returns to original position
+                            // Tint will be cleared by playIdle
+                            playIdle(300); // Delay before idle to show hurt effect, playIdle will clear tint
+                        }
+                    });
+                } else {
+                    playIdle(300); // Fallback if no sprite
+                }
+                break;
+            }
             default:
                 // Fallback to idle
-                this.sprite.play(`${petKey}_idle`);
+                const idleAnimKey = `${petKey}_idle`;
+                this.sprite.play(idleAnimKey);
         }
     }
 } 

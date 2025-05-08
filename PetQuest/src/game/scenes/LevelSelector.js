@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { getGlobalContext } from '../../utils/contextBridge';
-import { EnemyGenerator } from '../Functions/EnemyGenerator';
+import { generateRandomEnemy } from '../entities/enemy';
 
 // LevelSelector scene: Player selects difficulty, then a random level is generated
 export class LevelSelector extends Scene {
@@ -20,15 +20,36 @@ export class LevelSelector extends Scene {
         // Fetch initial data from context if available, fallback to data or defaults
         const globalContext = getGlobalContext();
         this.username = (globalContext?.userData?.username) || data.username || 'Player';
-        // Use pet data from context primarily, fallback to data passed in init
-        this.petData = globalContext?.userData?.selectedPet || data.pet || {
-            key: 'fire_dragon',
-            name: 'Ember',
-            stats: { hp: 80, stamina: 100 }, // Ensure stats object exists in fallback
-            level: 1,
-            experience: 0
-        };
-        console.log('Initialized with Pet Data:', this.petData);
+        
+        // First, check if we're returning from battle with updated data
+        if (data && data.pet && data.pet._id) {
+            console.log('Returning from battle with updated pet data');
+            this.petData = data.pet;
+            
+            // Update the global context with the latest pet data
+            if (globalContext) {
+                globalContext.userData.selectedPet = data.pet;
+                console.log('Updated global context with fresh pet data from battle');
+            }
+        } 
+        // Otherwise use pet data from context primarily, fallback to data passed in init
+        else {
+            this.petData = globalContext?.userData?.selectedPet || data.pet || {
+                key: 'fire_dragon',
+                name: 'Ember',
+                stats: { hp: 80, stamina: 100 }, // Ensure stats object exists in fallback
+                level: 1,
+                experience: 0
+            };
+        }
+        
+        console.log('Initialized with Pet Data:', {
+            name: this.petData.name,
+            stats: this.petData.stats,
+            currentHP: this.petData.currentHP,
+            currentSP: this.petData.currentSP,
+            exp: this.petData.experience
+        });
     }
 
     // Preload assets
@@ -92,7 +113,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Mystic', 'Twilight', 'Emerald'],
                 nameSuffix: ['Forest', 'Grove', 'Woods'],
                 background: 'forest',
-                enemyNames: ['Fierce Wolfling', 'Shadow Bat', 'Gloom Owl'],
+                enemyName: 'Gorgon',
+                enemyKey: 'gorgon_idle',
                 descriptions: [
                     'A dense forest with glowing mushrooms.',
                     'A misty woodland hiding ancient secrets.',
@@ -103,7 +125,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Frosty', 'Glacial', 'Arctic'],
                 nameSuffix: ['Tundra', 'Glacier', 'Fjord'],
                 background: 'iceland',
-                enemyNames: ['Polar Yeti', 'Ice Wraith', 'Frost Drake'],
+                enemyName: 'Blue Golem',
+                enemyKey: 'blue_golem_idle',
                 descriptions: [
                     'A frozen tundra swept by icy winds.',
                     'A glacial expanse with shimmering ice.',
@@ -114,7 +137,8 @@ export class LevelSelector extends Scene {
                 namePrefix: ['Scorching', 'Mirage', 'Dune'],
                 nameSuffix: ['Desert', 'Dunes', 'Wastes'],
                 background: 'desert',
-                enemyNames: ['Sand Viper', 'Scorpion King', 'Dust Wraith'],
+                enemyName: 'Orange Golem',
+                enemyKey: 'orange_golem_idle',
                 descriptions: [
                     'A scorching desert with deadly sands.',
                     'A shimmering wasteland full of illusions.',
@@ -134,8 +158,8 @@ export class LevelSelector extends Scene {
         // Generate description
         const description = biome.descriptions[Math.floor(Math.random() * biome.descriptions.length)];
 
-        // Select one enemy name
-        const enemyName = biome.enemyNames[Math.floor(Math.random() * biome.enemyNames.length)];
+        // Use the specific enemy for this biome
+        const enemyName = biome.enemyName;
 
         // Generate rewards, scaled by difficulty
         const rewards = this.generateLevelRewards(difficulty);
@@ -146,8 +170,14 @@ export class LevelSelector extends Scene {
         // Generate unique ID
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-        // Generate enemy
-        this.enemy = EnemyGenerator.generateRandomEnemy(difficulty, biome.background);
+        // Generate enemy using the new function
+        const enemyData = generateRandomEnemy(difficulty);
+        
+        // Override the enemy key to match the biome if needed
+        enemyData.key = biome.enemyKey;
+        enemyData.name = biome.enemyName;
+        
+        this.enemy = enemyData;
 
         return {
             id,
@@ -381,7 +411,6 @@ export class LevelSelector extends Scene {
         }
         console.log("Setting up pet status with:", currentPetData);
 
-
         const { width, height } = this.scale;
         // Use consistent positioning logic (adjust as needed for layout)
         const containerX = width * 0.15;
@@ -401,7 +430,14 @@ export class LevelSelector extends Scene {
         const petStats = currentPetData.stats || {};
         const petAttr = currentPetData.attributes || {};
 
-        const petHp = petStats.hp !== undefined ? petStats.hp : 'N/A';
+        // Get current HP (prioritize currentHP, fallback to stats.hp)
+        const currentHP = currentPetData.currentHP !== undefined ? currentPetData.currentHP : petStats.hp;
+        // Get max HP (use stats.hp as the max health)
+        const maxHP = petStats.hp !== undefined ? petStats.hp : 100;
+        
+        // Format HP display as current/max
+        const petHp = `${currentHP}/${maxHP}`;
+        
         const petStamina = (petAttr.stamina !== undefined && petAttr.stamina !== null) ? petAttr.stamina : 'N/A';
         const petLevel = currentPetData.level !== undefined ? currentPetData.level : 'N/A';
         const petExp = currentPetData.experience !== undefined ? currentPetData.experience : 0;
@@ -411,7 +447,6 @@ export class LevelSelector extends Scene {
             { name: 'HP', value: petHp },
             { name: 'Stamina', value: petStamina }, // Use the checked value
             { name: 'Level', value: petLevel },
-
         ];
 
         const textStyle = {
@@ -616,8 +651,15 @@ export class LevelSelector extends Scene {
             // Add fade out and transition
             this.cameras.main.fadeOut(500, 0, 0, 0);
             this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                // Pass necessary data back if needed, though MainMenu re-fetches context
-                this.scene.start('MainMenu', { username: this.username }); 
+                // Check if MainMenu scene exists and wake it instead of starting it
+                if (this.scene.get('MainMenu').scene.isActive() || this.scene.get('MainMenu').scene.isSleeping()) {
+                    // Wake the MainMenu scene which will refresh pet data
+                    this.scene.wake('MainMenu');
+                    this.scene.stop('LevelSelector');
+                } else {
+                    // Otherwise start MainMenu normally
+                    this.scene.start('MainMenu', { username: this.username });
+                }
             });
         });
         this.petStatusElements.push(this.returnButton); // Add for cleanup
@@ -663,16 +705,6 @@ export class LevelSelector extends Scene {
             console.warn('Pet too tired');
             this.showError('Your pet is too tired!');
             return;
-        }
-
-        // Save level to context
-        const globalContext = getGlobalContext();
-        if (globalContext) {
-            globalContext.selectLevel({
-                id: this.generatedLevel.id,
-                name: this.generatedLevel.name,
-                difficulty: this.selectedDifficulty
-            });
         }
 
         // Transition to BattleSystem

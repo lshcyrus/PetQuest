@@ -45,6 +45,50 @@ exports.createPet = async (req, res, next) => {
     } catch (inventoryErr) {
       console.error('Error adding default hp-potions to user inventory:', inventoryErr);
     }
+
+    // Give user 5 sp-potions when they create their first pet
+    try {
+      const Item = require('../models/itemModel');
+      const spPotionItem = await Item.findOne({ name: 'sp-potion' });
+      if (spPotionItem) {
+        // Check if user already has the item in inventory
+        const userDoc = await User.findById(req.user.id);
+        const existingInvItem = userDoc.inventory.find((inv) => inv.item.toString() === spPotionItem._id.toString());
+        if (existingInvItem) {
+          existingInvItem.quantity += 5; // add quantity if already present
+        } else {
+          userDoc.inventory.push({ item: spPotionItem._id, quantity: 5 });
+        }
+        await userDoc.save();
+      } else {
+        console.warn('sp-potion item not found in database. Make sure to seed items.');
+      }
+    } catch (inventoryErr) {
+      console.error('Error adding default sp-potions to user inventory:', inventoryErr);
+    }
+    
+
+    // Give user an idiot sandwich when they create their first pet
+    try {
+      const Item = require('../models/itemModel');
+      const idiotSandwichItem = await Item.findOne({ name: 'idiot sandwich' });
+      if (idiotSandwichItem) {
+        // Check if user already has the item in inventory  
+        const userDoc = await User.findById(req.user.id);
+        const existingInvItem = userDoc.inventory.find((inv) => inv.item.toString() === idiotSandwichItem._id.toString());
+        if (existingInvItem) {
+          existingInvItem.quantity += 1; // add quantity if already present
+        } else {
+          userDoc.inventory.push({ item: idiotSandwichItem._id, quantity: 1 }); 
+        }
+        await userDoc.save();
+      } else {
+        console.warn('idiot sandwich item not found in database. Make sure to seed items.');
+      }
+    } catch (inventoryErr) {
+      console.error('Error adding idiot sandwich to user inventory:', inventoryErr);
+    }
+    
     
     // Update user with the selected pet
     const updatedUser = await User.findByIdAndUpdate(req.user.id, {
@@ -232,9 +276,9 @@ exports.feedPet = async (req, res, next) => {
       pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
       pet.experience += item.effects.experience;
       
-      // Regenerate 10 stamina if not full
+      // Regenerate stamina based on the item's effect
       if (pet.attributes.stamina < 100) {
-        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
+        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + (item.effects.stamina || 10));
       }
       
       const levelUpResult = gameLogic.checkLevelUp(pet);
@@ -778,6 +822,92 @@ exports.outdoorPet = async (req, res, next) => {
         duration: `${buffDuration} minutes`
       }
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update pet stats (hp, sp, atk, def, etc.)
+// @route   PUT /api/pets/:id/stats
+// @access  Private
+exports.updatePetStats = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
+    }
+    // Allow updating stats, current values, experience, and gold
+    const allowedFields = ['hp', 'sp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold'];
+    let updated = false;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        if (field === 'currentHP' || field === 'currentSP') {
+          pet[field] = req.body[field];
+        } else if (field === 'experience' || field === 'gold') {
+          pet[field] = req.body[field];
+        } else {
+          pet.stats[field] = req.body[field];
+        }
+        updated = true;
+      }
+    });
+    if (!updated) {
+      return res.status(400).json({ success: false, error: 'No valid stat fields provided' });
+    }
+    await pet.save();
+    res.status(200).json({ success: true, data: pet });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update pet attributes (happiness, stamina, etc.)
+// @route   PUT /api/pets/:id/attributes
+// @access  Private
+exports.updatePetAttributes = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
+    }
+    // Only update provided fields in attributes
+    const allowedFields = ['happiness', 'stamina', 'hunger'];
+    let updated = false;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        pet.attributes[field] = req.body[field];
+        updated = true;
+      }
+    });
+    if (!updated) {
+      return res.status(400).json({ success: false, error: 'No valid attribute fields provided' });
+    }
+    await pet.save();
+    res.status(200).json({ success: true, data: pet });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get pet attributes (happiness, stamina, etc.)
+// @route   GET /api/pets/:id/attributes
+// @access  Private
+exports.getPetAttributes = async (req, res, next) => {
+  try {
+    const pet = await Pet.findById(req.params.id);
+    if (!pet) {
+      return res.status(404).json({ success: false, error: 'Pet not found' });
+    }
+    if (pet.owner.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, error: 'Not authorized to access this pet' });
+    }
+    res.status(200).json({ success: true, data: pet.attributes });
   } catch (err) {
     next(err);
   }

@@ -163,3 +163,59 @@ exports.getUserInventory = async (req, res) => {
     });
   }
 };
+
+// @desc    Update user coins (add or set)
+// @route   PUT /api/users/me/coins
+// @access  Private
+exports.updateUserCoins = async (req, res) => {
+  try {
+    const { coins, delta } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    if (typeof delta === 'number') {
+      user.coins = Math.max(0, user.coins + delta);
+    } else if (typeof coins === 'number') {
+      user.coins = Math.max(0, coins);
+    } else {
+      return res.status(400).json({ success: false, error: 'No coins or delta provided' });
+    }
+    await user.save();
+    res.status(200).json({ success: true, coins: user.coins });
+  } catch (err) {
+    console.error('Error updating user coins:', err);
+    res.status(500).json({ success: false, error: 'Server error while updating coins' });
+  }
+};
+
+// @desc    Update user gems (add or set)
+// @route   PUT /api/users/me/gems
+// @access  Private
+exports.updateUserGems = async (req, res) => {
+  try {
+    const { gems, delta } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    if (typeof delta === 'number') {
+      user.gems = Math.max(0, user.gems + delta);
+    } else if (typeof gems === 'number') {
+      user.gems = Math.max(0, gems);
+    } else {
+      return res.status(400).json({ success: false, error: 'No gems or delta provided' });
+    }
+    await user.save();
+    return res.status(200).json({
+      success: true,
+      data: { gems: user.gems }
+    });
+  } catch (error) {
+    console.error('Error updating user gems:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};

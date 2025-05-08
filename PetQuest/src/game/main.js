@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { initOrientationHandling } from '../utils/orientationHandler';
 import { LevelSelector } from './scenes/LevelSelector';
-
+import { BattleSystem } from './scenes/BattleSystem';
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
@@ -26,7 +26,7 @@ const config = {
         // Allow expanding to fullscreen
         expandParent: true,
     },
-    // Other settings...
+    // Other settings:
     input: {
         activePointers: 3, // Support multi-touch
         smoothFactor: 0.2, // Smooth touch movement
@@ -47,6 +47,7 @@ const config = {
         Quests,
         LevelTransition,
         LevelSelector,
+        BattleSystem,
         GameOver
     ]
 };

@@ -71,6 +71,84 @@ export class MainMenu extends Scene {
         EventBus.emit('current-scene-ready', this);
     }
 
+    // Add wake method to refresh pet data when returning from other scenes
+    wake() {
+        console.log('MainMenu waking up - refreshing pet data');
+        
+        // Get global context
+        const globalContext = getGlobalContext();
+        const shouldRefresh = globalContext?.userData?.shouldRefreshPet || false;
+        
+        if (shouldRefresh) {
+            console.log('Force refresh flag detected, fetching fresh pet data');
+            // Reset the flag immediately
+            if (globalContext) {
+                globalContext.userData.shouldRefreshPet = false;
+            }
+        }
+        
+        // Always refresh when waking up to ensure data is current
+        this.refreshPetData().then(() => {
+            // Refresh UI with updated pet data
+            this.refreshUI();
+        }).catch(err => {
+            console.error('Error refreshing pet data:', err);
+        });
+    }
+
+    // Method to fetch latest pet data from backend
+    async refreshPetData() {
+        try {
+            const token = localStorage.getItem('token');
+            const globalContext = getGlobalContext();
+            
+            if (!token || !globalContext || !globalContext.userData || !globalContext.userData.selectedPet) {
+                console.warn('Cannot refresh pet: missing token or pet data');
+                return;
+            }
+            
+            const API_URL = import.meta.env.VITE_API_URL;
+            const petId = globalContext.userData.selectedPet._id;
+            
+            console.log('Refreshing pet data from backend for pet:', petId);
+            
+            // Fetch latest pet data from backend
+            const response = await fetch(`${API_URL}/pets/${petId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const responseData = await response.json();
+            
+            if (response.ok && responseData.success) {
+                console.log('Pet data refreshed:', responseData.data);
+                
+                // Update global context with the refreshed pet data
+                if (globalContext && globalContext.userData) {
+                    globalContext.userData.selectedPet = responseData.data;
+                }
+                
+                // Update local reference
+                this.petData = responseData.data;
+                
+                console.log('Pet stats updated in MainMenu:', 
+                    'HP:', this.petData.currentHP, 
+                    'SP:', this.petData.currentSP,
+                    'EXP:', this.petData.experience);
+                
+                return responseData.data;
+            } else {
+                console.error('Failed to refresh pet data:', responseData.error || 'Unknown error');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error refreshing pet data:', error.message);
+            return null;
+        }
+    }
+
     // method for setting up the background
     setupBackground() {
         const { width, height } = this.scale;
@@ -241,82 +319,58 @@ export class MainMenu extends Scene {
         this.leftStatsPanel.add(levelText);
         // Stats
         const statConfig = [
-            { key: 'hp', label: 'HP', max: 5000 },
-            { key: 'sp', label: 'SP', max: 1000 },
-            { key: 'atk', label: 'ATK', max: 400 },
-            { key: 'def', label: 'DEF', max: 400 }
+            { key: 'hp', label: 'HP' },
+            { key: 'sp', label: 'SP' },
+            { key: 'atk', label: 'ATK' },
+            { key: 'def', label: 'DEF' }
         ];
         const stats = this.petData.stats || {};
+        
+        // Get current and max HP/SP values
+        // For current values: prioritize currentHP/SP, fallback to stats.hp/sp
+        // For max values: prioritize stats.hp/sp as the "full" values, fallback to the same value
+        const currentHP = this.petData.currentHP !== undefined ? this.petData.currentHP : stats.hp;
+        const maxHP = stats.hp;
+        const currentSP = this.petData.currentSP !== undefined ? this.petData.currentSP : stats.sp;
+        const maxSP = stats.sp;
+        
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
-
-            // Determine current and maximum values based on stat type
-            let currentValue = '-';
-            let maxValue = stats[stat.key] !== undefined ? stats[stat.key] : undefined;
-
+            let value = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
+            let displayStr = `${value}`;
+            let color = '#ffffff';
             if (stat.key === 'hp') {
-                // For HP, use currentHP if available, otherwise use max
-                currentValue = (this.petData.currentHP !== undefined) ? 
-                    this.petData.currentHP : maxValue;
+                displayStr = `${currentHP}/${maxHP}`;
+                if (currentHP < maxHP) color = '#ff8888';
             } else if (stat.key === 'sp') {
-                // For SP, use currentSP if available, otherwise use max
-                currentValue = (this.petData.currentSP !== undefined) ? 
-                    this.petData.currentSP : maxValue;
-            } else {
-                // For other stats (atk, def, etc.), display the single value (max)
-                currentValue = (stats[stat.key] !== undefined) ? stats[stat.key] : '-';
+                displayStr = `${currentSP}/${maxSP}`;
+                if (currentSP < maxSP) color = '#ff8888';
             }
-
-            // Check for active buffs for this stat
+            // Buffs
             let buffValue = 0;
             const now = new Date().getTime();
             const hasActiveBuffs = this.petData.activeBuffs && 
                 this.petData.activeBuffs.expiresAt && 
                 new Date(this.petData.activeBuffs.expiresAt).getTime() > now;
-            
             if (hasActiveBuffs && 
                 this.petData.activeBuffs.stats && 
                 this.petData.activeBuffs.stats[stat.key]) {
                 buffValue = this.petData.activeBuffs.stats[stat.key];
             }
-
-            // Compose display string
-            let displayStr;
-            if (stat.key === 'hp' || stat.key === 'sp') {
-                // For HP and SP, show current/max format
-                displayStr = `${currentValue}/${maxValue}`;
-                // Add buff indicator if applicable
-                if (buffValue > 0) {
-                    displayStr += ` +${buffValue}`;
-                }
-            } else {
-                displayStr = `${currentValue}`;
-                // Add buff indicator if applicable
-                if (buffValue > 0) {
-                    displayStr += ` +${buffValue}`;
-                }
-            }
-
-            // Create the stat text
             let baseText = `${stat.label}: `;
-            
-            // If we have a buff, we'll create two text objects to style them differently
             if (buffValue > 0) {
-                // Base text without the buff
                 const mainText = this.add.text(
                     -panelWidth / 2 + 16,
                     yOffset,
-                    baseText + displayStr.replace(` +${buffValue}`, ''),
+                    baseText + displayStr,
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#ffffff',
+                        color,
                         stroke: '#000000',
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
-                // Buff text with color highlighting
                 const buffText = this.add.text(
                     -panelWidth / 2 + 16 + mainText.width,
                     yOffset,
@@ -324,15 +378,13 @@ export class MainMenu extends Scene {
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#00ff00', // Green color for buffs
+                        color: '#00ff00',
                         stroke: '#000000',
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
                 this.leftStatsPanel.add([mainText, buffText]);
             } else {
-                // Regular stat without buff
                 const statText = this.add.text(
                     -panelWidth / 2 + 16,
                     yOffset,
@@ -340,12 +392,11 @@ export class MainMenu extends Scene {
                     {
                         fontFamily: '"Silkscreen", cursive',
                         fontSize: '18px',
-                        color: '#ffffff',
+                        color,
                         stroke: '#000000',
                         strokeThickness: 2
                     }
                 ).setOrigin(0, 0.5);
-                
                 this.leftStatsPanel.add(statText);
             }
         });
@@ -899,7 +950,37 @@ export class MainMenu extends Scene {
             actionType: 'medicine',
             onItemSelect: async (itemId) => {
                 try {
-                    // Play animation when item is selected
+                    // Get the item details from context
+                    const globalContext = getGlobalContext();
+                    
+                    console.log('Selected item ID:', itemId);
+                    
+                    // Find the item in the inventory
+                    const inventory = globalContext.userData.inventory || [];
+                    const inventoryItem = inventory.find(entry => entry.item._id === itemId);
+                    
+                    if (!inventoryItem || !inventoryItem.item) {
+                        console.error('Item not found in inventory');
+                        this.showToast('Item not available');
+                        return;
+                    }
+                    
+                    const item = inventoryItem.item;
+                    console.log('Found item:', item);
+                    
+                    // Check if this is an HP potion and HP is already full
+                    if (item.name === 'hp-potion' && currentHP >= maxHP) {
+                        this.showToast('Pet already at full HP!');
+                        return;
+                    }
+                    
+                    // Check if this is an SP potion and SP is already full
+                    if (item.name === 'sp-potion' && currentSP >= maxSP) {
+                        this.showToast('Pet already at full SP!');
+                        return;
+                    }
+                    
+                    // Play animation when item is selected and will be used
                     if (this.pet && typeof this.pet.playAnimation === 'function') {
                         this.pet.playAnimation('medicine');
                     }
@@ -948,7 +1029,7 @@ export class MainMenu extends Scene {
         console.log('Outdoor button clicked');
         
         // Play animation immediately
-        if (this.pet && typeof this.pet.playAnimation === 'function') {
+        if (this.pet && typeof this.pet.playAnimation === 'function' && this.petData.attributes.stamina >= 50) {
             this.pet.playAnimation('outdoor');
         }
         
@@ -958,7 +1039,7 @@ export class MainMenu extends Scene {
             this.showToast(`Buff still active for ${timeRemaining} minutes!`);
             return;
         }
-        
+
         // Check if pet has enough stamina
         if (this.petData.attributes && this.petData.attributes.stamina < 50) {
             this.showToast('Not enough stamina for outdoor activity!');
