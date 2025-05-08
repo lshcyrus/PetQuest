@@ -114,7 +114,7 @@ exports.updateProfile = async (req, res) => {
     
     // Build update object
     const updateFields = {}; // hold the fields to be updated
-    // Adds username OR email to the update object
+    // Adds username or email to update object
     if (username) updateFields.username = username;
     if (email) updateFields.email = email;
     
@@ -122,7 +122,7 @@ exports.updateProfile = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user.id,//find the user by their ID and updates the specified fields
       { $set: updateFields },
-      { new: true } // ensures the updated document is returned
+      { new: true }
     ).select('-password');
     
     res.json(user);// Sends the updated user data as a JSON response
@@ -137,7 +137,6 @@ exports.updateProfile = async (req, res) => {
 // @access  Private
 exports.getUserInventory = async (req, res) => {
   try {
-    // Find the user and populate their inventory items with full details
     const user = await User.findById(req.user.id)
       .populate({
         path: 'inventory.item',

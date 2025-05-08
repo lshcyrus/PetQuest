@@ -170,7 +170,7 @@ exports.feedPet = async (req, res, next) => {
     // Handle direct feeding (without item) or item-based feeding
     if (directFeeding) {
       // Apply direct feeding effects (decrease hunger, increase happiness)
-      // Hunger represents how hungry the pet is (0 = full, 100 = very hungry)
+      // 0 = full, 100 = very hungry
       pet.attributes.hunger = Math.max(0, pet.attributes.hunger - 15);
       
       // Increase happiness
@@ -226,7 +226,7 @@ exports.feedPet = async (req, res, next) => {
       }
       
       // Apply item effects to pet
-      // Hunger should decrease when fed (item.effects.hunger should be positive)
+      // Hunger should decrease when fed
       pet.attributes.hunger = Math.max(0, pet.attributes.hunger - item.effects.hunger);
       // Happiness increases as normal
       pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
@@ -485,7 +485,7 @@ exports.trainPet = async (req, res, next) => {
       });
     }
     
-    // Handle training with an item if provided
+    // training with item
     if (itemId) {
       // Find the item in user's inventory
       const user = await User.findById(req.user.id);
@@ -521,7 +521,7 @@ exports.trainPet = async (req, res, next) => {
       // Base exp gain + item bonus (additional 30 exp for equipment)
       pet.experience += 20 + (item.effects.experience || 30);
       
-      // Reduce stamina cost (equipment makes training more efficient)
+      // Reduce stamina cost
       const staminaCost = Math.max(5, 10 - (item.effects.stamina || 0));
       pet.attributes.stamina = Math.max(0, pet.attributes.stamina - staminaCost);
       
@@ -660,7 +660,7 @@ exports.medicinePet = async (req, res, next) => {
       await user.save();
     } else {
       // Standard healing without item
-      // Set or increment current HP
+      // Set or increase current HP
       if (pet.currentHP === undefined) {
         // Initialize to full HP if undefined
         pet.currentHP = pet.stats.hp;
@@ -728,7 +728,7 @@ exports.outdoorPet = async (req, res, next) => {
       buffDuration = 120 
     } = req.body;
     
-    // Generate random buffs - 10% increase to a random combination of stats
+    // Generate random buffs, 10% increase to a random combination of stats
     const buffAmount = 0.1; // 10% buff
     const buffDurationMs = buffDuration * 60 * 1000; // Convert minutes to milliseconds
     
@@ -737,7 +737,7 @@ exports.outdoorPet = async (req, res, next) => {
       pet.activeBuffs = {};
     }
     
-    // Apply buffs to random stats (HP, SP, ATK, DEF)
+    // Apply buffs to random stats
     const statOptions = ['hp', 'sp', 'atk', 'def'];
     const selectedStats = [];
     

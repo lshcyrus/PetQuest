@@ -166,7 +166,7 @@ exports.completeQuest = async (req, res, next) => {
       });
     }
     
-    // Check if quest is completed (time has passed)
+    // Check if quest is completed 
     if (Date.now() < pet.activeQuest.endTime) {
       return res.status(400).json({
         success: false,
@@ -182,7 +182,7 @@ exports.completeQuest = async (req, res, next) => {
     const success = gameLogic.calculateQuestSuccess(pet, quest);
     
     if (success) {
-      // Grant rewards
+      // give rewards
       pet.experience += quest.rewards.experience;
       user.currency.coins += quest.rewards.coins;
       user.currency.gems += quest.rewards.gems;
@@ -215,7 +215,7 @@ exports.completeQuest = async (req, res, next) => {
       pet = levelUpResult.pet;
       var levelUpInfo = levelUpResult;
     } else {
-      // Failed quest - partial rewards
+      // Failed quest, partial rewards
       pet.experience += Math.floor(quest.rewards.experience * 0.25);
       user.currency.coins += Math.floor(quest.rewards.coins * 0.1);
       

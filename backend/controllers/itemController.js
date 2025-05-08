@@ -4,7 +4,7 @@ const User = require('../models/userModel.js');
 // Get all items
 exports.getAllItems = async (req, res) => {
   try {
-    const items = await Item.find(); // Retrieves all items from the Item collection in the database
+    const items = await Item.find(); // Retrieves all items from the Item collection in database
     res.json(items); // Sends the retrieved items as a JSON response
   } catch (err) {
     console.error(err.message);
