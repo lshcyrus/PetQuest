@@ -85,9 +85,16 @@ class BattleLogic {
         const attackerName = attacker.data.name;
         const defenderName = defender.data.name;
         
-        // Get stats with fallbacks
-        const attackStat = attacker.data.stats.atk || 10;
-        const defenseStat = defender.data.stats.def || 5;
+        // Get stats with fallbacks and apply buffs
+        const attackerBuffs = attacker.data.activeBuffs ? attacker.data.activeBuffs.stats : {};
+        const defenderBuffs = defender.data.activeBuffs ? defender.data.activeBuffs.stats : {};
+        
+        // Apply buffs to attack and defense stats
+        const atkBuff = attackerBuffs.atk || 0;
+        const defBuff = defenderBuffs.def || 0;
+        
+        const attackStat = (attacker.data.stats.atk || 10) + atkBuff;
+        const defenseStat = (defender.data.stats.def || 5) + defBuff;
 
         let baseDamage = Math.max(1, attackStat - Math.floor(defenseStat / 2));
         const damageVariation = Math.random() * 0.2 + 0.9; // 90% to 110% damage
@@ -116,8 +123,17 @@ class BattleLogic {
             attacker.data.stats.sp -= 10;
             const attackerName = attacker.data.name;
             const defenderName = defender.data.name;
-            const attackStat = attacker.data.stats.atk || 10;
-            const defenseStat = defender.data.stats.def || 5;
+            
+            // Apply buffs to attack and defense stats
+            const attackerBuffs = attacker.data.activeBuffs ? attacker.data.activeBuffs.stats : {};
+            const defenderBuffs = defender.data.activeBuffs ? defender.data.activeBuffs.stats : {};
+            
+            const atkBuff = attackerBuffs.atk || 0;
+            const defBuff = defenderBuffs.def || 0;
+            
+            const attackStat = (attacker.data.stats.atk || 10) + atkBuff;
+            const defenseStat = (defender.data.stats.def || 5) + defBuff;
+            
             let baseDamage = Math.max(2, Math.floor(attackStat * 1.5) - defenseStat);
             let finalDamage = Math.floor(baseDamage * (Math.random() * 0.2 + 0.9));
 
@@ -140,8 +156,13 @@ class BattleLogic {
                 return false;
             }
             attacker.data.stats.sp -= 10;
-            // Use maxhp directly from stats
-            const maxHp = attacker.data.stats.maxhp || attacker.data.stats.hp;
+            
+            // Apply HP buff to max HP calculation
+            const hpBuff = attacker.data.activeBuffs && attacker.data.activeBuffs.stats ? 
+                (attacker.data.activeBuffs.stats.hp || 0) : 0;
+                
+            // Use maxhp directly from stats, plus any buffs
+            const maxHp = (attacker.data.stats.maxhp || attacker.data.stats.hp) + hpBuff;
             let healAmount = Math.floor(maxHp * 0.25);
             
             attacker.data.stats.hp += healAmount;
@@ -187,8 +208,13 @@ class BattleLogic {
         
         if (item && item.type === 'heal') {
             const healAmount = item.value || 20;
-            // Use maxhp from stats
-            const maxHp = this.playerPet.data.stats.maxhp || this.playerPet.data.stats.hp;
+            
+            // Apply HP buff to max HP calculation
+            const hpBuff = this.playerPet.data.activeBuffs && this.playerPet.data.activeBuffs.stats ? 
+                (this.playerPet.data.activeBuffs.stats.hp || 0) : 0;
+                
+            // Use maxhp from stats, plus any buffs
+            const maxHp = (this.playerPet.data.stats.maxhp || this.playerPet.data.stats.hp) + hpBuff;
             
             this.playerPet.data.stats.hp += healAmount;
             if (this.playerPet.data.stats.hp > maxHp) {
@@ -469,11 +495,46 @@ export class BattleSystem extends Scene {
         battlePetData.stats.maxhp = this.petData.stats.hp;
         battlePetData.stats.maxsp = this.petData.stats.sp;
         
+        // Ensure activeBuffs exists and is properly structured
+        if (!battlePetData.activeBuffs) {
+            battlePetData.activeBuffs = {
+                stats: {
+                    hp: 0,
+                    sp: 0,
+                    atk: 0,
+                    def: 0
+                },
+                expiresAt: null
+            };
+        } else if (!battlePetData.activeBuffs.stats) {
+            battlePetData.activeBuffs.stats = {
+                hp: 0,
+                sp: 0,
+                atk: 0,
+                def: 0
+            };
+        }
+        
+        // Copy any existing buffs from the pet data
+        if (this.petData.activeBuffs && this.petData.activeBuffs.stats) {
+            Object.keys(this.petData.activeBuffs.stats).forEach(stat => {
+                if (this.petData.activeBuffs.stats[stat]) {
+                    battlePetData.activeBuffs.stats[stat] = this.petData.activeBuffs.stats[stat];
+                }
+            });
+            
+            // Copy expiration time if it exists
+            if (this.petData.activeBuffs.expiresAt) {
+                battlePetData.activeBuffs.expiresAt = this.petData.activeBuffs.expiresAt;
+            }
+        }
+        
         console.log('Battle Pet Stats:', {
             hp: battlePetData.stats.hp,
             maxhp: battlePetData.stats.maxhp,
             sp: battlePetData.stats.sp,
-            maxsp: battlePetData.stats.maxsp
+            maxsp: battlePetData.stats.maxsp,
+            buffs: battlePetData.activeBuffs.stats
         });
         
         // Player pet positioned on left side of screen
@@ -506,11 +567,32 @@ export class BattleSystem extends Scene {
             this.enemyData.stats.maxsp = this.enemyData.stats.sp;
         }
         
+        // Ensure enemy has activeBuffs property
+        if (!this.enemyData.activeBuffs) {
+            this.enemyData.activeBuffs = {
+                stats: {
+                    hp: 0,
+                    sp: 0,
+                    atk: 0,
+                    def: 0
+                },
+                expiresAt: null
+            };
+        } else if (!this.enemyData.activeBuffs.stats) {
+            this.enemyData.activeBuffs.stats = {
+                hp: 0,
+                sp: 0,
+                atk: 0,
+                def: 0
+            };
+        }
+        
         console.log('Enemy Stats:', {
             hp: this.enemyData.stats.hp,
             maxhp: this.enemyData.stats.maxhp,
             sp: this.enemyData.stats.sp,
-            maxsp: this.enemyData.stats.maxsp
+            maxsp: this.enemyData.stats.maxsp,
+            buffs: this.enemyData.activeBuffs.stats
         });
         
         // Enemy positioned on right side of screen
@@ -592,11 +674,16 @@ export class BattleSystem extends Scene {
         this.statusGroup = this.add.group();
         // Pet status (left side)
         const petStats = this.petEntity.data.stats;
-        const maxPetHP = petStats.maxhp || petStats.hp;
-        const maxPetSP = petStats.maxsp || petStats.sp;
-        const petHpText = `HP: ${petStats.hp}/${maxPetHP}`;
-        const petSpText = `SP: ${petStats.sp}/${maxPetSP}`;
-        const petStatText = `ATK: ${petStats.atk}  DEF: ${petStats.def}`;
+        const petHpBuff = this.petEntity.data.activeBuffs.stats.hp ? this.petEntity.data.activeBuffs.stats.hp : 0;
+        const petSpBuff = this.petEntity.data.activeBuffs.stats.sp ? this.petEntity.data.activeBuffs.stats.sp : 0;
+        const petAtkBuff = this.petEntity.data.activeBuffs.stats.atk ? this.petEntity.data.activeBuffs.stats.atk : 0;
+        const petDefBuff = this.petEntity.data.activeBuffs.stats.def ? this.petEntity.data.activeBuffs.stats.def : 0;
+
+        const maxPetHP = petStats.maxhp + petHpBuff || petStats.hp + petHpBuff;
+        const maxPetSP = petStats.maxsp + petSpBuff || petStats.sp + petSpBuff;
+        const petHpText = `HP: ${petStats.hp + petHpBuff}/${maxPetHP}`;
+        const petSpText = `SP: ${petStats.sp + petSpBuff}/${maxPetSP}`;
+        const petStatText = `ATK: ${petStats.atk + petAtkBuff}  DEF: ${petStats.def + petDefBuff}`;
         this.petStatusBg = this.add.rectangle(30, this.scale.height - 80, 200, 90, 0x222222, 0.7)
             .setOrigin(0, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
@@ -623,11 +710,16 @@ export class BattleSystem extends Scene {
         
         // Enemy status (right side)
         const enemyStats = this.enemyEntity.data.stats;
-        const maxEnemyHP = enemyStats.maxhp || enemyStats.hp;
-        const maxEnemySP = enemyStats.maxsp || enemyStats.sp;
-        const enemyHpText = `HP: ${enemyStats.hp}/${maxEnemyHP}`;
-        const enemySpText = `SP: ${enemyStats.sp}/${maxEnemySP}`;
-        const enemyStatText = `ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`;
+        const enemyHpBuff = this.enemyEntity.data.activeBuffs.stats.hp ? this.enemyEntity.data.activeBuffs.stats.hp : 0;
+        const enemySpBuff = this.enemyEntity.data.activeBuffs.stats.sp ? this.enemyEntity.data.activeBuffs.stats.sp : 0;
+        const enemyAtkBuff = this.enemyEntity.data.activeBuffs.stats.atk ? this.enemyEntity.data.activeBuffs.stats.atk : 0;
+        const enemyDefBuff = this.enemyEntity.data.activeBuffs.stats.def ? this.enemyEntity.data.activeBuffs.stats.def : 0;
+        
+        const maxEnemyHP = enemyStats.maxhp + enemyHpBuff || enemyStats.hp + enemyHpBuff;
+        const maxEnemySP = enemyStats.maxsp + enemySpBuff || enemyStats.sp + enemySpBuff;
+        const enemyHpText = `HP: ${enemyStats.hp + enemyHpBuff}/${maxEnemyHP}`;
+        const enemySpText = `SP: ${enemyStats.sp + enemySpBuff}/${maxEnemySP}`;
+        const enemyStatText = `ATK: ${enemyStats.atk + enemyAtkBuff}  DEF: ${enemyStats.def + enemyDefBuff}`;
         this.enemyStatusBg = this.add.rectangle(this.scale.width - 30, 80, 200, 90, 0x222222, 0.7)
             .setOrigin(1, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
@@ -667,20 +759,30 @@ export class BattleSystem extends Scene {
 
     updateStatusBars() {
         const petStats = this.petEntity.data.stats;
+        const petHpBuff = this.petEntity.data.activeBuffs.stats.hp ? this.petEntity.data.activeBuffs.stats.hp : 0;
+        const petSpBuff = this.petEntity.data.activeBuffs.stats.sp ? this.petEntity.data.activeBuffs.stats.sp : 0;
+        const petAtkBuff = this.petEntity.data.activeBuffs.stats.atk ? this.petEntity.data.activeBuffs.stats.atk : 0;
+        const petDefBuff = this.petEntity.data.activeBuffs.stats.def ? this.petEntity.data.activeBuffs.stats.def : 0;
+
         const maxPetHP = petStats.maxhp || petStats.hp;
         const maxPetSP = petStats.maxsp || petStats.sp;
         
-        this.petHpText.setText(`HP: ${petStats.hp}/${maxPetHP}`);
-        this.petSpText.setText(`SP: ${petStats.sp}/${maxPetSP}`);
-        this.petStatText.setText(`ATK: ${petStats.atk}  DEF: ${petStats.def}`);
+        this.petHpText.setText(`HP: ${petStats.hp + petHpBuff}/${maxPetHP + petHpBuff}`);
+        this.petSpText.setText(`SP: ${petStats.sp + petSpBuff}/${maxPetSP + petSpBuff}`);
+        this.petStatText.setText(`ATK: ${petStats.atk + petAtkBuff}  DEF: ${petStats.def + petDefBuff}`);
         
         const enemyStats = this.enemyEntity.data.stats;
+        const enemyHpBuff = this.enemyEntity.data.activeBuffs.stats.hp ? this.enemyEntity.data.activeBuffs.stats.hp : 0;
+        const enemySpBuff = this.enemyEntity.data.activeBuffs.stats.sp ? this.enemyEntity.data.activeBuffs.stats.sp : 0;
+        const enemyAtkBuff = this.enemyEntity.data.activeBuffs.stats.atk ? this.enemyEntity.data.activeBuffs.stats.atk : 0;
+        const enemyDefBuff = this.enemyEntity.data.activeBuffs.stats.def ? this.enemyEntity.data.activeBuffs.stats.def : 0;
+        
         const maxEnemyHP = enemyStats.maxhp || enemyStats.hp;
         const maxEnemySP = enemyStats.maxsp || enemyStats.sp;
         
-        this.enemyHpText.setText(`HP: ${enemyStats.hp}/${maxEnemyHP}`);
-        this.enemySpText.setText(`SP: ${enemyStats.sp}/${maxEnemySP}`);
-        this.enemyStatText.setText(`ATK: ${enemyStats.atk}  DEF: ${enemyStats.def}`);
+        this.enemyHpText.setText(`HP: ${enemyStats.hp + enemyHpBuff}/${maxEnemyHP + enemyHpBuff}`);
+        this.enemySpText.setText(`SP: ${enemyStats.sp + enemySpBuff}/${maxEnemySP + enemySpBuff}`);
+        this.enemyStatText.setText(`ATK: ${enemyStats.atk + enemyAtkBuff}  DEF: ${enemyStats.def + enemyDefBuff}`);
     }
 
     createBattleLog() {
@@ -1159,17 +1261,31 @@ export class BattleSystem extends Scene {
     updatePetStats() {
         // Update original pet data with current HP and any stat changes
         if (this.petData.stats) {
-            // Set currentHP and currentSP for backend persistence (these are the current battle values)
-            this.petData.currentHP = this.petEntity.data.stats.hp;
-            this.petData.currentSP = this.petEntity.data.stats.sp;
+            // Get buff values to exclude from persisted data
+            const hpBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                (this.petEntity.data.activeBuffs.stats.hp || 0) : 0;
+            const spBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                (this.petEntity.data.activeBuffs.stats.sp || 0) : 0;
+                
+            // Set currentHP and currentSP for backend persistence (these are the current battle values WITHOUT buffs)
+            // Apply a cap to make sure we don't exceed the base max values
+            const baseMaxHP = this.petData.stats.hp;
+            const baseMaxSP = this.petData.stats.sp;
             
+            // Remove buffs from the current values before saving
+            this.petData.currentHP = Math.min(baseMaxHP, this.petEntity.data.stats.hp);
+            this.petData.currentSP = Math.min(baseMaxSP, this.petEntity.data.stats.sp);
             
-            // Only transfer combat stats (not health/SP)
+            // Only transfer combat stats (not health/SP), excluding any buffs
             if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
-                this.petData.stats.atk = this.petEntity.data.stats.atk;
+                const atkBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                    (this.petEntity.data.activeBuffs.stats.atk || 0) : 0;
+                this.petData.stats.atk = this.petEntity.data.stats.atk - atkBuff;
             }
             if (this.petEntity.data.stats.def !== this.petData.stats.def) {
-                this.petData.stats.def = this.petEntity.data.stats.def;
+                const defBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                    (this.petEntity.data.activeBuffs.stats.def || 0) : 0;
+                this.petData.stats.def = this.petEntity.data.stats.def - defBuff;
             }
         }
         
@@ -1183,7 +1299,7 @@ export class BattleSystem extends Scene {
             this.petData.level = this.petEntity.data.level;
         }
         
-        console.log('Updated pet stats after battle:', 
+        console.log('Updated pet stats after battle (excluding buffs):', 
             'ATK:', this.petData.stats.atk,
             'DEF:', this.petData.stats.def,
             'currentHP:', this.petData.currentHP, 
