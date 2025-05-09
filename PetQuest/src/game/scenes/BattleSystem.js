@@ -76,7 +76,7 @@ class BattleLogic {
     }
 
     attack(attacker, defender, isDefenderDefending) {
-        // Check SP cost (5 for normal attack)
+        // Check SP cost (5 for basic attack)
         if (attacker.data.stats.sp < 5) {
             this.battleLog.push(`${attacker.data.name} does not have enough SP to attack!`);
             return false;
@@ -108,7 +108,7 @@ class BattleLogic {
         defender.data.stats.hp -= finalDamage;
         if (defender.data.stats.hp < 0) defender.data.stats.hp = 0;
 
-        this.battleLog.push(`${attackerName} attacks ${defenderName} for ${finalDamage} damage!`);
+        this.battleLog.push(`${attackerName} performs a Basic Attack on ${defenderName} for ${finalDamage} damage!`);
         this.battleLog.push(`${defenderName} has ${defender.data.stats.hp} HP remaining.`);
         return finalDamage;
     }
@@ -145,7 +145,7 @@ class BattleLogic {
             defender.data.stats.hp -= finalDamage;
             if (defender.data.stats.hp < 0) defender.data.stats.hp = 0;
             
-            this.battleLog.push(`${attackerName} uses Skill 1 on ${defenderName} for ${finalDamage} damage!`);
+            this.battleLog.push(`${attackerName} uses Special Attack on ${defenderName} for ${finalDamage} damage!`);
             this.battleLog.push(`${defenderName} has ${defender.data.stats.hp} HP remaining.`);
             return true;
         }
@@ -170,7 +170,7 @@ class BattleLogic {
                 attacker.data.stats.hp = maxHp;
             }
             
-            this.battleLog.push(`${attacker.data.name} uses Skill 2 and heals for ${healAmount} HP!`);
+            this.battleLog.push(`${attacker.data.name} uses healing and recovers ${healAmount} HP!`);
             this.battleLog.push(`${attacker.data.name} now has ${attacker.data.stats.hp}/${maxHp} HP.`);
             return true;
         }
@@ -235,12 +235,15 @@ class BattleLogic {
         const enemy = this.enemy;
         // Simple AI: Try to use special attack if enough SP, else normal attack, else defend if possible
         if (enemy.data.stats.sp >= 10 && Math.random() < 0.5) {
-            if (this.useAbility(enemy, this.playerPet, 0, this.isPlayerDefending)) return 'skill';
+            this.battleLog.push(`${enemy.data.name} prepares a Special Attack!`);
+            if (this.useAbility(enemy, this.playerPet, 0, this.isPlayerDefending)) return 'special';
         }
         if (enemy.data.stats.sp >= 5 && Math.random() < 0.7) {
+            this.battleLog.push(`${enemy.data.name} prepares a Basic Attack!`);
             if (this.attack(enemy, this.playerPet, this.isPlayerDefending)) return 'attack';
         }
         if (enemy.data.stats.sp >= 5) {
+            this.battleLog.push(`${enemy.data.name} takes a defensive stance!`);
             if (this.defend(enemy)) return 'defend';
         }
         // If not enough SP for any action, skip turn
@@ -821,18 +824,17 @@ export class BattleSystem extends Scene {
         
         this.actionMenu.add(menuBg);
         
-        // Action buttons
+        // Action buttons - Update labels to show SP costs
         const actions = [
-            { text: 'Attack', action: () => this.handlePlayerAction('attack') },
-            { text: 'Skill 1', action: () => this.handlePlayerAction('skill1') },
-            { text: 'Skill 2', action: () => this.handlePlayerAction('skill2') },
+            { text: 'Basic Attack -5SP', action: () => this.handlePlayerAction('attack') },
+            { text: 'Special Attack -10SP', action: () => this.handlePlayerAction('skill1') },
             { text: 'Defend', action: () => this.handlePlayerAction('defend') },
-            { text: 'Item', action: () => this.handlePlayerAction('item') },
+            { text: 'Items', action: () => this.handlePlayerAction('item') },
             { text: 'Run', action: () => this.handlePlayerAction('run') }
         ];
         
         // Calculate button layout
-        const buttonWidth = 100;
+        const buttonWidth = 120; // Increased width to fit longer text
         const buttonHeight = 40;
         const padding = 10;
         const totalWidth = actions.length * (buttonWidth + padding) - padding;
@@ -849,11 +851,13 @@ export class BattleSystem extends Scene {
                 .on('pointerover', () => button.setFillStyle(0x555599))
                 .on('pointerout', () => button.setFillStyle(0x333366));
                 
-            // Button text
+            // Button text - adjust font size to fit longer text
             const text = this.add.text(startX + buttonWidth/2, 0, actionConfig.text, {
-                fontSize: '16px', 
+                fontSize: '14px', // Smaller font to fit longer text
                 color: '#ffffff',
-                fontFamily: 'monospace'
+                fontFamily: 'monospace',
+                align: 'center',
+                wordWrap: { width: buttonWidth - 4 } // Word wrap to keep text inside button
             }).setOrigin(0.5);
             
             // Add to container and button list
@@ -1036,19 +1040,6 @@ export class BattleSystem extends Scene {
                 animationAction = 'attack';
                 this.animateAction(animationAction, 'pet', 'enemy', () => {
                     actionSuccess = this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
-                    this.afterPlayerAction();
-                });
-                break;
-            case 'skill2':
-                if (petStats.sp < 10) {
-                    this.battleLogic.battleLog.push('Not enough SP to heal!');
-                    this.updateBattleLog();
-                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
-                    return;
-                }
-                animationAction = 'medicine';
-                this.animateAction(animationAction, 'pet', null, () => {
-                    actionSuccess = this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 1, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
                 break;
