@@ -133,9 +133,13 @@ export class MainMenu extends Scene {
                 // Update local reference
                 this.petData = responseData.data;
                 
+                // Get max values for logging
+                const maxHP = this.petData.stats.hp || 0;
+                const maxSP = this.petData.stats.sp || 0;
+                
                 console.log('Pet stats updated in MainMenu:', 
-                    'HP:', this.petData.currentHP, 
-                    'SP:', this.petData.currentSP,
+                    'HP:', this.petData.currentHP, '/', maxHP, 
+                    'SP:', this.petData.currentSP, '/', maxSP,
                     'EXP:', this.petData.experience);
                 
                 return responseData.data;
@@ -328,11 +332,28 @@ export class MainMenu extends Scene {
         
         // Get current and max HP/SP values
         // For current values: prioritize currentHP/SP, fallback to stats.hp/sp
-        // For max values: prioritize stats.hp/sp as the "full" values, fallback to the same value
-        const currentHP = this.petData.currentHP !== undefined ? this.petData.currentHP : stats.hp;
-        const maxHP = stats.hp;
-        const currentSP = this.petData.currentSP !== undefined ? this.petData.currentSP : stats.sp;
-        const maxSP = stats.sp;
+        // For max values: prioritize stats.hp/sp as the "full" values
+        const maxHP = stats.hp || 100; // Default to 100 if undefined
+        const maxSP = stats.sp || 100; // Default to 100 if undefined
+        
+        // If currentHP/SP is undefined or null, initialize it to stats.hp/sp (maxHP/maxSP)
+        // This ensures we always have valid currentHP/SP values
+        if (this.petData.currentHP === undefined || this.petData.currentHP === null) {
+            console.log('Initializing undefined currentHP to maxHP:', maxHP);
+            this.petData.currentHP = maxHP;
+        }
+        
+        if (this.petData.currentSP === undefined || this.petData.currentSP === null) {
+            console.log('Initializing undefined currentSP to maxSP:', maxSP);
+            this.petData.currentSP = maxSP;
+        }
+        
+        const currentHP = this.petData.currentHP;
+        const currentSP = this.petData.currentSP;
+        
+        console.log('Pet stats in panel:', {
+            currentHP, maxHP, currentSP, maxSP
+        });
         
         statConfig.forEach((stat, i) => {
             const yOffset = -30 + i * 36;
@@ -931,13 +952,25 @@ export class MainMenu extends Scene {
     async handleMedicine() {
         console.log('Medicine button clicked');
         
-        // Get current HP and SP or default to full if undefined
-        const currentHP = this.petData.currentHP !== undefined ? 
-            this.petData.currentHP : this.petData.stats.hp;
-        const currentSP = this.petData.currentSP !== undefined ? 
-            this.petData.currentSP : this.petData.stats.sp;
-        const maxHP = this.petData.stats.hp;
-        const maxSP = this.petData.stats.sp;
+        // Get current HP and SP values
+        const maxHP = this.petData.stats.hp || 100;
+        const maxSP = this.petData.stats.sp || 100;
+        
+        // Ensure currentHP/SP is initialized
+        if (this.petData.currentHP === undefined || this.petData.currentHP === null) {
+            this.petData.currentHP = maxHP;
+        }
+        
+        if (this.petData.currentSP === undefined || this.petData.currentSP === null) {
+            this.petData.currentSP = maxSP;
+        }
+        
+        const currentHP = this.petData.currentHP;
+        const currentSP = this.petData.currentSP;
+        
+        console.log('Medicine check - Pet stats:', {
+            currentHP, maxHP, currentSP, maxSP
+        });
         
         // Check if both HP and SP are already full
         if (currentHP >= maxHP && currentSP >= maxSP) {
