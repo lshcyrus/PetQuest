@@ -577,6 +577,31 @@ export class LevelSelector extends Scene {
     setupLevelInfo() {
         const { width, height } = this.scale;
 
+        // Add QUEST title at the top
+        this.questTitle = this.add.text(
+            width / 2,
+            height * 0.22,
+            "QUEST",
+            {
+                fontFamily: '"Silkscreen", cursive',
+                fontSize: '42px',
+                color: '#ffcc00',
+                stroke: '#000000',
+                strokeThickness: 6,
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(2);
+        
+        // Add glow effect to the QUEST title
+        this.tweens.add({
+            targets: this.questTitle,
+            alpha: 0.8,
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         // Header with level name
         this.levelHeader = this.add.text(
             width / 2,
@@ -846,6 +871,9 @@ export class LevelSelector extends Scene {
         if (this.confirmButton) {
             this.confirmButton.setPosition(width / 2, height * 0.35 + 4 * 60);
         }
+        if (this.questTitle) {
+            this.questTitle.setPosition(width / 2, height * 0.22);
+        }
         if (this.levelHeader) {
             this.levelHeader.setPosition(width / 2, height * 0.3);
         }
@@ -883,6 +911,9 @@ export class LevelSelector extends Scene {
         }
         if (this.confirmButton) {
             this.confirmButton.setPosition(width / 2, height * 0.4 + 4 * 60);
+        }
+        if (this.questTitle) {
+            this.questTitle.setPosition(width / 2, height * 0.25);
         }
         if (this.levelHeader) {
             this.levelHeader.setPosition(width / 2, height * 0.35);
@@ -935,6 +966,7 @@ export class LevelSelector extends Scene {
         if (this.startButton && this.startButton.scene) this.startButton.destroy();
         if (this.returnButton && this.returnButton.scene) this.returnButton.destroy(); // Ensure return button is destroyed
         if (this.errorText && this.errorText.scene) this.errorText.destroy();
+        if (this.questTitle && this.questTitle.scene) this.questTitle.destroy(); // Clean up the new QUEST title
 
         // Nullify references
         this.petStatusContainer = null;
@@ -947,6 +979,7 @@ export class LevelSelector extends Scene {
         this.startButton = null;
         this.returnButton = null;
         this.errorText = null;
+        this.questTitle = null; // Nullify the questTitle reference
         this.petData = null; // Clear pet data reference
         this.generatedLevel = null;
         this.enemy = null;
