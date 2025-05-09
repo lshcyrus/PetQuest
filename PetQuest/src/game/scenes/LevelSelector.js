@@ -26,6 +26,10 @@ export class LevelSelector extends Scene {
             console.log('Returning from battle with updated pet data');
             this.petData = data.pet;
             
+            // Check if we have level changes that need to be highlighted
+            this.showLevelChanges = data.levelChange === true;
+            this.showStatsUpdated = data.showStatsUpdated === true;
+            
             // Update the global context with the latest pet data
             if (globalContext) {
                 globalContext.userData.selectedPet = data.pet;
@@ -41,6 +45,8 @@ export class LevelSelector extends Scene {
                 level: 1,
                 experience: 0
             };
+            this.showLevelChanges = false;
+            this.showStatsUpdated = false;
         }
         
         console.log('Initialized with Pet Data:', {
@@ -48,7 +54,8 @@ export class LevelSelector extends Scene {
             stats: this.petData.stats,
             currentHP: this.petData.currentHP,
             currentSP: this.petData.currentSP,
-            exp: this.petData.experience
+            exp: this.petData.experience,
+            level: this.petData.level
         });
     }
 
@@ -457,22 +464,38 @@ export class LevelSelector extends Scene {
         const labelX = -panelWidth / 2 + 15; // Padding from left edge
         const valueX = panelWidth / 2 - 15; // Padding from right edge
 
+        let levelText;
+        
         statsToDisplay.forEach((stat, index) => {
             const yOffset = -panelHeight / 2 + 30 + index * 30; // Position from top
+            
+            // Apply highlighting for level if showLevelChanges is true
+            const isLevelStat = stat.name === 'Level';
+            const highlightColor = isLevelStat && this.showLevelChanges ? '#ffff00' : '#ffffff';
 
             const label = this.add.text(
                 labelX,
                 yOffset,
                 `${stat.name}:`,
-                textStyle
+                {
+                    ...textStyle,
+                    color: highlightColor
+                }
             ).setOrigin(0, 0.5);
 
             const value = this.add.text(
                 valueX,
                 yOffset,
                 `${stat.value}`,
-                textStyle
+                {
+                    ...textStyle,
+                    color: highlightColor
+                }
             ).setOrigin(1, 0.5);
+            
+            if (isLevelStat) {
+                levelText = value;
+            }
 
             this.petStatusContainer.add([label, value]);
             this.petStatusElements.push(label, value); // Add for cleanup
@@ -483,7 +506,7 @@ export class LevelSelector extends Scene {
         const expText = this.add.text(labelX, expYOffset, `EXP: ${petExp}/${nextLevelXP}`, {
             ...textStyle,
             fontSize: '14px',
-            color: '#88ffff',
+            color: this.showLevelChanges ? '#ffff00' : '#88ffff',
         }).setOrigin(0, 0.5);
 
         const barWidth = panelWidth - 30; // Bar width with padding
@@ -498,6 +521,46 @@ export class LevelSelector extends Scene {
 
         // Initial positioning based on orientation
         this.updatePetStatusPosition();
+        
+        // Add level up notification animation if applicable
+        if (this.showLevelChanges && levelText) {
+            // Flash level text animation
+            this.tweens.add({
+                targets: levelText,
+                scaleX: 1.3,
+                scaleY: 1.3,
+                duration: 500,
+                yoyo: true,
+                repeat: 2,
+                ease: 'Sine.easeInOut'
+            });
+            
+            // Also add a floating "LEVEL UP!" text
+            const levelUpText = this.add.text(
+                0, 
+                -panelHeight / 2 - 20,
+                'LEVEL UP!',
+                {
+                    fontFamily: '"Silkscreen", cursive',
+                    fontSize: '20px',
+                    color: '#ffff00',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5);
+            
+            this.petStatusContainer.add(levelUpText);
+            this.petStatusElements.push(levelUpText);
+            
+            // Animate the level up text
+            this.tweens.add({
+                targets: levelUpText,
+                y: '-=30',
+                alpha: { from: 1, to: 0 },
+                duration: 3000,
+                ease: 'Cubic.easeOut'
+            });
+        }
     }
 
     // Helper to update pet status position on resize/layout change

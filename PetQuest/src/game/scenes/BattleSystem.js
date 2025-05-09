@@ -1187,6 +1187,9 @@ export class BattleSystem extends Scene {
             // Check for level up
             this.checkPetLevelUp();
             
+            // Update the UI to reflect new stats
+            this.updateStatusBars();
+            
             // Generate item drops based on enemy level and difficulty
             this.battleLogic.battleground = this.levelData || { selectedDifficulty: 1 };
             const itemDrops = this.battleLogic.generateDrops();
@@ -1238,10 +1241,21 @@ export class BattleSystem extends Scene {
             leveledUp = true;
             
             // Increase pet stats (similar to backend logic)
-            pet.stats.atk += Math.floor(Math.random() * 5) + 1;
-            pet.stats.def += Math.floor(Math.random() * 5) + 1;
-            pet.stats.hp += Math.floor(Math.random() * 20) + 10;
-            pet.stats.sp += Math.floor(Math.random() * 10) + 5;
+            const atkGain = Math.floor(Math.random() * 5) + 1;
+            const defGain = Math.floor(Math.random() * 5) + 1;
+            const hpGain = Math.floor(Math.random() * 20) + 10;
+            const spGain = Math.floor(Math.random() * 10) + 5;
+            
+            pet.stats.atk += atkGain;
+            pet.stats.def += defGain;
+            pet.stats.hp += hpGain;
+            pet.stats.sp += spGain;
+            
+            // Also update max values for UI and calculations
+            pet.stats.maxhp = pet.stats.hp;
+            pet.stats.maxsp = pet.stats.sp;
+            
+            console.log(`Level Up! Level ${pet.level} - Gained: HP +${hpGain}, SP +${spGain}, ATK +${atkGain}, DEF +${defGain}`);
         }
         
         if (leveledUp) {
@@ -1266,36 +1280,30 @@ export class BattleSystem extends Scene {
                 (this.petEntity.data.activeBuffs.stats.hp || 0) : 0;
             const spBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
                 (this.petEntity.data.activeBuffs.stats.sp || 0) : 0;
+            const atkBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                (this.petEntity.data.activeBuffs.stats.atk || 0) : 0;
+            const defBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                (this.petEntity.data.activeBuffs.stats.def || 0) : 0;
                 
             // Set currentHP and currentSP for backend persistence (these are the current battle values WITHOUT buffs)
-            // Apply a cap to make sure we don't exceed the base max values
-            const baseMaxHP = this.petData.stats.hp;
-            const baseMaxSP = this.petData.stats.sp;
+            this.petData.currentHP = this.petEntity.data.stats.hp;
+            this.petData.currentSP = this.petEntity.data.stats.sp;
             
-            // Remove buffs from the current values before saving
-            this.petData.currentHP = Math.min(baseMaxHP, this.petEntity.data.stats.hp);
-            this.petData.currentSP = Math.min(baseMaxSP, this.petEntity.data.stats.sp);
-            
-            // Only transfer combat stats (not health/SP), excluding any buffs
-            if (this.petEntity.data.stats.atk !== this.petData.stats.atk) {
-                const atkBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
-                    (this.petEntity.data.activeBuffs.stats.atk || 0) : 0;
-                this.petData.stats.atk = this.petEntity.data.stats.atk - atkBuff;
-            }
-            if (this.petEntity.data.stats.def !== this.petData.stats.def) {
-                const defBuff = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
-                    (this.petEntity.data.activeBuffs.stats.def || 0) : 0;
-                this.petData.stats.def = this.petEntity.data.stats.def - defBuff;
-            }
+            // ALWAYS transfer core stats from battle entity to pet data (needed for level-up stats to persist)
+            // Remove any active buffs from the values to get the base stats
+            this.petData.stats.hp = this.petEntity.data.stats.maxhp || this.petEntity.data.stats.hp;
+            this.petData.stats.sp = this.petEntity.data.stats.maxsp || this.petEntity.data.stats.sp;
+            this.petData.stats.atk = this.petEntity.data.stats.atk - atkBuff;
+            this.petData.stats.def = this.petEntity.data.stats.def - defBuff;
         }
         
         // Update experience and level
-        if (this.petEntity.data.experience) {
+        if (this.petEntity.data.experience !== undefined) {
             this.petData.experience = this.petEntity.data.experience;
         }
         
         // Update level
-        if (this.petEntity.data.level) {
+        if (this.petEntity.data.level !== undefined) {
             this.petData.level = this.petEntity.data.level;
         }
         
@@ -1321,20 +1329,25 @@ export class BattleSystem extends Scene {
             return;
         }
         
-        // Create proper stats payload with currentHP/currentSP only (not maxhp/maxsp)
+        // Create proper stats payload with updated stats from level ups
         const statsPayload = {
             currentHP: this.petData.currentHP,
             currentSP: this.petData.currentSP,
-            experience: this.petData.experience, // Add experience to stats payload
-            level: this.petData.level // Add level to stats payload
+            experience: this.petData.experience,
+            level: this.petData.level,
+            hp: this.petData.stats.hp,
+            sp: this.petData.stats.sp,
+            atk: this.petData.stats.atk,
+            def: this.petData.stats.def
         };
 
-        console.log('Updating pet stats to backend:', statsPayload);
+        console.log('Updating pet stats to backend (with level and stat changes):', statsPayload);
 
         // Update attributes (decrease stamina)
         const attrPayload = {
             stamina: Math.max(0, this.petData.attributes.stamina - 10),
-            happiness: Math.max(0, this.petData.attributes.happiness - 10)
+            happiness: Math.max(0, this.petData.attributes.happiness - 10),
+            hunger: Math.min(100, this.petData.attributes.hunger + 10)
         };
         
         // Get reference to global context
@@ -1559,12 +1572,19 @@ export class BattleSystem extends Scene {
                     // Refresh global context, ensuring it's up to date
                     const globalContext = getGlobalContext();
                     if (globalContext) {
+                        // Update the global context with the latest pet data
+                        globalContext.userData.selectedPet = this.petData;
+                        
                         // Force a fresh pet fetch when returning to MainMenu
                         globalContext.userData.shouldRefreshPet = true;
                     }
                     
-                    // Return to previous scene with updated data
-                    this.scene.start('LevelSelector', { pet: this.petData });
+                    // Return to previous scene with updated data including exp, level, and stat changes
+                    this.scene.start('LevelSelector', { 
+                        pet: this.petData,
+                        levelChange: true, // Flag indicating level may have changed
+                        showStatsUpdated: true // Flag to trigger stats display update
+                    });
                 } catch (error) {
                     console.error("Error during battle end processing:", error);
                     // Still transition to avoid getting stuck

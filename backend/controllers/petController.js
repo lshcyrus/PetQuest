@@ -839,14 +839,19 @@ exports.updatePetStats = async (req, res, next) => {
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
     }
+    
+    // Check if experience is being updated - needed for level check
+    const experienceUpdated = req.body.experience !== undefined;
+    const initialExperience = pet.experience;
+    
     // Allow updating stats, current values, experience, and gold
-    const allowedFields = ['hp', 'sp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold'];
+    const allowedFields = ['hp', 'sp', 'atk', 'def', 'currentHP', 'currentSP', 'experience', 'gold', 'level'];
     let updated = false;
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         if (field === 'currentHP' || field === 'currentSP') {
           pet[field] = req.body[field];
-        } else if (field === 'experience' || field === 'gold') {
+        } else if (field === 'experience' || field === 'gold' || field === 'level') {
           pet[field] = req.body[field];
         } else {
           pet.stats[field] = req.body[field];
@@ -854,11 +859,22 @@ exports.updatePetStats = async (req, res, next) => {
         updated = true;
       }
     });
+    
     if (!updated) {
       return res.status(400).json({ success: false, error: 'No valid stat fields provided' });
     }
+    
+    // Check for level up if experience increased and we don't have an explicit level update
+    if (experienceUpdated && pet.experience > initialExperience && req.body.level === undefined) {
+      const levelUpResult = gameLogic.checkLevelUp(pet);
+      console.log('Level up check result:', levelUpResult);
+    }
+    
     await pet.save();
-    res.status(200).json({ success: true, data: pet });
+    res.status(200).json({ 
+      success: true, 
+      data: pet
+    });
   } catch (err) {
     next(err);
   }
