@@ -675,7 +675,7 @@ export class BattleSystem extends Scene {
     createStatusBars() {
         const { width, height } = this.scale;
         this.statusGroup = this.add.group();
-        // Pet status (left side)
+        // Pet status (above pet)
         const petStats = this.petEntity.data.stats;
         const petHpBuff = this.petEntity.data.activeBuffs.stats.hp ? this.petEntity.data.activeBuffs.stats.hp : 0;
         const petSpBuff = this.petEntity.data.activeBuffs.stats.sp ? this.petEntity.data.activeBuffs.stats.sp : 0;
@@ -687,31 +687,33 @@ export class BattleSystem extends Scene {
         const petHpText = `HP: ${petStats.hp + petHpBuff}/${maxPetHP}`;
         const petSpText = `SP: ${petStats.sp + petSpBuff}/${maxPetSP}`;
         const petStatText = `ATK: ${petStats.atk + petAtkBuff}  DEF: ${petStats.def + petDefBuff}`;
-        this.petStatusBg = this.add.rectangle(30, this.scale.height - 80, 200, 90, 0x222222, 0.7)
-            .setOrigin(0, 0.5)
+        
+        // Position stats above pet (at position width * 0.3, height * 0.4)
+        this.petStatusBg = this.add.rectangle(width * 0.3, height * 0.4, 200, 90, 0x222222, 0.7)
+            .setOrigin(0.5, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        this.petNameText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y - 30, this.petEntity.data.name, {
+        this.petNameText = this.add.text(this.petStatusBg.x, this.petStatusBg.y - 30, this.petEntity.data.name, {
             fontFamily: 'Arial',
             fontSize: '18px',
             color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        this.petHpText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y - 10, petHpText, {
+        }).setOrigin(0.5, 0.5);
+        this.petHpText = this.add.text(this.petStatusBg.x, this.petStatusBg.y - 10, petHpText, {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#ff8080'
-        }).setOrigin(0, 0.5);
-        this.petSpText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y + 10, petSpText, {
+        }).setOrigin(0.5, 0.5);
+        this.petSpText = this.add.text(this.petStatusBg.x, this.petStatusBg.y + 10, petSpText, {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#80a0ff'
-        }).setOrigin(0, 0.5);
-        this.petStatText = this.add.text(this.petStatusBg.x + 10, this.petStatusBg.y + 30, petStatText, {
+        }).setOrigin(0.5, 0.5);
+        this.petStatText = this.add.text(this.petStatusBg.x, this.petStatusBg.y + 30, petStatText, {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#ffffff'
-        }).setOrigin(0, 0.5);
+        }).setOrigin(0.5, 0.5);
         
-        // Enemy status (right side)
+        // Enemy status (above enemy)
         const enemyStats = this.enemyEntity.data.stats;
         const enemyHpBuff = this.enemyEntity.data.activeBuffs.stats.hp ? this.enemyEntity.data.activeBuffs.stats.hp : 0;
         const enemySpBuff = this.enemyEntity.data.activeBuffs.stats.sp ? this.enemyEntity.data.activeBuffs.stats.sp : 0;
@@ -723,29 +725,31 @@ export class BattleSystem extends Scene {
         const enemyHpText = `HP: ${enemyStats.hp + enemyHpBuff}/${maxEnemyHP}`;
         const enemySpText = `SP: ${enemyStats.sp + enemySpBuff}/${maxEnemySP}`;
         const enemyStatText = `ATK: ${enemyStats.atk + enemyAtkBuff}  DEF: ${enemyStats.def + enemyDefBuff}`;
-        this.enemyStatusBg = this.add.rectangle(this.scale.width - 30, 80, 200, 90, 0x222222, 0.7)
-            .setOrigin(1, 0.5)
+        
+        // Position stats above enemy (at position width * 0.7, height * 0.4)
+        this.enemyStatusBg = this.add.rectangle(width * 0.7, height * 0.4, 200, 90, 0x222222, 0.7)
+            .setOrigin(0.5, 0.5)
             .setStrokeStyle(1, 0xaaaaaa);
-        this.enemyNameText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y - 30, this.enemyEntity.data.name, {
+        this.enemyNameText = this.add.text(this.enemyStatusBg.x, this.enemyStatusBg.y - 30, this.enemyEntity.data.name, {
             fontFamily: 'Arial',
             fontSize: '18px',
             color: '#ffffff'
-        }).setOrigin(1, 0.5);
-        this.enemyHpText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y - 10, enemyHpText, {
+        }).setOrigin(0.5, 0.5);
+        this.enemyHpText = this.add.text(this.enemyStatusBg.x, this.enemyStatusBg.y - 10, enemyHpText, {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#ff8080'
-        }).setOrigin(1, 0.5);
-        this.enemySpText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y + 10, enemySpText, {
+        }).setOrigin(0.5, 0.5);
+        this.enemySpText = this.add.text(this.enemyStatusBg.x, this.enemyStatusBg.y + 10, enemySpText, {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#80a0ff'
-        }).setOrigin(1, 0.5);
-        this.enemyStatText = this.add.text(this.enemyStatusBg.x - 10, this.enemyStatusBg.y + 30, enemyStatText, {
+        }).setOrigin(0.5, 0.5);
+        this.enemyStatText = this.add.text(this.enemyStatusBg.x, this.enemyStatusBg.y + 30, enemyStatText, {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#ffffff'
-        }).setOrigin(1, 0.5);
+        }).setOrigin(0.5, 0.5);
         
         // Add all to group for easy management
         this.statusGroup.add(this.petStatusBg);
@@ -791,13 +795,14 @@ export class BattleSystem extends Scene {
     createBattleLog() {
         const { width, height } = this.scale;
         
-        // Battle log background
-        this.battleLogBg = this.add.rectangle(width/2, height * 0.1, width * 0.8, 80, 0x222222, 0.8)
+        // Move battle log to the middle of the screen, above pet and enemy stats
+        // Position it below the top UI elements but above the pet/enemy stats display
+        this.battleLogBg = this.add.rectangle(width/2, height * 0.2, width * 0.8, 80, 0x222222, 0.8)
             .setOrigin(0.5)
             .setStrokeStyle(1, 0xaaaaaa);
             
         // Battle log text
-        this.battleLogText = this.add.text(width/2, height * 0.1, 'Preparing for battle...', {
+        this.battleLogText = this.add.text(width/2, height * 0.2, 'Preparing for battle...', {
             fontSize: '16px',
             color: '#ffff99',
             fontFamily: 'monospace',
