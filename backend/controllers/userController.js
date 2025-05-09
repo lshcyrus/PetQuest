@@ -1,4 +1,5 @@
 const User = require('../models/userModel.js');
+const Item = require('../models/itemModel.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -214,6 +215,97 @@ exports.updateUserGems = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating user gems:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Add battle reward items to user inventory
+// @route   POST /api/users/me/battle-rewards
+// @access  Private
+exports.addBattleRewards = async (req, res) => {
+  try {
+    // Check if items array is provided
+    const { items } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No items provided or invalid items format'
+      });
+    }
+    
+    // Find the user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    const addedItems = [];
+    
+    // Process each item from the rewards
+    for (const itemInfo of items) {
+      // Validate item info
+      if (!itemInfo.type || !itemInfo.rarity) {
+        console.warn('Invalid item info:', itemInfo);
+        continue;
+      }
+      
+      // Find a random item of the given type and rarity from the database
+      const matchingItems = await Item.find({
+        type: itemInfo.type,
+        rarity: itemInfo.rarity
+      });
+      
+      if (matchingItems.length === 0) {
+        console.warn(`No items found for type: ${itemInfo.type}, rarity: ${itemInfo.rarity}`);
+        continue;
+      }
+      
+      // Select a random item from the matching items
+      const selectedItem = matchingItems[Math.floor(Math.random() * matchingItems.length)];
+      
+      // Check if the item already exists in user's inventory
+      const existingItem = user.inventory.find(
+        inv => inv.item.toString() === selectedItem._id.toString()
+      );
+      
+      if (existingItem) {
+        // Increment quantity if item already exists
+        existingItem.quantity += 1;
+      } else {
+        // Add the new item to inventory
+        user.inventory.push({
+          item: selectedItem._id,
+          quantity: 1
+        });
+      }
+      
+      // Add to the list of successfully added items
+      addedItems.push({
+        name: selectedItem.name,
+        type: selectedItem.type,
+        rarity: selectedItem.rarity
+      });
+    }
+    
+    // Save the updated user
+    await user.save();
+    
+    // Return the list of added items
+    return res.status(200).json({
+      success: true,
+      data: {
+        addedItems
+      }
+    });
+  } catch (error) {
+    console.error('Error adding battle rewards:', error);
     return res.status(500).json({
       success: false,
       error: 'Server Error'

@@ -148,4 +148,7 @@ router.put('/me/coins', protect, userController.updateUserCoins);
 // Add route to update user gems
 router.put('/me/gems', protect, userController.updateUserGems);
 
+// Add route to process battle rewards
+router.post('/me/battle-rewards', protect, userController.addBattleRewards);
+
 module.exports = router;

@@ -223,9 +223,73 @@ class BattleLogic {
     }
 
     generateDrops() {
-        // Generate random drops based on enemy
+        // Generate random drops based on enemy level and difficulty
         const enemyLevel = this.enemy.data.level || 1;
+        const difficulty = this.battleground.selectedDifficulty || 1;
         const drops = [];
+        
+        // Base drop chance (increases with enemy level and difficulty)
+        const dropChance = Math.min(0.7, 0.3 + (enemyLevel * 0.05) + (difficulty * 0.1));
+        
+        // Determine if we get any item drops
+        if (Math.random() < dropChance) {
+            // Item types available as drops
+            const itemTypes = ['medicine', 'equipment', 'food'];
+            const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            
+            // Determine item rarity based on difficulty
+            // Higher difficulty = better chance for rare items
+            let rarityChances;
+            
+            switch(difficulty) {
+                case 3: // Hard difficulty
+                    rarityChances = {
+                        common: 0.4,
+                        uncommon: 0.35,
+                        rare: 0.2,
+                        legendary: 0.05
+                    };
+                    break;
+                case 2: // Medium difficulty
+                    rarityChances = {
+                        common: 0.5,
+                        uncommon: 0.35,
+                        rare: 0.15,
+                        legendary: 0.0 // No legendary drops on medium
+                    };
+                    break;
+                case 1: // Easy difficulty
+                default:
+                    rarityChances = {
+                        common: 0.7,
+                        uncommon: 0.25,
+                        rare: 0.05, 
+                        legendary: 0.0 // No legendary drops on easy
+                    };
+                    break;
+            }
+            
+            // Determine the rarity of the drop
+            const rarityRoll = Math.random();
+            let selectedRarity;
+            let cumulativeChance = 0;
+            
+            for (const [rarity, chance] of Object.entries(rarityChances)) {
+                cumulativeChance += chance;
+                if (rarityRoll <= cumulativeChance) {
+                    selectedRarity = rarity;
+                    break;
+                }
+            }
+            
+            // Add the item drop to the list with type and rarity
+            // The actual item will be determined by the backend
+            drops.push({
+                type: selectedType,
+                rarity: selectedRarity,
+                id: `${selectedType}_${selectedRarity}_drop`
+            });
+        }
         
         return drops;
     }
@@ -1021,6 +1085,11 @@ export class BattleSystem extends Scene {
             // Check for level up
             this.checkPetLevelUp();
             
+            // Generate item drops based on enemy level and difficulty
+            this.battleLogic.battleground = this.levelData || { selectedDifficulty: 1 };
+            const itemDrops = this.battleLogic.generateDrops();
+            this.itemsGained = itemDrops;
+            
             // Clear any existing drops
             this.battleLogic.drops = [];
             
@@ -1031,6 +1100,15 @@ export class BattleSystem extends Scene {
             // Add gems to rewards list if any were gained
             if (this.gemsGained > 0) {
                 this.battleLogic.drops.push(`${this.gemsGained} Gem${this.gemsGained > 1 ? 's' : ''}`);
+            }
+            
+            // Add item drops to the rewards list
+            if (this.itemsGained && this.itemsGained.length > 0) {
+                this.itemsGained.forEach(item => {
+                    // Format item names nicely
+                    const rarityDisplay = item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1);
+                    this.battleLogic.drops.push(`${rarityDisplay} ${item.type}`);
+                });
             }
             
             this.showResultPopup('victory', this.battleLogic.drops);
@@ -1238,6 +1316,58 @@ export class BattleSystem extends Scene {
                 }
             }
             
+            // Add item rewards to inventory if any were gained
+            if (this.itemsGained && this.itemsGained.length > 0) {
+                // Create a payload for the items to add
+                const itemsPayload = {
+                    items: this.itemsGained.map(item => ({
+                        type: item.type,
+                        rarity: item.rarity
+                    }))
+                };
+                
+                // Send request to add battle reward items to inventory
+                try {
+                    const itemsResponse = await fetch(`${API_URL}/users/me/battle-rewards`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(itemsPayload)
+                    });
+                    
+                    const itemsData = await itemsResponse.json();
+                    if (itemsResponse.ok && itemsData.success) {
+                        console.log('Successfully added battle reward items to inventory', itemsData);
+                        
+                        // Update the UI with the actual items added (which might differ from requested items)
+                        if (itemsData.data && itemsData.data.addedItems && itemsData.data.addedItems.length > 0) {
+                            // If we're showing the battle results, update the items list
+                            if (this.resultPopup && this.resultPopup.visible) {
+                                // Filter out the generic item messages
+                                this.battleLogic.drops = this.battleLogic.drops.filter(msg => 
+                                    !msg.includes('Common') && 
+                                    !msg.includes('Uncommon') && 
+                                    !msg.includes('Rare') && 
+                                    !msg.includes('Legendary'));
+                                
+                                // Add the actual items received
+                                itemsData.data.addedItems.forEach(item => {
+                                    const itemName = item.name.replace(/\b\w/g, l => l.toUpperCase());
+                                    this.battleLogic.drops.push(`${itemName} (${item.rarity})`);
+                                });
+                                
+                                // Update the result popup text
+                                this.updateBattleRewardsDisplay();
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to add battle reward items to inventory:', error);
+                }
+            }
+            
             // Update the global context with all changes
             if (globalContext) {
                 // Update pet data with complete fresh data, maintaining separation of current/max values
@@ -1264,6 +1394,32 @@ export class BattleSystem extends Scene {
         } catch (err) {
             console.error('Failed to update pet stats/attributes/coins/gems after battle:', err);
         }
+    }
+    
+    // New method to update the battle rewards display
+    updateBattleRewardsDisplay() {
+        if (!this.resultPopup || !this.resultPopup.visible) return;
+        
+        // Format rewards nicely
+        const rewards = this.battleLogic.drops;
+        const itemRewards = rewards.filter(r => !r.includes('EXP') && !r.includes('Coin') && !r.includes('Gem'));
+        const expGold = rewards.filter(r => r.includes('EXP') || r.includes('Coin') || r.includes('Gem'));
+        
+        let rewardText = '';
+        
+        // Add experience and gold first
+        if (expGold.length > 0) {
+            rewardText += expGold.join('\n') + '\n';
+        }
+        
+        // Add items if any
+        if (itemRewards.length > 0) {
+            rewardText += itemRewards.length > 0 ? 
+                '\nItems:\n' + itemRewards.join('\n') : '';
+        }
+        
+        // Update the popup text
+        this.resultDetails.setText(rewardText || 'You defeated the enemy!');
     }
     
     async handleBattleEnd() {
