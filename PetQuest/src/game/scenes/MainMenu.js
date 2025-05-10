@@ -1540,33 +1540,33 @@ export class MainMenu extends Scene {
         // Set a flag in localStorage to show this screen on next login
         this.markPetAsLeftForUser();
         
-        // Add a reset button for users who are seeing this erroneously
-        const resetButtonX = width - 120;
-        const resetButtonY = height - 40;
-        const resetButton = this.add.rectangle(resetButtonX, resetButtonY, 100, 40, 0x555555)
+        // Add a return button for users
+        const returnButtonX = width - 120;
+        const returnButtonY = height - 40;
+        const returnButton = this.add.rectangle(returnButtonX, returnButtonY, 100, 40, 0x555555)
             .setStrokeStyle(2, 0xaaaaaa)
             .setOrigin(0.5)
             .setDepth(101)
             .setInteractive({ useHandCursor: true });
             
-        const resetText = this.add.text(resetButtonX, resetButtonY, 'RETURN', {
+        const returnText = this.add.text(returnButtonX, returnButtonY, 'RETURN', {
             fontFamily: '"Silkscreen", cursive',
             fontSize: '16px',
             color: '#aaaaaa'
         }).setOrigin(0.5).setDepth(101);
         
         // Add hover effect
-        resetButton.on('pointerover', () => {
-            resetButton.fillColor = 0x777777;
+        returnButton.on('pointerover', () => {
+            returnButton.fillColor = 0x777777;
         });
         
-        resetButton.on('pointerout', () => {
-            resetButton.fillColor = 0x555555;
+        returnButton.on('pointerout', () => {
+            returnButton.fillColor = 0x555555;
         });
         
         // Add click handler to reset the flag
-        resetButton.on('pointerdown', () => {
-            this.resetPetLeftFlag();
+        returnButton.on('pointerdown', () => {
+            this.returnToLogin();
         });
         
         // Add version info to help with troubleshooting

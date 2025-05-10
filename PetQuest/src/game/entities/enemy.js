@@ -187,17 +187,40 @@ export class Enemy extends Phaser.GameObjects.Container {
             case 'attack': {
                 // Attempt to use the attack animation if it exists
                 const animKey = `${enemyKey}_attack`;
-                if (!scene.anims.exists(animKey)) {
-                    scene.anims.create({
-                        key: animKey,
-                        frames: scene.anims.generateFrameNumbers(enemyKey, { start: 4, end: 7 }),
-                        frameRate: 10,
-                        repeat: 0
-                    });
+                const animKeyAtk = `${enemyKey}_atk`; // Alternate format
+                
+                // Try to find or create the appropriate animation
+                if (!scene.anims.exists(animKey) && !scene.anims.exists(animKeyAtk)) {
+                    // Check if we have a dedicated attack spritesheet
+                    if (scene.textures.exists(animKey)) {
+                        console.log(`Creating enemy attack animation from dedicated spritesheet: ${animKey}`);
+                        scene.anims.create({
+                            key: animKey,
+                            frames: scene.anims.generateFrameNumbers(animKey, { start: 0, end: 3 }),
+                            frameRate: 10,
+                            repeat: 0
+                        });
+                    } 
+                    // Fall back to using frames from idle spritesheet
+                    else if (scene.textures.exists(enemyKey)) {
+                        console.log(`Creating enemy attack animation from idle spritesheet: ${enemyKey}`);
+                        scene.anims.create({
+                            key: animKey, 
+                            frames: scene.anims.generateFrameNumbers(enemyKey, { start: 0, end: 3 }),
+                            frameRate: 10,
+                            repeat: 0
+                        });
+                    }
                 }
                 
-                // Play the attack animation
-                this.sprite.play(animKey);
+                // Play the animation (try both naming conventions)
+                if (scene.anims.exists(animKey)) {
+                    this.sprite.play(animKey);
+                } else if (scene.anims.exists(animKeyAtk)) {
+                    this.sprite.play(animKeyAtk);
+                } else {
+                    console.warn(`No attack animation found for ${enemyKey}`);
+                }
                 
                 // Add a visual effect for the attack - flash and lunge forward
                 const originalX = this.sprite.x;
@@ -226,34 +249,38 @@ export class Enemy extends Phaser.GameObjects.Container {
                         slash.stroke();
                         this._effectOverlay = slash;
                         
-                        // Move back after delay
-                        scene.time.delayedCall(100, () => {
-                            scene.tweens.add({
-                                targets: this.sprite,
-                                x: originalX,
-                                duration: 150,
-                                ease: 'Power1',
-                                onComplete: () => {
-                                    // Fade out the slash effect
-                                    if (slash) {
-                                        scene.tweens.add({
-                                            targets: slash,
-                                            alpha: 0,
-                                            duration: 200,
-                                            onComplete: () => {
-                                                if (slash && !slash.destroyed) {
-                                                    slash.destroy();
-                                                }
-                                            }
-                                        });
-                                    }
-                                    // Return to idle
-                                    playIdle(300);
-                                }
-                            });
+                        // Add a fire effect
+                        const fireText = scene.add.text(
+                            slashX, 
+                            this.sprite.y, 
+                            '🔥', 
+                            { fontSize: '24px' }
+                        ).setOrigin(0.5);
+                        
+                        // Fade out attack effects and move back
+                        scene.tweens.add({
+                            targets: [slash, fireText],
+                            alpha: 0,
+                            duration: 300,
+                            delay: 200, 
+                            onComplete: () => {
+                                if (slash && !slash.destroyed) slash.destroy();
+                                if (fireText && !fireText.destroyed) fireText.destroy();
+                                
+                                // Return to original position
+                                scene.tweens.add({
+                                    targets: this.sprite,
+                                    x: originalX,
+                                    duration: 150,
+                                    ease: 'Power1'
+                                });
+                            }
                         });
                     }
                 });
+                
+                // Return to idle animation after the attack completes
+                playIdle(1000);
                 break;
             }
             case 'hurt': {

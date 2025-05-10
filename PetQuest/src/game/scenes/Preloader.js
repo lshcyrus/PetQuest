@@ -158,11 +158,13 @@ export class Preloader extends Scene {
         // Load pet attack animations
         console.log('Loading pet attack animations');
         const petAttacks = [
-            { key: 'dino_rex_attack', path: 'Pet_Dino Rex/dino_rex_attack.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'badger_attack', path: 'Pet_Badger/badger_attack.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'dino_tri_attack', path: 'Pet_Dino Tri/dino_tri_attack.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'frogger_attack', path: 'Pet_Frogger/frogger_attack.png', frameWidth: 128, frameHeight: 128 },
-            { key: 'pengu_attack', path: 'Pet_Pengu/pengu_attack.png', frameWidth: 128, frameHeight: 128 }
+            { key: 'dino_rex_attack', path: 'Pet_Dino Rex/dino_rex_attack.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'badger_attack', path: 'Pet_Badger/badger_attack.png', frameWidth: 384, frameHeight: 128 },
+            // Special case for Dino Tri which has split attack files
+            { key: 'dino_tri_attack_A', path: 'Pet_Dino Tri/dino_tri_attack_A.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_attack_B', path: 'Pet_Dino Tri/dino_tri_attack_B.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'frogger_attack', path: 'Pet_Frogger/frogger_attack.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_attack', path: 'Pet_Pengu/pengu_attack.png', frameWidth: 384, frameHeight: 128 }
         ];
         
         petAttacks.forEach(attack => {
@@ -178,24 +180,21 @@ export class Preloader extends Scene {
         this.load.spritesheet('gorgon_hurt', 'Enemy_Gorgon/Gorgan_hurt.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('gorgon_die', 'Enemy_Gorgon/Gorgan_die.png', { frameWidth: 128, frameHeight: 128 });
         
-        // Add fallback for Gorgon attack with _atk suffix for compatibility
-        this.load.spritesheet('gorgon_atk', 'Enemy_Gorgon/Gorgan_attack.png', { frameWidth: 128, frameHeight: 128 });
-        
         // Fix for Blue Golem sprites - adjusted dimensions based on file structure
         console.log('Loading Blue Golem sprites with adjusted dimensions');
-        this.load.spritesheet('blue_golem_idle', 'Enemy_Blue Golem/Blue Golem_idle.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('blue_golem_walk', 'Enemy_Blue Golem/Blue Golem_walk.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('blue_golem_attack', 'Enemy_Blue Golem/Blue Golem_attack.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('blue_golem_hurt', 'Enemy_Blue Golem/Blue Golem_hurt.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('blue_golem_die', 'Enemy_Blue Golem/Blue Golem_die.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_idle', 'Enemy_Blue Golem/Blue Golem_idle.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_walk', 'Enemy_Blue Golem/Blue Golem_walk.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_attack', 'Enemy_Blue Golem/Blue Golem_attack.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_hurt', 'Enemy_Blue Golem/Blue Golem_hurt.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('blue_golem_die', 'Enemy_Blue Golem/Blue Golem_die.png', { frameWidth: 90, frameHeight: 64 });
         
         // Fix for Orange Golem sprites - adjusted dimensions based on file structure
         console.log('Loading Orange Golem sprites with adjusted dimensions');
-        this.load.spritesheet('orange_golem_idle', 'Enemy_Orange Golem/Orange Golem_idle.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('orange_golem_walk', 'Enemy_Orange Golem/Orange Golem_walk.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('orange_golem_attack', 'Enemy_Orange Golem/Orange Golem_attack.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('orange_golem_hurt', 'Enemy_Orange Golem/Orange Golem_hurt.png', { frameWidth: 64, frameHeight: 64 });
-        this.load.spritesheet('orange_golem_die', 'Enemy_Orange Golem/Orange Golem_die.png', { frameWidth: 64, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_idle', 'Enemy_Orange Golem/Orange Golem_idle.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_walk', 'Enemy_Orange Golem/Orange Golem_walk.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_attack', 'Enemy_Orange Golem/Orange Golem_attack.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_hurt', 'Enemy_Orange Golem/Orange Golem_hurt.png', { frameWidth: 90, frameHeight: 64 });
+        this.load.spritesheet('orange_golem_die', 'Enemy_Orange Golem/Orange Golem_die.png', { frameWidth: 90, frameHeight: 64 });
 
         // Add error handling for sprite loading
         this.load.on('filecomplete', (key, type, data) => {

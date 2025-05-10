@@ -410,10 +410,42 @@ export class Pet {
                     const attackAnimKey = `${petKey}_atk`;
                     let usingCustomAnim = false;
                     
+                    // Check for the regular attack animation first
                     if (scene.anims.exists(attackAnimKey)) {
+                        console.log(`Playing existing attack animation: ${attackAnimKey}`);
                         this.sprite.play(attackAnimKey);
                         usingCustomAnim = true;
-                    } else {
+                    } 
+                    // Check if we need to create an animation from a separate attack spritesheet
+                    else if (scene.textures.exists(`${petKey}_attack`)) {
+                        console.log(`Creating attack animation from spritesheet: ${petKey}_attack`);
+                        scene.anims.create({
+                            key: attackAnimKey,
+                            frames: scene.anims.generateFrameNumbers(`${petKey}_attack`, { start: 0, end: 3 }),
+                            frameRate: 10,
+                            repeat: 0
+                        });
+                        this.sprite.play(attackAnimKey);
+                        usingCustomAnim = true;
+                    }
+                    // Check if we need to create from split A/B attack spritesheets (e.g. Dino Tri)
+                    else if (scene.textures.exists(`${petKey}_attack_A`) && scene.textures.exists(`${petKey}_attack_B`)) {
+                        console.log(`Creating attack animation from A/B spritesheets: ${petKey}_attack_A/B`);
+                        scene.anims.create({
+                            key: attackAnimKey,
+                            frames: [
+                                { key: `${petKey}_attack_A`, frame: 0 },
+                                { key: `${petKey}_attack_A`, frame: 1 },
+                                { key: `${petKey}_attack_B`, frame: 0 },
+                                { key: `${petKey}_attack_B`, frame: 1 }
+                            ],
+                            frameRate: 10,
+                            repeat: 0
+                        });
+                        this.sprite.play(attackAnimKey);
+                        usingCustomAnim = true;
+                    }
+                    else {
                         console.log(`No custom attack animation found for ${petKey}, using fallback animation`);
                     }
                     
@@ -421,7 +453,7 @@ export class Pet {
                     const attackMovement = this.sprite.flipX ? -30 : 30; // Movement direction based on flip
                     
                     // Optional attack effect - glowing outline
-                    this.sprite.setTint(0x00aaff); // Blue glow for pet attack
+                    this.sprite.setTint(0x00aaff);
                     
                     // Move forward quickly
                     scene.tweens.add({
@@ -448,46 +480,32 @@ export class Pet {
                                 slashX, 
                                 this.sprite.y, 
                                 '✦', 
-                                {
-                                    fontSize: '32px',
-                                    color: '#00ffff'
-                                }
+                                { fontSize: '24px', color: '#66ffff' }
                             ).setOrigin(0.5);
-                            this._effectText = sparkleText;
                             
-                            // Move back after delay
-                            scene.time.delayedCall(100, () => {
-                                scene.tweens.add({
-                                    targets: this.sprite,
-                                    x: originalX,
-                                    duration: 150,
-                                    ease: 'Power1',
-                                    onComplete: () => {
-                                        // Fade out the slash effect
-                                        if (slash) {
-                                            scene.tweens.add({
-                                                targets: [slash, sparkleText],
-                                                alpha: 0,
-                                                duration: 200,
-                                                onComplete: () => {
-                                                    if (slash && !slash.destroyed) {
-                                                        slash.destroy();
-                                                    }
-                                                    if (sparkleText && !sparkleText.destroyed) {
-                                                        sparkleText.destroy();
-                                                    }
-                                                }
-                                            });
-                                        }
-                                        // Return to idle
-                                        playIdle(50);
-                                    }
-                                });
+                            scene.tweens.add({
+                                targets: [slash, sparkleText],
+                                alpha: 0,
+                                duration: 300,
+                                delay: 200,
+                                onComplete: () => {
+                                    if (slash && !slash.destroyed) slash.destroy();
+                                    if (sparkleText && !sparkleText.destroyed) sparkleText.destroy();
+                                    
+                                    // Return to original position
+                                    scene.tweens.add({
+                                        targets: this.sprite,
+                                        x: originalX,
+                                        duration: 150,
+                                        ease: 'Power1'
+                                    });
+                                }
                             });
                         }
                     });
-                } else {
-                    playIdle(50); // Fallback if no sprite
+                    
+                    // Return to idle animation after the attack completes
+                    playIdle(1000);
                 }
                 break;
             }
