@@ -24,16 +24,22 @@ export class MainMenu extends Scene {
             this.username = globalContext.userData.username || 'Player';
             this.petData = globalContext.userData.selectedPet;
             
+            // Check for user-specific pet left flag
+            const token = localStorage.getItem('token');
+            const userId = this.getUserIdFromToken(token);
+            const userSpecificFlag = userId ? localStorage.getItem(`petHasLeft_${userId}`) === 'true' : false;
+            
             // Log user data including coins
             console.log(`MainMenu - User data loaded:`, {
                 username: this.username,
+                userId: userId || 'unknown',
                 coins: globalContext.userData.coins,
                 hasSelectedPet: globalContext.userData.hasSelectedPet,
-                petHasLeft: globalContext.userData.petHasLeft || false
+                petHasLeft: globalContext.userData.petHasLeft || userSpecificFlag || false
             });
             
-            // Check if pet has left flag is set
-            if (globalContext.userData.petHasLeft || localStorage.getItem('petHasLeft') === 'true') {
+            // Check if pet has left flag is set, using user-specific localStorage flag or global context
+            if (globalContext.userData.petHasLeft || userSpecificFlag) {
                 console.log('Pet has left flag detected during init');
                 
                 // We'll set a flag to show the leaving screen after create
@@ -1457,7 +1463,7 @@ export class MainMenu extends Scene {
         const { width, height } = this.scale;
         const centerX = width / 2;
         const centerY = height / 2;
-        const petName = this.petData.name;
+        const petName = this.petData ? this.petData.name : 'Your pet';
         
         // Create a dark background
         this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.9)
@@ -1534,6 +1540,42 @@ export class MainMenu extends Scene {
         // Set a flag in localStorage to show this screen on next login
         this.markPetAsLeftForUser();
         
+        // Add a reset button for users who are seeing this erroneously
+        const resetButtonX = width - 120;
+        const resetButtonY = height - 40;
+        const resetButton = this.add.rectangle(resetButtonX, resetButtonY, 100, 40, 0x555555)
+            .setStrokeStyle(2, 0xaaaaaa)
+            .setOrigin(0.5)
+            .setDepth(101)
+            .setInteractive({ useHandCursor: true });
+            
+        const resetText = this.add.text(resetButtonX, resetButtonY, 'RETURN', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '16px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5).setDepth(101);
+        
+        // Add hover effect
+        resetButton.on('pointerover', () => {
+            resetButton.fillColor = 0x777777;
+        });
+        
+        resetButton.on('pointerout', () => {
+            resetButton.fillColor = 0x555555;
+        });
+        
+        // Add click handler to reset the flag
+        resetButton.on('pointerdown', () => {
+            this.resetPetLeftFlag();
+        });
+        
+        // Add version info to help with troubleshooting
+        const version = import.meta.env.VITE_APP_VERSION || '1.0.0';
+        this.add.text(10, height - 10, `v${version}`, {
+            fontSize: '12px',
+            color: '#666666'
+        }).setOrigin(0, 1).setDepth(101);
+        
         // Start countdown to return to login
         let countdown = 10;
         const countdownTimer = this.time.addEvent({
@@ -1555,8 +1597,15 @@ export class MainMenu extends Scene {
     // Mark the pet as having left in localStorage and global context
     markPetAsLeftForUser() {
         try {
-            // Set a flag in localStorage that pet has left
-            localStorage.setItem('petHasLeft', 'true');
+            // Get current user info
+            const token = localStorage.getItem('token');
+            const userId = this.getUserIdFromToken(token);
+            
+            // Use user-specific flag in localStorage
+            if (userId) {
+                localStorage.setItem(`petHasLeft_${userId}`, 'true');
+                console.log(`Set petHasLeft flag for user ${userId}`);
+            }
             
             // Update global context
             const globalContext = getGlobalContext();
@@ -1580,13 +1629,39 @@ export class MainMenu extends Scene {
     
     // Return to login page
     returnToLogin() {
-        // Clear token but keep the petHasLeft flag
-        const petHasLeft = localStorage.getItem('petHasLeft');
+        // Keep the petHasLeft flag for this specific user
+        const token = localStorage.getItem('token');
+        const userId = this.getUserIdFromToken(token);
+        const petHasLeftFlag = userId ? localStorage.getItem(`petHasLeft_${userId}`) : null;
+        
+        // Clear token and other data
         localStorage.clear();
-        localStorage.setItem('petHasLeft', petHasLeft || 'true');
+        
+        // Restore the user-specific flag
+        if (userId && petHasLeftFlag) {
+            localStorage.setItem(`petHasLeft_${userId}`, petHasLeftFlag);
+        }
         
         // Redirect to login page
         window.location.href = '/';
+    }
+
+    // Helper method to extract user ID from token for flag storage
+    getUserIdFromToken(token) {
+        if (!token) return null;
+        
+        try {
+            // JWT tokens have three parts separated by dots
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            
+            // The middle part contains the payload
+            const payload = JSON.parse(atob(parts[1]));
+            return payload.id || payload._id || payload.userId || null;
+        } catch (err) {
+            console.error('Error extracting user ID from token:', err);
+            return null;
+        }
     }
 
     // Function to clear all game elements except those needed for the final screen
@@ -1691,5 +1766,31 @@ export class MainMenu extends Scene {
         }
         
         return false;
+    }
+
+    // In case the user is seeing this erroneously, add a function to reset
+    resetPetLeftFlag() {
+        try {
+            // Get current user info
+            const token = localStorage.getItem('token');
+            const userId = this.getUserIdFromToken(token);
+            
+            // Remove user-specific flag in localStorage
+            if (userId) {
+                localStorage.removeItem(`petHasLeft_${userId}`);
+                console.log(`Removed petHasLeft flag for user ${userId}`);
+            }
+            
+            // Update global context if available
+            const globalContext = getGlobalContext();
+            if (globalContext && globalContext.userData) {
+                globalContext.userData.petHasLeft = false;
+            }
+            
+            // Force reload the page
+            window.location.reload();
+        } catch (err) {
+            console.error('Error resetting pet left flag:', err);
+        }
     }
 }
