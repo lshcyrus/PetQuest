@@ -1294,9 +1294,9 @@ export class BattleSystem extends Scene {
             this.petData.stats.hp = this.petEntity.data.stats.maxhp || this.petEntity.data.stats.hp;
             this.petData.stats.sp = this.petEntity.data.stats.maxsp || this.petEntity.data.stats.sp;
             
-            // Set ATK/DEF (without buffs)
-            this.petData.stats.atk = this.petEntity.data.stats.atk - atkBuff;
-            this.petData.stats.def = this.petEntity.data.stats.def - defBuff;
+            // Set ATK/DEF (these are base + equipment + permanent buffs, excluding temporary battle buffs)
+            this.petData.stats.atk = this.petEntity.data.stats.atk;
+            this.petData.stats.def = this.petEntity.data.stats.def;
             
             console.log('Pet stats consistency check:');
             console.log(`Current HP: ${this.petData.currentHP}, Max HP: ${this.petData.stats.hp}`);
