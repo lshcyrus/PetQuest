@@ -11,6 +11,7 @@ export class MainMenu extends Scene {
     pet;
     username;
     hasShownHappinessWarning = false;
+    shouldShowPetLeftScreen = false;
 
     constructor() {
         super('MainMenu');
@@ -27,8 +28,17 @@ export class MainMenu extends Scene {
             console.log(`MainMenu - User data loaded:`, {
                 username: this.username,
                 coins: globalContext.userData.coins,
-                hasSelectedPet: globalContext.userData.hasSelectedPet
+                hasSelectedPet: globalContext.userData.hasSelectedPet,
+                petHasLeft: globalContext.userData.petHasLeft || false
             });
+            
+            // Check if pet has left flag is set
+            if (globalContext.userData.petHasLeft || localStorage.getItem('petHasLeft') === 'true') {
+                console.log('Pet has left flag detected during init');
+                
+                // We'll set a flag to show the leaving screen after create
+                this.shouldShowPetLeftScreen = true;
+            }
             
             // Log which pet is being loaded
             if (this.petData) {
@@ -44,6 +54,19 @@ export class MainMenu extends Scene {
     }
 
     create() {
+        // Check if we should show the pet left screen immediately
+        if (this.shouldShowPetLeftScreen) {
+            console.log('Showing pet left screen on create');
+            // Create minimal UI first
+            this.setupBackground();
+            
+            // Then immediately show the pet left screen
+            this.time.delayedCall(100, () => {
+                this.showPetLeavingScreen();
+            });
+            return;
+        }
+        
         this.setupBackground();
         this.setupUI();
         this.setupPet();
@@ -69,6 +92,9 @@ export class MainMenu extends Scene {
             this.setupLandscapeLayout();
         }
         
+        // Check happiness immediately after scene creation
+        this.checkHappinessLevel();
+        
         EventBus.emit('current-scene-ready', this);
     }
 
@@ -79,6 +105,29 @@ export class MainMenu extends Scene {
         // Get global context
         const globalContext = getGlobalContext();
         const shouldRefresh = globalContext?.userData?.shouldRefreshPet || false;
+        const petIsLeaving = globalContext?.userData?.petIsLeaving || false;
+        
+        // Check if pet is leaving immediately (happiness = 0)
+        if (petIsLeaving) {
+            console.log('Pet is leaving flag detected, showing leaving screen');
+            
+            // Clear the flag immediately
+            if (globalContext) {
+                globalContext.userData.petIsLeaving = false;
+            }
+            
+            // Always refresh data first to ensure we have the latest
+            this.refreshPetData().then(() => {
+                // Show the pet leaving screen
+                this.showPetLeavingScreen();
+            }).catch(err => {
+                console.error('Error refreshing pet data:', err);
+                // Show the pet leaving screen anyway
+                this.showPetLeavingScreen();
+            });
+            
+            return; // Stop here, don't do normal refresh
+        }
         
         if (shouldRefresh) {
             console.log('Force refresh flag detected, fetching fresh pet data');
@@ -92,6 +141,9 @@ export class MainMenu extends Scene {
         this.refreshPetData().then(() => {
             // Refresh UI with updated pet data
             this.refreshUI();
+            
+            // Check happiness immediately after refreshing
+            this.checkHappinessLevel();
         }).catch(err => {
             console.error('Error refreshing pet data:', err);
         });
@@ -246,8 +298,6 @@ export class MainMenu extends Scene {
                 duration: 100,
                 yoyo: true,
                 onComplete: () => {
-                    // Check happiness before starting battle
-                    this.checkHappinessLevel();
                     this.changeScene();
                 }
             });
@@ -838,18 +888,9 @@ export class MainMenu extends Scene {
     async handleFeed() {
         console.log('Feed button clicked');
         
-        // Check happiness first
-        this.checkHappinessLevel();
-        
         // Check if the pet is already full (hunger = 0)
         if (this.petData.attributes.hunger <= 0) {
             this.showToast('Pet is already full!');
-            return;
-        }
-        
-        // Check if stamina is already full
-        if (this.petData.attributes.stamina >= 100) {
-            this.showToast('Stamina already full!');
             return;
         }
         
@@ -886,9 +927,6 @@ export class MainMenu extends Scene {
     async handlePlay() {
         console.log('Play button clicked');
         
-        // Check happiness first
-        this.checkHappinessLevel();
-        
         // Show inventory modal for toy selection
         const modal = new InventoryModal(this, {
             actionType: 'play',
@@ -921,9 +959,6 @@ export class MainMenu extends Scene {
 
     async handleTrain() {
         console.log('Train button clicked');
-        
-        // Check happiness first
-        this.checkHappinessLevel();
         
         // Check if pet has enough stamina
         if (this.petData.attributes && this.petData.attributes.stamina < 10) {
@@ -965,9 +1000,6 @@ export class MainMenu extends Scene {
 
     async handleMedicine() {
         console.log('Medicine button clicked');
-        
-        // Check happiness first
-        this.checkHappinessLevel();
         
         // Get current HP and SP values
         const maxHP = this.petData.stats.hp || 100;
@@ -1078,9 +1110,6 @@ export class MainMenu extends Scene {
     async handleOutdoor() {
         console.log('Outdoor button clicked');
         
-        // Check happiness first
-        this.checkHappinessLevel();
-        
         // Play animation immediately
         if (this.pet && typeof this.pet.playAnimation === 'function' && this.petData.attributes.stamina >= 50) {
             this.pet.playAnimation('outdoor');
@@ -1135,9 +1164,6 @@ export class MainMenu extends Scene {
     async handleInventory() {
         console.log('Inventory button clicked');
 
-        // Check happiness first
-        this.checkHappinessLevel();
-
         const modal = new InventoryModal(this, {
             actionType: 'view',
             onItemSelect: () => {}, // Just view, no select behavior
@@ -1151,9 +1177,6 @@ export class MainMenu extends Scene {
 
     async handleShop() {
         console.log('Shop button clicked');
-        
-        // Check happiness first
-        this.checkHappinessLevel();
         
         // Import the ShopModal dynamically
         const { ShopModal } = await import('./ShopModal');
@@ -1317,6 +1340,12 @@ export class MainMenu extends Scene {
 
         const happiness = this.petData.attributes.happiness;
         
+        // If happiness is 0, show goodbye screen and delete account
+        if (happiness === 0) {
+            this.showPetLeavingScreen();
+            return;
+        }
+        
         // Show warning modal when happiness is at or below 50
         if (happiness <= 50) {
             // Only show once per session using a flag
@@ -1420,6 +1449,191 @@ export class MainMenu extends Scene {
         });
     }
 
+    // Show the final screen when pet is leaving (happiness = 0)
+    showPetLeavingScreen() {
+        // Clear existing screen elements to only show happiness bar and message
+        this.clearGameScreen();
+        
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const petName = this.petData.name;
+        
+        // Create a dark background
+        this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.9)
+            .setOrigin(0)
+            .setDepth(100);
+            
+        // Create a frame for the happiness bar
+        const barWidth = Math.min(width * 0.7, 400);
+        const barHeight = 30;
+        const barX = centerX - barWidth / 2;
+        const barY = height * 0.3;
+        
+        // Bar background (empty)
+        this.add.rectangle(barX, barY, barWidth, barHeight, 0x333333)
+            .setStrokeStyle(2, 0xffffff)
+            .setOrigin(0, 0.5)
+            .setDepth(101);
+            
+        // Bar fill (will be empty since happiness is 0)
+        // Just showing the empty bar frame visually communicates the issue
+            
+        // Label for the bar
+        this.add.text(barX, barY - 25, `${petName}'s Happiness: 0`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '18px',
+            color: '#ff5555',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(101);
+        
+        // Sad emoji for visual impact
+        this.add.text(centerX, height * 0.15, '😢', {
+            fontSize: '50px'
+        }).setOrigin(0.5).setDepth(101);
+        
+        // Create title text
+        const title = this.add.text(centerX, height * 0.4, `${petName} HAS LEFT YOU`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '32px',
+            color: '#ff5555',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(101);
+        
+        // Create educational message
+        const messageBox = this.add.rectangle(centerX, height * 0.6, width * 0.8, height * 0.3, 0x222222)
+            .setStrokeStyle(2, 0xff5555)
+            .setOrigin(0.5)
+            .setDepth(101);
+            
+        const message = this.add.text(centerX, height * 0.6, 
+            `Pets aren't just virtual companions, they reflect our real-world responsibilities to animals.\n\n` +
+            `In real life, pets deserve our love, care, and attention. They depend on us completely for their wellbeing.\n\n` +
+            `Remember: Adopt, don't shop. And provide your pets with proper food, healthcare, exercise, and affection.`,
+            {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#ffffff',
+                align: 'center',
+                wordWrap: { width: width * 0.75 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Create countdown text
+        const countdownText = this.add.text(centerX, height * 0.85, 'Returning to login page in 10 seconds', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '18px',
+            color: '#ff8888',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(101);
+        
+        // Set a flag in localStorage to show this screen on next login
+        this.markPetAsLeftForUser();
+        
+        // Start countdown to return to login
+        let countdown = 10;
+        const countdownTimer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                countdown--;
+                countdownText.setText(`Returning to login page in ${countdown} seconds`);
+                
+                if (countdown <= 0) {
+                    countdownTimer.remove();
+                    this.returnToLogin();
+                }
+            },
+            callbackScope: this,
+            loop: true
+        });
+    }
+    
+    // Mark the pet as having left in localStorage and global context
+    markPetAsLeftForUser() {
+        try {
+            // Set a flag in localStorage that pet has left
+            localStorage.setItem('petHasLeft', 'true');
+            
+            // Update global context
+            const globalContext = getGlobalContext();
+            if (globalContext && globalContext.userData) {
+                // Remove the pet from the user data but keep the account
+                if (globalContext.userData.selectedPet) {
+                    console.log(`Marking ${globalContext.userData.selectedPet.name} as having left the user`);
+                }
+                
+                // Set selected pet to null
+                globalContext.userData.selectedPet = null;
+                globalContext.userData.hasSelectedPet = false;
+                
+                // Set a flag in user data too
+                globalContext.userData.petHasLeft = true;
+            }
+        } catch (err) {
+            console.error('Error marking pet as left:', err);
+        }
+    }
+    
+    // Return to login page
+    returnToLogin() {
+        // Clear token but keep the petHasLeft flag
+        const petHasLeft = localStorage.getItem('petHasLeft');
+        localStorage.clear();
+        localStorage.setItem('petHasLeft', petHasLeft || 'true');
+        
+        // Redirect to login page
+        window.location.href = '/';
+    }
+
+    // Function to clear all game elements except those needed for the final screen
+    clearGameScreen() {
+        // Destroy pet sprite and UI elements
+        if (this.pet) {
+            this.pet.destroy();
+            this.pet = null;
+        }
+        
+        if (this.ui) {
+            Object.values(this.ui).forEach(element => {
+                if (element && element.destroy) {
+                    element.destroy();
+                }
+            });
+        }
+        
+        if (this.leftStatsPanel) {
+            this.leftStatsPanel.destroy();
+        }
+        
+        if (this.rightAttributesPanel) {
+            this.rightAttributesPanel.destroy();
+        }
+        
+        if (this.interactionButtons) {
+            this.interactionButtons.forEach(button => button.destroy());
+        }
+        
+        if (this.interactionButtonLabels) {
+            this.interactionButtonLabels.forEach(label => label.destroy());
+        }
+        
+        if (this.expBarBg) {
+            this.expBarBg.destroy();
+        }
+        
+        if (this.expBarFill) {
+            this.expBarFill.destroy();
+        }
+        
+        if (this.expBarText) {
+            this.expBarText.destroy();
+        }
+    }
+
     // Static method to be called from other scenes to check happiness and return to main menu if needed
     static checkHappinessAndReturnToMenu(scene) {
         if (!scene || !scene.scene) {
@@ -1436,8 +1650,29 @@ export class MainMenu extends Scene {
             return;
         }
         
-        // Check if happiness is at or below the warning threshold
+        // Check if happiness is at 0
         const happiness = petData.attributes.happiness;
+        if (happiness === 0) {
+            console.log(`Pet happiness is 0, returning to main menu for leaving sequence`);
+            
+            // Set flag to force refresh pet data on main menu
+            if (globalContext) {
+                globalContext.userData.shouldRefreshPet = true;
+                
+                // Set a special flag to indicate the pet is leaving
+                globalContext.userData.petIsLeaving = true;
+            }
+            
+            // Transition back to main menu
+            scene.cameras.main.fadeOut(500, 0, 0, 0);
+            scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                scene.scene.start('MainMenu');
+            });
+            
+            return true;
+        }
+        
+        // Check if happiness is at or below the warning threshold (but not 0)
         if (happiness <= 50) {
             console.log(`Pet happiness is ${happiness}, returning to main menu for warning`);
             
