@@ -10,6 +10,7 @@ export class MainMenu extends Scene {
     background;
     pet;
     username;
+    hasShownHappinessWarning = false;
 
     constructor() {
         super('MainMenu');
@@ -244,7 +245,11 @@ export class MainMenu extends Scene {
                 scale: 0.9,
                 duration: 100,
                 yoyo: true,
-                onComplete: () => this.changeScene()
+                onComplete: () => {
+                    // Check happiness before starting battle
+                    this.checkHappinessLevel();
+                    this.changeScene();
+                }
             });
         });
         
@@ -833,6 +838,9 @@ export class MainMenu extends Scene {
     async handleFeed() {
         console.log('Feed button clicked');
         
+        // Check happiness first
+        this.checkHappinessLevel();
+        
         // Check if the pet is already full (hunger = 0)
         if (this.petData.attributes.hunger <= 0) {
             this.showToast('Pet is already full!');
@@ -878,6 +886,9 @@ export class MainMenu extends Scene {
     async handlePlay() {
         console.log('Play button clicked');
         
+        // Check happiness first
+        this.checkHappinessLevel();
+        
         // Show inventory modal for toy selection
         const modal = new InventoryModal(this, {
             actionType: 'play',
@@ -910,6 +921,9 @@ export class MainMenu extends Scene {
 
     async handleTrain() {
         console.log('Train button clicked');
+        
+        // Check happiness first
+        this.checkHappinessLevel();
         
         // Check if pet has enough stamina
         if (this.petData.attributes && this.petData.attributes.stamina < 10) {
@@ -951,6 +965,9 @@ export class MainMenu extends Scene {
 
     async handleMedicine() {
         console.log('Medicine button clicked');
+        
+        // Check happiness first
+        this.checkHappinessLevel();
         
         // Get current HP and SP values
         const maxHP = this.petData.stats.hp || 100;
@@ -1061,6 +1078,9 @@ export class MainMenu extends Scene {
     async handleOutdoor() {
         console.log('Outdoor button clicked');
         
+        // Check happiness first
+        this.checkHappinessLevel();
+        
         // Play animation immediately
         if (this.pet && typeof this.pet.playAnimation === 'function' && this.petData.attributes.stamina >= 50) {
             this.pet.playAnimation('outdoor');
@@ -1115,6 +1135,9 @@ export class MainMenu extends Scene {
     async handleInventory() {
         console.log('Inventory button clicked');
 
+        // Check happiness first
+        this.checkHappinessLevel();
+
         const modal = new InventoryModal(this, {
             actionType: 'view',
             onItemSelect: () => {}, // Just view, no select behavior
@@ -1128,6 +1151,9 @@ export class MainMenu extends Scene {
 
     async handleShop() {
         console.log('Shop button clicked');
+        
+        // Check happiness first
+        this.checkHappinessLevel();
         
         // Import the ShopModal dynamically
         const { ShopModal } = await import('./ShopModal');
@@ -1277,9 +1303,158 @@ export class MainMenu extends Scene {
         if (this.pet && this.pet.data.name !== this.petData.name) {
             this.pet.setName(this.petData.name);
         }
-         // Update Pet data reference within the Pet instance itself
-         if (this.pet) {
+        // Update Pet data reference within the Pet instance itself
+        if (this.pet) {
             this.pet.data = this.petData;
-         }
+        }
+    }
+
+    // Check pet happiness level and show warning if needed
+    checkHappinessLevel() {
+        if (!this.petData || !this.petData.attributes || this.petData.attributes.happiness === undefined) {
+            return;
+        }
+
+        const happiness = this.petData.attributes.happiness;
+        
+        // Show warning modal when happiness is at or below 50
+        if (happiness <= 50) {
+            // Only show once per session using a flag
+            if (!this.hasShownHappinessWarning) {
+                this.showHappinessWarningModal();
+                this.hasShownHappinessWarning = true;
+            }
+        } else if (happiness > 50) {
+            // Reset the flag if happiness goes above 50 again
+            this.hasShownHappinessWarning = false;
+        }
+    }
+
+    // Show warning modal for low happiness
+    showHappinessWarningModal() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const petName = this.petData.name;
+
+        // Create overlay
+        const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.7)
+            .setOrigin(0)
+            .setDepth(10)
+            .setInteractive();
+
+        // Create dialog dimensions - increase height to accommodate content
+        const dialogWidth = Math.min(width * 0.8, 450);
+        const dialogHeight = 300; // Increased from 250 to 300
+        const dialogTopLeftX = centerX - dialogWidth / 2;
+        const dialogTopLeftY = centerY - dialogHeight / 2;
+
+        // Create dialog background
+        const dialog = this.add.rectangle(dialogTopLeftX, dialogTopLeftY, dialogWidth, dialogHeight, 0x333333)
+            .setStrokeStyle(2, 0xff5555)
+            .setOrigin(0, 0)
+            .setDepth(11);
+
+        // Add warning icon/image if available
+        const iconSize = 40;
+        const warningIcon = this.add.text(dialogTopLeftX + 30, dialogTopLeftY + 30, '⚠️', {
+            fontSize: '32px'
+        }).setOrigin(0, 0).setDepth(11);
+
+        // Add title
+        const title = this.add.text(dialogTopLeftX + 80, dialogTopLeftY + 30, 'WARNING!', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '28px',
+            color: '#ff5555',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0, 0).setDepth(11);
+
+        // Add message text - with more spacing
+        const message1 = this.add.text(centerX, dialogTopLeftY + 90, 
+            `If ${petName}'s happiness becomes 0, it will leave you.`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '18px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2,
+            align: 'center',
+            wordWrap: { width: dialogWidth - 60 }
+        }).setOrigin(0.5, 0).setDepth(11);
+
+        const message2 = this.add.text(centerX, dialogTopLeftY + 150, // Increased Y position for more spacing
+            `Tips: Your pet will drop happiness if you brought it to battle. Try to buy toys to play with your pet!`, {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '16px',
+            color: '#ffff88',
+            stroke: '#000000',
+            strokeThickness: 2,
+            align: 'center', 
+            wordWrap: { width: dialogWidth - 60 }
+        }).setOrigin(0.5, 0).setDepth(11);
+
+        // Add close button - moved down
+        const buttonY = dialogTopLeftY + dialogHeight - 60; // Moved from 40 to 60px from bottom
+        const closeButton = this.add.rectangle(centerX, buttonY, 120, 40, 0x880000)
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true })
+            .setOrigin(0.5, 0.5)
+            .setDepth(11);
+
+        const closeText = this.add.text(centerX, buttonY, 'GOT IT', {
+            fontFamily: '"Silkscreen", cursive',
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5, 0.5).setDepth(11);
+
+        // Close dialog when button is clicked
+        closeButton.on('pointerdown', () => {
+            overlay.destroy();
+            dialog.destroy();
+            warningIcon.destroy();
+            title.destroy();
+            message1.destroy();
+            message2.destroy();
+            closeButton.destroy();
+            closeText.destroy();
+        });
+    }
+
+    // Static method to be called from other scenes to check happiness and return to main menu if needed
+    static checkHappinessAndReturnToMenu(scene) {
+        if (!scene || !scene.scene) {
+            console.error('Invalid scene passed to checkHappinessAndReturnToMenu');
+            return;
+        }
+        
+        // Get pet data from the scene or global context
+        const globalContext = getGlobalContext();
+        const petData = scene.petData || globalContext?.userData?.selectedPet;
+        
+        if (!petData || !petData.attributes || petData.attributes.happiness === undefined) {
+            console.warn('No pet data available to check happiness');
+            return;
+        }
+        
+        // Check if happiness is at or below the warning threshold
+        const happiness = petData.attributes.happiness;
+        if (happiness <= 50) {
+            console.log(`Pet happiness is ${happiness}, returning to main menu for warning`);
+            
+            // Set flag to force refresh pet data on main menu
+            if (globalContext) {
+                globalContext.userData.shouldRefreshPet = true;
+            }
+            
+            // Transition back to main menu
+            scene.cameras.main.fadeOut(500, 0, 0, 0);
+            scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                scene.scene.start('MainMenu');
+            });
+            
+            return true;
+        }
+        
+        return false;
     }
 }
