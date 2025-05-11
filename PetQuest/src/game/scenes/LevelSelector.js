@@ -3,6 +3,31 @@ import { EventBus } from '../EventBus';
 import { getGlobalContext } from '../../utils/contextBridge';
 import { generateRandomEnemy } from '../entities/enemy';
 
+// Define available items based on items in the database
+const ALL_AVAILABLE_ITEMS = {
+    common: [
+        "HP Potion", "SP Potion", // medicine
+        "Chess", "Feather",       // toy
+        "Sword",                  // equipment
+        "Cake"                    // food
+    ],
+    uncommon: [
+        "Mixed Potion",           // medicine
+        "Cup",                    // toy
+        "Magic Wand",             // equipment
+        "Donut", "Fish"           // food
+    ],
+    rare: [
+        "Best Potion",            // medicine
+        "The Sword of Light",     // equipment
+        "Strawberry"              // food
+    ],
+    legendary: [
+        "Demons Blade",           // equipment
+        "Idiot Sandwich"          // food
+    ]
+};
+
 // LevelSelector scene: Player selects difficulty, then a random level is generated
 export class LevelSelector extends Scene {
     constructor() {
@@ -199,56 +224,68 @@ export class LevelSelector extends Scene {
 
     generateLevelRewards(difficulty) {
         const rewards = [];
-       
-        // Reward count based on difficulty (1-3)
+        // Reward count based on difficulty (1-3 item rewards)
         const rewardCount = Math.min(3, Math.ceil(difficulty / 2));
-       
-        // Common rewards
-        const commonRewards = [
-          "Health Potion",
-          "Attack Boost",
-          "Defense Boost",
-          "Gold Coins",
-          "Pet Treat"
-        ];
-       
-        // Uncommon rewards (difficulty >= 3)
-        const uncommonRewards = [
-          "Ability Scroll",
-          "Stat Enhancement",
-          "Rare Pet Food",
-          "Crafting Material"
-        ];
-       
-        // Rare rewards (difficulty >= 5)
-        const rareRewards = [
-          "Legendary Equipment",
-          "Pet Evolution Stone",
-          "Powerful Ability",
-          "Stat Multiplier"
-        ];
-       
+    
+        const getItemFromPool = (pool) => {
+            // Ensure pool is an array and has items
+            if (Array.isArray(pool) && pool.length > 0) {
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+            return null;
+        };
+    
         for (let i = 0; i < rewardCount; i++) {
-          // Determine reward rareness
-          let reward;
-          const rareness = Math.random();
-         
-          if (difficulty >= 4 && rareness > 0.7) {
-            // 30% chance for rare reward in high difficulty
-            reward = rareRewards[Math.floor(Math.random() * rareRewards.length)];
-          } else if (difficulty >= 3 && rareness > 0.4) {
-            // 30% chance for uncommon reward in medium difficulty
-            reward = uncommonRewards[Math.floor(Math.random() * uncommonRewards.length)];
-          } else {
-            // Common reward
-            reward = commonRewards[Math.floor(Math.random() * commonRewards.length)];
-          }
-         
-          rewards.push(reward);
+            let reward = null;
+            const rareness = Math.random(); // Random roll for each reward item
+    
+            let targetPool;
+    
+            // Determine target reward pool based on difficulty and rareness
+            if (difficulty >= 4) { // Expert difficulty
+                if (rareness < 0.10) targetPool = ALL_AVAILABLE_ITEMS.legendary;      // 10% chance for Legendary
+                else if (rareness < 0.40) targetPool = ALL_AVAILABLE_ITEMS.rare;      // 30% chance for Rare (0.10 to 0.39)
+                else if (rareness < 0.70) targetPool = ALL_AVAILABLE_ITEMS.uncommon;  // 30% chance for Uncommon (0.40 to 0.69)
+                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 30% chance for Common (0.70 to 0.99)
+            } else if (difficulty === 3) { // Hard difficulty
+                if (rareness < 0.20) targetPool = ALL_AVAILABLE_ITEMS.rare;           // 20% chance for Rare
+                else if (rareness < 0.50) targetPool = ALL_AVAILABLE_ITEMS.uncommon;   // 30% chance for Uncommon (0.20 to 0.49)
+                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 50% chance for Common (0.50 to 0.99)
+            } else if (difficulty === 2) { // Medium difficulty
+                if (rareness < 0.30) targetPool = ALL_AVAILABLE_ITEMS.uncommon;       // 30% chance for Uncommon
+                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 70% chance for Common (0.30 to 0.99)
+            } else { // Difficulty 1 (Easy) or default
+                targetPool = ALL_AVAILABLE_ITEMS.common;                             // 100% chance for Common
+            }
+            
+            reward = getItemFromPool(targetPool);
+    
+            // Fallback mechanism if the chosen targetPool was empty or failed to yield an item
+            if (!reward) {
+                const fallbackOrder = [
+                    ALL_AVAILABLE_ITEMS.common, 
+                    ALL_AVAILABLE_ITEMS.uncommon, 
+                    ALL_AVAILABLE_ITEMS.rare, 
+                    ALL_AVAILABLE_ITEMS.legendary
+                ];
+                for (const pool of fallbackOrder) {
+                    // Skip if this pool was the original target and already failed
+                    if (pool === targetPool && getItemFromPool(pool) === null) continue; 
+                    
+                    reward = getItemFromPool(pool);
+                    if (reward) break; // Found a reward from a fallback pool
+                }
+            }
+    
+            if (reward) {
+                rewards.push(reward);
+            } else {
+                // This warning indicates all item pools (common, uncommon, rare, legendary) might be empty.
+                console.warn(`Could not generate ANY reward item for slot ${i + 1} at difficulty ${difficulty}. Check ALL_AVAILABLE_ITEMS definitions.`);
+            }
         }
-       
         return rewards;
-      }
+    }
     
 
     // Set up background

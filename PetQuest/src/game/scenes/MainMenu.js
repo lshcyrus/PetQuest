@@ -569,6 +569,25 @@ export class MainMenu extends Scene {
     }
 
     changeScene() {
+        // Check pet's stamina and fullness before allowing battle
+        if (this.petData && this.petData.attributes) {
+            const stamina = this.petData.attributes.stamina;
+            const hunger = this.petData.attributes.hunger; // 0 is full, 100 is empty
+            const fullness = 100 - hunger;
+
+            if (stamina <= 10) {
+                this.showToast('Your pet is too tired to battle! Needs more stamina.');
+                return;
+            }
+            if (fullness <= 10) { // This means hunger is 90 or more
+                this.showToast('Your pet is too hungry to battle! Needs to eat.');
+                return;
+            }
+        } else {
+            console.warn('Pet data or attributes not available to check for battle readiness.');
+            // Allow proceeding if data is missing, or handle as an error
+        }
+
         // Add scene transition effect
         this.cameras.main.fadeOut(500, 0, 0, 0);
         
