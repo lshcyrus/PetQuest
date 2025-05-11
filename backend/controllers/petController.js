@@ -172,134 +172,88 @@ exports.getPet = async (req, res, next) => {
 exports.feedPet = async (req, res, next) => {
   try {
     const { itemId } = req.body;
-    
-    // Get pet
     let pet = await Pet.findById(req.params.id);
     
     if (!pet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Pet not found'
-      });
+      return res.status(404).json({ success: false, error: 'Pet not found' });
     }
     
-    // Check if we're using direct feeding (without item)
+    // IMPORTANT: Ensure pet.updateStats() in petModel.js floors these attributes if it modifies them.
+    // If pet object already has float attributes here, they will persist if not floored before operations.
+    // For safety, we can floor them before use if there's uncertainty about their state from petModel.
+    pet.attributes.hunger = Math.floor(pet.attributes.hunger || 0);
+    pet.attributes.happiness = Math.floor(pet.attributes.happiness || 0);
+    pet.attributes.stamina = Math.floor(pet.attributes.stamina || 0);
+
     const directFeeding = !itemId;
     
-    // Check if pet is already full (hunger = 0) or stamina is already full
     if (directFeeding) {
       if (pet.attributes.hunger <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Pet is already full'
-        });
+        return res.status(400).json({ success: false, error: 'Pet is already full' });
       }
-      
       if (pet.attributes.stamina >= 100) {
-        return res.status(400).json({
-          success: false,
-          error: 'Pet stamina already full'
-        });
+        return res.status(400).json({ success: false, error: 'Pet stamina already full' });
       }
     }
     
-    // Check if pet belongs to user
     if (pet.owner.toString() !== req.user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to feed this pet'
-      });
+      return res.status(401).json({ success: false, error: 'Not authorized to feed this pet' });
     }
     
-    // Handle direct feeding (without item) or item-based feeding
     if (directFeeding) {
-      // Apply direct feeding effects (decrease hunger, increase happiness)
-      // Hunger represents how hungry the pet is (0 = full, 100 = very hungry)
-      pet.attributes.hunger = Math.max(0, pet.attributes.hunger - 15);
-      
-      // Increase happiness
-      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + 5);
-      
-      // Regenerate stamina
-      pet.attributes.stamina = Math.min(100, pet.attributes.stamina + 10);
-      
+      pet.attributes.hunger = Math.floor(Math.max(0, pet.attributes.hunger - 15));
+      pet.attributes.happiness = Math.floor(Math.min(100, pet.attributes.happiness + 5));
+      pet.attributes.stamina = Math.floor(Math.min(100, pet.attributes.stamina + 10));
       pet.lastFed = Date.now();
       await pet.save();
-      
-      res.status(200).json({
-        success: true,
-        data: pet
-      });
+      res.status(200).json({ success: true, data: pet });
     } else {
-      // Find the item in user's inventory
       const user = await User.findById(req.user.id);
       const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
       
       if (!inventoryItem || inventoryItem.quantity <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Item not found in inventory'
-        });
+        return res.status(400).json({ success: false, error: 'Item not found in inventory' });
       }
       
-      // Get item details
       const Item = require('../models/itemModel');
       const item = await Item.findById(itemId);
       
       if (!item) {
-        return res.status(404).json({
-          success: false,
-          error: 'Item not found'
-        });
+        return res.status(404).json({ success: false, error: 'Item not found' });
       }
       
-      // Check if item is food
       if (item.type !== 'food') {
-        return res.status(400).json({
-          success: false,
-          error: 'This item cannot be used for feeding'
-        });
+        return res.status(400).json({ success: false, error: 'This item cannot be used for feeding' });
       }
       
-      // Check if pet is already full (hunger = 0)
       if (pet.attributes.hunger <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Pet is already full'
-        });
+        return res.status(400).json({ success: false, error: 'Pet is already full' });
       }
       
-      // Apply item effects to pet
-      // Hunger should decrease when fed (item.effects.hunger should be positive)
-      pet.attributes.hunger = Math.max(0, pet.attributes.hunger - item.effects.hunger);
-      // Happiness increases as normal
-      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
-      pet.experience += item.effects.experience;
+      const hungerEffect = Math.floor(item.effects.hunger || 0);
+      const happinessEffect = Math.floor(item.effects.happiness || 0);
+      const staminaEffect = Math.floor(item.effects.stamina || 10); // Default stamina effect if not specified
+      const experienceEffect = Math.floor(item.effects.experience || 0);
+
+      pet.attributes.hunger = Math.floor(Math.max(0, pet.attributes.hunger - hungerEffect));
+      pet.attributes.happiness = Math.floor(Math.min(100, pet.attributes.happiness + happinessEffect));
+      pet.experience = Math.floor(pet.experience + experienceEffect);
       
-      // Regenerate stamina based on the item's effect
       if (pet.attributes.stamina < 100) {
-        pet.attributes.stamina = Math.min(100, pet.attributes.stamina + (item.effects.stamina || 10));
+        pet.attributes.stamina = Math.floor(Math.min(100, pet.attributes.stamina + staminaEffect));
       }
       
-      const levelUpResult = gameLogic.checkLevelUp(pet);
+      const levelUpResult = gameLogic.checkLevelUp(pet); // Ensure gameLogic.checkLevelUp also floors stats
       pet = levelUpResult.pet;
-      
       pet.lastFed = Date.now();
-      
       await pet.save();
       
       inventoryItem.quantity--;
       if (inventoryItem.quantity <= 0) {
         user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
       }
-      
       await user.save();
-      
-      res.status(200).json({
-        success: true,
-        data: pet,
-        levelUp: levelUpResult.leveledUp
-      });
+      res.status(200).json({ success: true, data: pet, levelUp: levelUpResult.leveledUp });
     }
   } catch (err) {
     next(err);
@@ -312,83 +266,56 @@ exports.feedPet = async (req, res, next) => {
 exports.playWithPet = async (req, res, next) => {
   try {
     const { itemId } = req.body;
-    
     let pet = await Pet.findById(req.params.id);
-    
+
     if (!pet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Pet not found'
-      });
+      return res.status(404).json({ success: false, error: 'Pet not found' });
     }
-    
-    // Check if pet belongs to user
+     // IMPORTANT: Ensure pet.updateStats() in petModel.js floors these attributes if it modifies them.
+    pet.attributes.happiness = Math.floor(pet.attributes.happiness || 0);
+    pet.experience = Math.floor(pet.experience || 0);
+
+
     if (pet.owner.toString() !== req.user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to play with this pet'
-      });
+      return res.status(401).json({ success: false, error: 'Not authorized to play with this pet' });
     }
-    
+
     if (itemId) {
-      // Check if the item in user's inventory
       const user = await User.findById(req.user.id);
       const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
-      
       if (!inventoryItem || inventoryItem.quantity <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Item not found in inventory'
-        });
+        return res.status(400).json({ success: false, error: 'Item not found in inventory' });
       }
-      
-      // Get item details
       const Item = require('../models/itemModel');
       const item = await Item.findById(itemId);
-      
       if (!item) {
-        return res.status(404).json({
-          success: false,
-          error: 'Item not found'
-        });
+        return res.status(404).json({ success: false, error: 'Item not found' });
       }
-      
-      // Check if item is a toy
       if (item.type !== 'toy') {
-        return res.status(400).json({
-          success: false,
-          error: 'This item cannot be used for playing'
-        });
+        return res.status(400).json({ success: false, error: 'This item cannot be used for playing' });
       }
+
+      const happinessEffect = Math.floor(item.effects.happiness || 0);
+      const experienceEffect = Math.floor(item.effects.experience || 0);
+
+      pet.attributes.happiness = Math.floor(Math.min(100, pet.attributes.happiness + happinessEffect));
+      pet.experience = Math.floor(pet.experience + experienceEffect);
       
-      // Apply item effects to pet
-      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + item.effects.happiness);
-      pet.experience += item.effects.experience;
-      
-      // Decrease item quantity in inventory
       inventoryItem.quantity--;
       if (inventoryItem.quantity <= 0) {
         user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
       }
-      
       await user.save();
     } else {
-      pet.attributes.happiness = Math.min(100, pet.attributes.happiness + 10);
-      pet.experience += 5;
+      pet.attributes.happiness = Math.floor(Math.min(100, pet.attributes.happiness + 10));
+      pet.experience = Math.floor(pet.experience + 5);
     }
-    
-    const levelUpResult = gameLogic.checkLevelUp(pet);
+
+    const levelUpResult = gameLogic.checkLevelUp(pet); // Ensure gameLogic.checkLevelUp also floors stats
     pet = levelUpResult.pet;
-    
     pet.lastInteraction = Date.now();
-    
     await pet.save();
-    
-    res.status(200).json({
-      success: true,
-      data: pet,
-      levelUp: levelUpResult.leveledUp
-    });
+    res.status(200).json({ success: true, data: pet, levelUp: levelUpResult.leveledUp });
   } catch (err) {
     next(err);
   }
@@ -505,97 +432,59 @@ exports.trainPet = async (req, res, next) => {
   try {
     const { itemId } = req.body;
     let pet = await Pet.findById(req.params.id);
-    
+
     if (!pet) {
-      return res.status(404).json({
-        success: false,
-        error: 'Pet not found'
-      });
+      return res.status(404).json({ success: false, error: 'Pet not found' });
     }
-    
-    // Check if pet belongs to user
+    // IMPORTANT: Ensure pet.updateStats() in petModel.js floors these attributes if it modifies them.
+    pet.attributes.stamina = Math.floor(pet.attributes.stamina || 0);
+    pet.experience = Math.floor(pet.experience || 0);
+
+
     if (pet.owner.toString() !== req.user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to train this pet'
-      });
+      return res.status(401).json({ success: false, error: 'Not authorized to train this pet' });
     }
-    
-    // Check if pet has enough stamina
     if (pet.attributes.stamina < 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Pet does not have enough stamina to train'
-      });
+      return res.status(400).json({ success: false, error: 'Pet does not have enough stamina to train' });
     }
-    
-    // Handle training with an item if provided
+
     if (itemId) {
-      // Find the item in user's inventory
       const user = await User.findById(req.user.id);
       const inventoryItem = user.inventory.find(i => i.item.toString() === itemId);
-      
       if (!inventoryItem || inventoryItem.quantity <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Item not found in inventory'
-        });
+        return res.status(400).json({ success: false, error: 'Item not found in inventory' });
       }
-      
-      // Get item details
       const Item = require('../models/itemModel');
       const item = await Item.findById(itemId);
-      
       if (!item) {
-        return res.status(404).json({
-          success: false,
-          error: 'Item not found'
-        });
+        return res.status(404).json({ success: false, error: 'Item not found' });
       }
-      
-      // Check if item is equipment for training
       if (item.type !== 'equipment') {
-        return res.status(400).json({
-          success: false,
-          error: 'This item cannot be used for training'
-        });
+        return res.status(400).json({ success: false, error: 'This item cannot be used for training' });
       }
+
+      const experienceEffect = Math.floor(item.effects.experience || 30); // Default 30 for equipment
+      const staminaEffect = Math.floor(item.effects.stamina || 0); // Stamina cost reduction
+
+      pet.experience = Math.floor(pet.experience + 20 + experienceEffect);
+      const staminaCost = Math.floor(Math.max(5, 10 - staminaEffect));
+      pet.attributes.stamina = Math.floor(Math.max(0, pet.attributes.stamina - staminaCost));
       
-      // Apply equipment bonuses
-      // Base exp gain + item bonus (additional 30 exp for equipment)
-      pet.experience += 20 + (item.effects.experience || 30);
-      
-      // Reduce stamina cost (equipment makes training more efficient)
-      const staminaCost = Math.max(5, 10 - (item.effects.stamina || 0));
-      pet.attributes.stamina = Math.max(0, pet.attributes.stamina - staminaCost);
-      
-      // Decrease item quantity in inventory
       inventoryItem.quantity--;
       if (inventoryItem.quantity <= 0) {
         user.inventory = user.inventory.filter(i => i.item.toString() !== itemId);
       }
-      
       await user.save();
     } else {
-      // Standard training without item
-      // Add experience and decrease stamina
-      pet.experience += 20;
-      pet.attributes.stamina = Math.max(0, pet.attributes.stamina - 10);
+      pet.experience = Math.floor(pet.experience + 20);
+      pet.attributes.stamina = Math.floor(Math.max(0, pet.attributes.stamina - 10));
     }
-    
-    // Check if pet levels up
-    const levelUpResult = gameLogic.checkLevelUp(pet);
+
+    const levelUpResult = gameLogic.checkLevelUp(pet); // Ensure gameLogic.checkLevelUp also floors stats
     pet = levelUpResult.pet;
-    
     pet.lastInteraction = Date.now();
-    
     await pet.save();
-    
-    res.status(200).json({
-      success: true,
-      data: pet,
-      levelUp: levelUpResult.leveledUp
-    });
+    res.status(200).json({ success: true, data: pet, levelUp: levelUpResult.leveledUp });
   } catch (err) {
     next(err);
   }
@@ -615,7 +504,9 @@ exports.medicinePet = async (req, res, next) => {
         error: 'Pet not found'
       });
     }
-    
+
+    await pet.updateStats(); // Ensure passive stat changes are calculated before checks
+
     // Check if pet belongs to user
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({
@@ -683,10 +574,10 @@ exports.medicinePet = async (req, res, next) => {
 
         // Apply heals
         if (hpHeal > 0) {
-          pet.currentHP = Math.min(pet.stats.hp, (pet.currentHP || pet.stats.hp) + hpHeal);
+          pet.currentHP = Math.min(pet.stats.hp, (pet.currentHP || 0) + hpHeal);
         }
         if (spHeal > 0) {
-          pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || pet.stats.sp) + spHeal);
+          pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || 0) + spHeal);
         }
       }
       
@@ -741,6 +632,10 @@ exports.outdoorPet = async (req, res, next) => {
       });
     }
     
+    // IMPORTANT: Ensure pet.updateStats() in petModel.js floors these attributes if it modifies them.
+    pet.attributes.hunger = Math.floor(pet.attributes.hunger || 0);
+    pet.attributes.stamina = Math.floor(pet.attributes.stamina || 0);
+
     // Check if pet belongs to user
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({
@@ -797,17 +692,17 @@ exports.outdoorPet = async (req, res, next) => {
     // Set buff values
     pet.activeBuffs.stats = {};
     selectedStats.forEach(stat => {
-      pet.activeBuffs.stats[stat] = Math.floor(pet.stats[stat] * buffAmount);
+      pet.activeBuffs.stats[stat] = Math.floor(pet.stats[stat] * buffAmount); // Buff itself is floored
     });
     
     // Set expiration time
     pet.activeBuffs.expiresAt = Date.now() + buffDurationMs;
     
     // Update hunger (increase by 30)
-    pet.attributes.hunger = Math.min(100, pet.attributes.hunger + hungerIncrease);
+    pet.attributes.hunger = Math.floor(Math.min(100, pet.attributes.hunger + hungerIncrease));
     
     // Decrease stamina by 50
-    pet.attributes.stamina = Math.max(0, pet.attributes.stamina - staminaDecrease);
+    pet.attributes.stamina = Math.floor(Math.max(0, pet.attributes.stamina - staminaDecrease));
     
     // Update pet interaction time
     pet.lastInteraction = Date.now();
@@ -892,12 +787,13 @@ exports.updatePetAttributes = async (req, res, next) => {
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({ success: false, error: 'Not authorized to update this pet' });
     }
-    // Only update provided fields in attributes
+    
     const allowedFields = ['happiness', 'stamina', 'hunger'];
     let updated = false;
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        pet.attributes[field] = req.body[field];
+        // Ensure incoming values are treated as integers
+        pet.attributes[field] = Math.floor(Number(req.body[field])); 
         updated = true;
       }
     });
