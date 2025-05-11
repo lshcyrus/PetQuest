@@ -826,9 +826,13 @@ export class LevelSelector extends Scene {
         console.log('Starting level:', this.generatedLevel.name);
 
         // Validate pet
-        if (this.petData.stats.stamina < 10) {
-            console.warn('Pet too tired');
-            this.showError('Your pet is too tired!');
+        // Check attributes for stamina, not stats
+        if (!this.petData.attributes || this.petData.attributes.stamina === undefined) {
+            console.warn('Pet attributes or stamina not available for validation.');
+            // Optionally, allow battle or show a generic error. For now, let it proceed if data is missing.
+        } else if (this.petData.attributes.stamina <= 10) { // Check if stamina is 10 or less
+            console.warn('Pet too tired, stamina is', this.petData.attributes.stamina);
+            this.showError('Your pet is too tired to battle!');
             return;
         }
 
@@ -854,7 +858,7 @@ export class LevelSelector extends Scene {
         }
         this.errorText = this.add.text(
             width / 2,
-            height / 0.8,
+            height * 0.8,
             message,
             {
                 fontFamily: '"Silkscreen", cursive',
