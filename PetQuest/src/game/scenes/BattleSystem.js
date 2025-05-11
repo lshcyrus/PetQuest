@@ -1618,10 +1618,41 @@ export class BattleSystem extends Scene {
             
             // Get updated pet data from response
             const attrData = await attrResponse.json();
-            if (attrResponse.ok && attrData.success && attrData.data) {
-                console.log('Successfully updated pet attributes:', attrData.data);
-                // Update attributes in our local pet data
-                this.petData.attributes = attrData.data.attributes;
+            if (attrResponse.ok && attrData.success && attrData.data && attrData.data.attributes) {
+                console.log('Successfully updated pet attributes (raw from server):', attrData.data.attributes);
+                const serverAttributes = attrData.data.attributes;
+
+                // Create a new object for updated attributes, starting with a copy of server attributes
+                // This preserves any other attributes that might be part of the object.
+                const updatedAttributes = { ...serverAttributes };
+
+                // Round specific attributes to the nearest integer and ensure they are numbers
+                if (serverAttributes.stamina !== undefined) {
+                    updatedAttributes.stamina = Math.round(parseFloat(serverAttributes.stamina));
+                }
+                if (serverAttributes.happiness !== undefined) {
+                    updatedAttributes.happiness = Math.round(parseFloat(serverAttributes.happiness));
+                }
+                if (serverAttributes.hunger !== undefined) {
+                    updatedAttributes.hunger = Math.round(parseFloat(serverAttributes.hunger));
+                }
+
+                // Clamp values to their logical min/max (0-100) for safety,
+                // even though the payload sent to the server should already handle this.
+                if (updatedAttributes.stamina !== undefined) {
+                    updatedAttributes.stamina = Math.max(0, Math.min(100, updatedAttributes.stamina));
+                }
+                if (updatedAttributes.happiness !== undefined) {
+                    updatedAttributes.happiness = Math.max(0, Math.min(100, updatedAttributes.happiness));
+                }
+                if (updatedAttributes.hunger !== undefined) {
+                    updatedAttributes.hunger = Math.max(0, Math.min(100, updatedAttributes.hunger));
+                }
+
+                this.petData.attributes = updatedAttributes;
+                console.log('Locally rounded and bounded pet attributes:', this.petData.attributes);
+            } else {
+                console.error('Failed to update pet attributes: Response was not OK, or success flag was false, or attribute data was missing.', attrData);
             }
             
             // Track responses for coins and gems to update global context
