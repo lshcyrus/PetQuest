@@ -3,6 +3,7 @@ import { EventBus } from '../EventBus';
 import { Pet } from '../entities/Pet';
 import { Enemy } from '../entities/enemy';
 import { getGlobalContext } from '../../utils/contextBridge';
+import { InventoryModal } from './InventoryModal';
 
 // Battle logic separated from rendering
 class BattleLogic {
@@ -200,34 +201,97 @@ class BattleLogic {
         return false;
     }
 
-    useItem(item) {
-        if (this.itemUsedThisTurn) {
-            this.battleLog.push("You've already used an item this turn!");
+    usePlayerItem(playerPet, item) {
+        if (!item || !item.effects) {
+            this.battleLog.push("Invalid item selected or item has no effects.");
             return false;
         }
+
+        const petStats = playerPet.data.stats;
+        const petBuffs = playerPet.data.activeBuffs && playerPet.data.activeBuffs.stats ? 
+                         playerPet.data.activeBuffs.stats : { hp: 0, sp: 0 };
+
+        // Determine max HP/SP considering buffs for healing calculation limits
+        // These are the maximums the pet can currently reach
+        const currentMaxHP = (petStats.maxhp || petStats.hp) + (petBuffs.hp || 0);
+        const currentMaxSP = (petStats.maxsp || petStats.sp) + (petBuffs.sp || 0);
         
-        if (item && item.type === 'heal') {
-            const healAmount = item.value || 20;
-            
-            // Apply HP buff to max HP calculation
-            const hpBuff = this.playerPet.data.activeBuffs && this.playerPet.data.activeBuffs.stats ? 
-                (this.playerPet.data.activeBuffs.stats.hp || 0) : 0;
-                
-            // Use maxhp from stats, plus any buffs
-            const maxHp = (this.playerPet.data.stats.maxhp || this.playerPet.data.stats.hp) + hpBuff;
-            
-            this.playerPet.data.stats.hp += healAmount;
-            if (this.playerPet.data.stats.hp > maxHp) {
-                this.playerPet.data.stats.hp = maxHp;
+        // These are the current HP/SP values including buffs
+        const currentHPWithBuffs = petStats.hp + (petBuffs.hp || 0);
+        const currentSPWithBuffs = petStats.sp + (petBuffs.sp || 0);
+
+        let healedHP = 0;
+        let restoredSP = 0;
+        let actualHealAmount = 0;
+        let actualRestoreAmount = 0;
+
+        // Apply health effects
+        if (item.effects.health) {
+            const potentialHeal = item.effects.health;
+            if (item.name === 'best-potion' || potentialHeal >= 5000) { // Convention for full heal
+                actualHealAmount = currentMaxHP - currentHPWithBuffs;
+            } else {
+                actualHealAmount = potentialHeal;
             }
             
-            this.battleLog.push(`You used ${item.name} and restored ${healAmount} HP!`);
-            this.battleLog.push(`${this.playerPet.data.name} now has ${this.playerPet.data.stats.hp}/${maxHp} HP.`);
-            this.itemUsedThisTurn = true;
-            return true;
+            // Cap healing at current max HP
+            if (currentHPWithBuffs + actualHealAmount > currentMaxHP) {
+                actualHealAmount = currentMaxHP - currentHPWithBuffs;
+            }
+            
+            // Ensure actualHealAmount is not negative if already at max
+            actualHealAmount = Math.max(0, actualHealAmount); 
+
+            petStats.hp += actualHealAmount;
+            healedHP = actualHealAmount; // Record how much was actually healed for the log
+        }
+
+        // Apply SP effects
+        if (item.effects.sp) {
+            const potentialRestore = item.effects.sp;
+            if (item.name === 'best-potion' || potentialRestore >= 1000) { // Convention for full restore
+                actualRestoreAmount = currentMaxSP - currentSPWithBuffs;
+            } else {
+                actualRestoreAmount = potentialRestore;
+            }
+
+            // Cap restoration at current max SP
+            if (currentSPWithBuffs + actualRestoreAmount > currentMaxSP) {
+                actualRestoreAmount = currentMaxSP - currentSPWithBuffs;
+            }
+            
+            // Ensure actualRestoreAmount is not negative
+            actualRestoreAmount = Math.max(0, actualRestoreAmount);
+
+            petStats.sp += actualRestoreAmount;
+            restoredSP = actualRestoreAmount; // Record how much was actually restored
         }
         
-        return false;
+        let logMessage = `${playerPet.data.name} used ${item.displayName || item.name}.`;
+        if (healedHP > 0 && restoredSP > 0) {
+            logMessage += ` Restored ${healedHP} HP and ${restoredSP} SP!`;
+        } else if (healedHP > 0) {
+            logMessage += ` Restored ${healedHP} HP!`;
+        } else if (restoredSP > 0) {
+            logMessage += ` Restored ${restoredSP} SP!`;
+        } else if (item.name === 'best-potion' && (healedHP > 0 || restoredSP > 0)) {
+            logMessage += ` Fully recovered!`;
+        } else if ( (item.name === 'hp-potion' && currentHPWithBuffs >= currentMaxHP) ||
+                    (item.name === 'sp-potion' && currentSPWithBuffs >= currentMaxSP) ||
+                    (item.name === 'mixed-potion' && currentHPWithBuffs >= currentMaxHP && currentSPWithBuffs >= currentMaxSP) ||
+                    (item.name === 'best-potion' && currentHPWithBuffs >= currentMaxHP && currentSPWithBuffs >= currentMaxSP) ) {
+             logMessage += ` No effect, already at maximum.`;
+        }
+         else {
+            logMessage += ` No significant effect.`;
+        }
+
+        this.battleLog.push(logMessage);
+        const updatedHPWithBuffs = petStats.hp + (petBuffs.hp || 0);
+        const updatedSPWithBuffs = petStats.sp + (petBuffs.sp || 0);
+        this.battleLog.push(`${playerPet.data.name} HP: ${updatedHPWithBuffs}/${currentMaxHP}, SP: ${updatedSPWithBuffs}/${currentMaxSP}`);
+        
+        return true;
     }
 
     enemyAction() {
@@ -670,6 +734,12 @@ export class BattleSystem extends Scene {
         this.createBattleLog();
         this.createActionMenu();
         this.createResultPopup();
+
+        // Ensure InventoryModal is available if the scene might be re-entered
+        // or ensure it's cleaned up properly on shutdown.
+        if (this.inventoryModal && this.inventoryModal.scene !== this) {
+            this.inventoryModal = null; 
+        }
     }
 
     createStatusBars() {
@@ -1013,38 +1083,42 @@ export class BattleSystem extends Scene {
     }
     
     handlePlayerAction(actionType) {
-        if (this.battleLogic.battleEnded || this.battleLogic.currentTurn !== 'player') return;
+        if (this.battleLogic.battleEnded || this.battleLogic.currentTurn !== 'player' || this.battleLogic.actionInProgress) return;
+        
+        this.battleLogic.actionInProgress = true; // Prevent multiple actions
+
         // Disable menu during action
         this.setActionMenuEnabled(false);
         let actionSuccess = false;
-        let animationAction = '';
-        let animationTarget = 'enemy';
         const petStats = this.petEntity.data.stats;
         switch(actionType) {
             case 'attack':
                 if (petStats.sp < 5) {
                     this.battleLogic.battleLog.push('Not enough SP to attack!');
                     this.updateBattleLog();
-                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    this.time.delayedCall(800, () => {
+                        this.setActionMenuEnabled(true);
+                        this.battleLogic.actionInProgress = false;
+                    });
                     return;
                 }
-                animationAction = 'attack';
-                this.animateAction(animationAction, 'pet', 'enemy', () => {
+                this.animateAction('attack', 'pet', 'enemy', () => {
                     this.battleLogic.attack(this.petEntity, this.enemyEntity, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
-                actionSuccess = true;
                 break;
             case 'skill1':
                 if (petStats.sp < 10) {
                     this.battleLogic.battleLog.push('Not enough SP to use Special Attack!');
                     this.updateBattleLog();
-                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    this.time.delayedCall(800, () => {
+                        this.setActionMenuEnabled(true);
+                        this.battleLogic.actionInProgress = false;
+                    });
                     return;
                 }
-                animationAction = 'attack';
-                this.animateAction(animationAction, 'pet', 'enemy', () => {
-                    actionSuccess = this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
+                this.animateAction('attack', 'pet', 'enemy', () => {
+                    this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
                 break;
@@ -1052,7 +1126,10 @@ export class BattleSystem extends Scene {
                 if (petStats.sp < 5) {
                     this.battleLogic.battleLog.push('Not enough SP to defend!');
                     this.updateBattleLog();
-                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    this.time.delayedCall(800, () => {
+                        this.setActionMenuEnabled(true);
+                        this.battleLogic.actionInProgress = false;
+                    });
                     return;
                 }
                 actionSuccess = this.battleLogic.defend(this.petEntity);
@@ -1063,15 +1140,101 @@ export class BattleSystem extends Scene {
                 if (this.battleLogic.itemUsedThisTurn) {
                     this.battleLogic.battleLog.push('You can only use one item per turn!');
                     this.updateBattleLog();
-                    this.time.delayedCall(800, () => this.setActionMenuEnabled(true));
+                    this.time.delayedCall(800, () => {
+                        this.setActionMenuEnabled(true);
+                        this.battleLogic.actionInProgress = false;
+                    });
                     return;
                 }
-                // For simplicity, use a fixed healing potion
-                const healPotion = { type: 'heal', name: 'Health Potion', value: 30 };
-                this.animateAction('medicine', 'pet', null, () => {
-                    actionSuccess = this.battleLogic.useItem(healPotion);
-                    this.afterPlayerAction();
+
+                if (this.inventoryModal && this.inventoryModal.isOpen) {
+                    this.inventoryModal.close(); // Close if already open
+                }
+                
+                this.inventoryModal = new InventoryModal(this, {
+                    actionType: 'medicine', // Filter for medicine items
+                    onItemSelect: async (itemId) => {
+                        console.log('Item selected in battle:', itemId);
+                        const globalContext = getGlobalContext();
+                        if (!globalContext || !globalContext.userData || !globalContext.userData.inventory) {
+                            this.battleLogic.battleLog.push('Inventory data not available.');
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                 this.setActionMenuEnabled(true); // Re-enable menu on error
+                                 this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+
+                        const inventory = globalContext.userData.inventory;
+                        const inventoryItem = inventory.find(entry => entry.item._id === itemId);
+
+                        if (!inventoryItem || !inventoryItem.item) {
+                            this.battleLogic.battleLog.push('Selected item not found in inventory!');
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                this.setActionMenuEnabled(true);
+                                this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+
+                        const itemToUse = inventoryItem.item;
+
+                        // Perform usability checks (e.g., HP Potion on full HP pet)
+                        const currentPetStats = this.petEntity.data.stats;
+                        const petBuffs = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
+                                         this.petEntity.data.activeBuffs.stats : { hp: 0, sp: 0 };
+                        const currentHPWithBuffs = currentPetStats.hp + (petBuffs.hp || 0);
+                        const maxHPWithBuffs = (currentPetStats.maxhp || currentPetStats.hp) + (petBuffs.hp || 0);
+                        const currentSPWithBuffs = currentPetStats.sp + (petBuffs.sp || 0);
+                        const maxSPWithBuffs = (currentPetStats.maxsp || currentPetStats.sp) + (petBuffs.sp || 0);
+
+                        if (itemToUse.name === 'hp-potion' && currentHPWithBuffs >= maxHPWithBuffs) {
+                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full HP!`);
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                this.setActionMenuEnabled(true);
+                                this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+                        if (itemToUse.name === 'sp-potion' && currentSPWithBuffs >= maxSPWithBuffs) {
+                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full SP!`);
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                this.setActionMenuEnabled(true);
+                                this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+                         if ((itemToUse.name === 'mixed-potion' || itemToUse.name === 'best-potion') && currentHPWithBuffs >= maxHPWithBuffs && currentSPWithBuffs >= maxSPWithBuffs) {
+                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full HP and SP!`);
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                this.setActionMenuEnabled(true);
+                                this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+
+
+                        // Animate item use, then apply effects and consume
+                        this.animateAction('medicine', 'pet', null, async () => {
+                            const effectApplied = this.battleLogic.usePlayerItem(this.petEntity, itemToUse);
+                            if (effectApplied) {
+                                await this.consumeItemFromInventory(itemToUse._id); // Wait for consumption
+                                this.battleLogic.itemUsedThisTurn = true; // Set only after successful consumption
+                            }
+                            this.afterPlayerAction(); // This will reset actionInProgress
+                        }, { itemName: itemToUse.name }); // Pass itemName for Pet.js animation
+                    },
+                    onClose: () => {
+                        this.setActionMenuEnabled(true); // Re-enable menu if modal is closed without selection
+                        this.battleLogic.actionInProgress = false;
+                    }
                 });
+                this.inventoryModal.show();
                 break;
             case 'run':
                 this.battleLogic.battleLog.push('Attempting to escape...');
@@ -1102,6 +1265,7 @@ export class BattleSystem extends Scene {
         // Check for battle end
         if (this.battleLogic.checkBattleEnd()) {
             this.handleBattleResult();
+            this.battleLogic.actionInProgress = false; // Ensure flag is reset on battle end
             return;
         }
         
@@ -1114,7 +1278,10 @@ export class BattleSystem extends Scene {
     }
     
     executeEnemyTurn() {
-        if (this.battleLogic.battleEnded) return;
+        if (this.battleLogic.battleEnded) {
+            this.battleLogic.actionInProgress = false;
+            return;
+        }
         
         // Add turn indicator to battle log
         this.battleLogic.battleLog.push(`${this.enemyEntity.data.name}'s turn...`);
@@ -1125,9 +1292,9 @@ export class BattleSystem extends Scene {
             // Get enemy action and animate
             const enemyAction = this.battleLogic.enemyAction();
             
-            if (enemyAction === 'defend') {
-                // No animation for defend, just update the UI
-                this.updateBattleLog();
+            if (enemyAction === 'defend' || enemyAction === 'skip') {
+                // No animation for defend/skip, just update the UI
+                this.updateBattleLog(); // Ensure log is updated for skip/defend message
                 this.time.delayedCall(1000, () => this.afterEnemyTurn());
             } else {
                 // Attack or skill animation
@@ -1154,7 +1321,10 @@ export class BattleSystem extends Scene {
         this.updateBattleLog();
         
         // Start player turn after delay
-        this.time.delayedCall(1000, () => this.startPlayerTurn());
+        this.time.delayedCall(1000, () => {
+            this.battleLogic.actionInProgress = false; // Reset before player turn starts
+            this.startPlayerTurn();
+        });
     }
     
     handleBattleResult() {
@@ -1606,7 +1776,7 @@ export class BattleSystem extends Scene {
         });
     }
     
-    animateAction(actionType, sourceType, targetType, onComplete) {
+    animateAction(actionType, sourceType, targetType, onComplete, details = {}) {
         // Get entities based on types
         const source = sourceType === 'pet' ? this.petEntity : this.enemyEntity;
         const target = targetType === 'pet' ? this.petEntity : this.enemyEntity;
@@ -1628,6 +1798,8 @@ export class BattleSystem extends Scene {
                         console.log(`Animation ${attackKey} not found, using fallback`);
                         source.playAnimation(actionType);
                     }
+                } else if (actionType === 'medicine') {
+                    source.playAnimation(actionType, details); // Pass details for medicine
                 } else {
                     source.playAnimation(actionType);
                 }
@@ -1647,7 +1819,95 @@ export class BattleSystem extends Scene {
         });
     }
     
+    // New method to consume item from inventory via backend
+    async consumeItemFromInventory(itemId) {
+        const globalContext = getGlobalContext();
+        if (!globalContext) {
+            console.error("Global context not found for item consumption.");
+            this.battleLogic.battleLog.push('Error: Could not access inventory.');
+            this.updateBattleLog();
+            return false;
+        }
+        const token = localStorage.getItem('token');
+        const API_URL = import.meta.env.VITE_API_URL;
+
+        if (!token) {
+            console.error("No token found for item consumption.");
+            this.battleLogic.battleLog.push('Error: Authentication failed.');
+            this.updateBattleLog();
+            return false;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/users/me/inventory/decrement`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ itemId: itemId, quantity: 1 })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('Item consumed successfully from inventory:', itemId);
+                // Refresh inventory in global context
+                await globalContext.fetchInventory(); // Make sure fetchInventory is awaitable or handles updates
+                return true;
+            } else {
+                console.error('Failed to consume item from inventory:', data.error);
+                this.battleLogic.battleLog.push(`Failed to use item: ${data.message || data.error || 'Item unavailable'}`);
+                this.updateBattleLog();
+                return false;
+            }
+        } catch (error) {
+            console.error('Error consuming item from inventory:', error);
+            this.battleLogic.battleLog.push('Error using item. Please try again.');
+            this.updateBattleLog();
+            return false;
+        }
+    }
+    
     update() {
         // Add any per-frame updates here if needed
+    }
+
+    shutdown() {
+        // Clean up the inventory modal if it exists and is part of this scene's display list
+        if (this.inventoryModal && this.inventoryModal.scene === this) {
+            this.inventoryModal.destroy(); // Assuming InventoryModal has a destroy method
+            this.inventoryModal = null;
+        }
+        // ... other shutdown logic
+        console.log('BattleSystem shutdown.');
+        EventBus.off('battle-scene-ready', this.onBattleSceneReady, this); // Example: remove listener
+        
+        // Destroy UI elements
+        if (this.statusGroup) this.statusGroup.destroy(true); // true for children
+        if (this.battleLogBg) this.battleLogBg.destroy();
+        if (this.battleLogText) this.battleLogText.destroy();
+        if (this.actionMenu) this.actionMenu.destroy(true); // true for children
+        if (this.resultPopup) this.resultPopup.destroy(true); // true for children
+
+        // Destroy entities
+        if (this.petEntity) this.petEntity.destroy();
+        if (this.enemyEntity) this.enemyEntity.destroy();
+
+        // Nullify references
+        this.petData = null;
+        this.enemyData = null;
+        this.levelData = null;
+        this.battleLogic = null;
+        this.petEntity = null;
+        this.enemyEntity = null;
+        this.statusGroup = null;
+        this.battleLogBg = null;
+        this.battleLogText = null;
+        this.actionMenu = null;
+        this.actionButtons = [];
+        this.resultPopup = null;
+        this.resultTitle = null;
+        this.resultDetails = null;
+        this.inventoryModal = null; // Ensure modal reference is cleared
     }
 } 
