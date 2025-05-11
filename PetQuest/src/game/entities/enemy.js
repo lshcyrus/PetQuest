@@ -335,48 +335,98 @@ export const EnemyTypes = {
     ]
 };
 
+// Base stats for a medium difficulty enemy (Level 2)
+const BASE_ENEMY_STATS = {
+    hp: 300,
+    sp: 120,
+    atk: 100,
+    def: 60,
+    level: 2 // Base level corresponds to medium difficulty
+};
+
 /**
- * Generate a random enemy based on difficulty level
- * @param {number} levelDifficulty - Difficulty level (1-10)
+ * Generates a random enemy with stats scaled by difficulty.
+ * @param {number} [levelDifficulty=1] - Difficulty level (1: Easy, 2: Medium, 3: Hard, 4: Expert)
  * @returns {Object} Enemy data object
  */
 export function generateRandomEnemy(levelDifficulty = 1) {
-    // Clamp difficulty between 1 and 10
-    const difficulty = Math.max(1, Math.min(10, levelDifficulty));
-    
-    // Determine enemy tier based on difficulty
-    let tier;
-    if (difficulty <= 3) {
-        tier = 'EASY';
-    } else if (difficulty <= 6) {
-        tier = 'MEDIUM';
-    } else if (difficulty <= 9) {
-        tier = 'HARD';
-    } else {
-        tier = 'BOSS';
+    // Define enemy types and their base sprite keys
+    const enemyTypes = [
+        { name: 'Gorgon', key: 'gorgon_idle' },
+        { name: 'Blue Golem', key: 'blue_golem_idle' },
+        { name: 'Orange Golem', key: 'orange_golem_idle' },
+        { name: 'Green Dragon', key: 'green_dragon_idle' },
+        { name: 'Red Demon', key: 'red_demon_idle' }
+    ];
+    const selectedType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+
+    let scaledStats = { ...BASE_ENEMY_STATS }; // Start with a copy of base stats
+    let enemyLevel = BASE_ENEMY_STATS.level;
+
+    // Define multipliers for each difficulty
+    // Multipliers are relative to the BASE_ENEMY_STATS (which is Medium)
+    let hpSpMultiplier = 1.0;
+    let atkDefMultiplier = 1.0;
+
+    switch (levelDifficulty) {
+        case 1: // Easy
+            enemyLevel = 1;
+            hpSpMultiplier = 0.75; // Reduced HP/SP
+            atkDefMultiplier = 0.75; // Reduced ATK/DEF
+            break;
+        case 2: // Medium (Base stats are already set for Medium)
+            enemyLevel = 2;
+            // Multipliers remain 1.0
+            break;
+        case 3: // Hard
+            enemyLevel = 3;
+            hpSpMultiplier = 1.5;  // Increased HP/SP
+            atkDefMultiplier = 1.25; // Increased ATK/DEF
+            break;
+        case 4: // Expert
+            enemyLevel = 4;
+            hpSpMultiplier = 2.0;  // Significantly increased HP/SP
+            atkDefMultiplier = 1.5;  // Significantly increased ATK/DEF
+            break;
+        default: // Default to Medium if difficulty is unrecognized
+            enemyLevel = 2;
+            console.warn(`Unrecognized difficulty: ${levelDifficulty}. Defaulting to Medium.`);
+            break;
     }
-    
-    // Get random enemy from tier
-    const enemyList = EnemyTypes[tier];
-    const baseEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
-    
-    // Scale stats based on difficulty
-    const scaleFactor = 1 + (difficulty - 1) * 0.1; // 10% increase per level
-    const finalHp = Math.floor(baseEnemy.hp * scaleFactor);
-    const finalSp = Math.floor(baseEnemy.sp * scaleFactor);
-    const finalAtk = Math.floor(baseEnemy.atk * scaleFactor);
-    const finalDef = Math.floor(baseEnemy.def * scaleFactor);
-    
-    // Create enemy data object
+
+    // Apply scaling and round to nearest integer
+    scaledStats.hp = Math.round(BASE_ENEMY_STATS.hp * hpSpMultiplier);
+    scaledStats.sp = Math.round(BASE_ENEMY_STATS.sp * hpSpMultiplier);
+    scaledStats.atk = Math.round(BASE_ENEMY_STATS.atk * atkDefMultiplier);
+    scaledStats.def = Math.round(BASE_ENEMY_STATS.def * atkDefMultiplier);
+    scaledStats.level = enemyLevel; // Set the enemy's level
+
+    // Ensure stats are not zero or negative after scaling (especially for Easy)
+    scaledStats.hp = Math.max(1, scaledStats.hp);
+    scaledStats.sp = Math.max(0, scaledStats.sp); // SP can be 0
+    scaledStats.atk = Math.max(1, scaledStats.atk);
+    scaledStats.def = Math.max(0, scaledStats.def); // DEF can be 0
+
+    console.log(`Generated enemy for difficulty ${levelDifficulty} (Level ${enemyLevel}):`, 
+        `HP: ${scaledStats.hp}, SP: ${scaledStats.sp}, ATK: ${scaledStats.atk}, DEF: ${scaledStats.def}`);
+
     return {
-        name: baseEnemy.name,
-        key: baseEnemy.key,
-        level: difficulty,
-        stats: {
-            hp: finalHp,
-            sp: finalSp,
-            atk: finalAtk,
-            def: finalDef
-        }
+        name: selectedType.name,
+        key: selectedType.key,
+        stats: scaledStats, // Use the scaled stats
+        level: enemyLevel, // Also store level directly for easier access if needed
+        // Add other properties as needed (e.g., abilities, drops based on difficulty)
+        abilities: ['Basic Attack', 'Special Attack'], // Example abilities
+        drops: generateEnemyDrops(levelDifficulty) // Example: generate drops based on difficulty
     };
+}
+
+// Helper function to generate drops (can be expanded)
+function generateEnemyDrops(difficulty) {
+    const drops = [];
+    const dropChance = 0.3 + difficulty * 0.1; // Higher difficulty = better drop chance
+    if (Math.random() < dropChance) {
+        drops.push(difficulty > 2 ? 'Rare Item' : 'Common Item');
+    }
+    return drops;
 } 
