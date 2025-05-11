@@ -694,46 +694,68 @@ export class BattleSystem extends Scene {
             return;
         }
 
-        const entityKey = entity.data.key;
+        const entityKey = entity.data.key; // For pets: 'dino_rex'. For enemies: 'blue_golem_idle'
         let actions = [];
 
         if (isPet) {
-            // Actions for pets: attack, skill1, hurt, die. Idle is handled in Pet.js.
+            // Actions for pets: attack, skill1, hurt, die. Idle is handled in Pet.js create().
             // Play, train, outdoor are for MainMenu.
+            // 'hurt' and 'die' animations will only be created if their respective spritesheets are loaded.
             actions = ['attack', 'skill1', 'hurt', 'die'];
         } else {
-            // Actions for enemies: idle, attack, hurt, die. Walk might be for future.
+            // Actions for enemies: idle, attack, hurt, die, walk.
             actions = ['idle', 'attack', 'hurt', 'die', 'walk'];
         }
 
         actions.forEach(action => {
-            const spritesheetKey = `${entityKey}_${action}`; // e.g., "dino_rex_attack" or "gorgon_idle"
-            const animKey = spritesheetKey; // Animation key will be the same as the spritesheet key
+            let spritesheetKeyToLoad;
+            let animationKeyToCreate;
 
-            if (this.textures.exists(spritesheetKey)) {
-                if (!this.anims.exists(animKey)) {
+            if (isPet) {
+                spritesheetKeyToLoad = `${entityKey}_${action}`; // e.g., "dino_rex_attack"
+                animationKeyToCreate = spritesheetKeyToLoad;
+            } else { // For Enemies
+                const baseEnemyKey = entityKey.endsWith('_idle') ? entityKey.substring(0, entityKey.length - 5) : entityKey;
+                if (action === 'idle') {
+                    // The entityKey for enemies (e.g., 'gorgon_idle') is ALREADY the idle spritesheet key.
+                    spritesheetKeyToLoad = entityKey;
+                } else {
+                    // For other actions, it's baseKey + '_' + action (e.g., 'gorgon_attack')
+                    spritesheetKeyToLoad = `${baseEnemyKey}_${action}`;
+                }
+                animationKeyToCreate = spritesheetKeyToLoad; // Animation key matches the loaded spritesheet key
+            }
+
+            if (this.textures.exists(spritesheetKeyToLoad)) {
+                if (!this.anims.exists(animationKeyToCreate)) {
                     try {
-                        const frameConfig = { start: 0, end: this.textures.get(spritesheetKey).frameTotal - 1 };
-                        if (frameConfig.end < 0) { // Handle single-frame spritesheets if any (though unlikely for these actions)
-                            console.warn(`Spritesheet ${spritesheetKey} has 0 or 1 frames. Creating single frame anim.`);
-                            frameConfig.end = 0;
+                        // Ensure there are frames in the spritesheet
+                        const texture = this.textures.get(spritesheetKeyToLoad);
+                        const frameCount = texture.frameTotal;
+                        if (frameCount <= 0) {
+                            console.warn(`Spritesheet ${spritesheetKeyToLoad} has no frames. Cannot create animation ${animationKeyToCreate}.`);
+                            return; // Skip this animation
                         }
+
+                        const frameConfig = { start: 0, end: frameCount - 1 };
                         
                         this.anims.create({
-                            key: animKey,
-                            frames: this.anims.generateFrameNumbers(spritesheetKey, frameConfig),
+                            key: animationKeyToCreate,
+                            frames: this.anims.generateFrameNumbers(spritesheetKeyToLoad, frameConfig),
                             frameRate: 10, // Adjust as needed
-                            repeat: (action === 'idle' || action === 'walk') ? -1 : 0 // Loop idle/walk, others play once
+                            repeat: (action === 'idle' || action === 'walk' && !isPet) ? -1 : 0 // Loop idle/walk for enemies
                         });
-                        console.log(`Created animation: ${animKey} for ${entityKey} from spritesheet ${spritesheetKey}`);
+                        console.log(`Created animation: ${animationKeyToCreate} for entity ${entityKey} (isPet: ${isPet}) from spritesheet ${spritesheetKeyToLoad}`);
                     } catch (e) {
-                        console.error(`Error creating animation ${animKey} from ${spritesheetKey}:`, e);
+                        console.error(`Error creating animation ${animationKeyToCreate} from ${spritesheetKeyToLoad}:`, e);
                     }
                 }
             } else {
-                // Idle for pets is special, it's created from the base key (e.g. 'dino_rex') in Pet.js
-                if (!(isPet && action === 'idle')) {
-                     console.warn(`Spritesheet ${spritesheetKey} not loaded or does not exist. Cannot create animation ${animKey}.`);
+                // Pet idle animations are handled differently (base key in Pet.js), so don't warn for those here.
+                // For other missing pet battle animations (hurt, die), it's a content issue if desired.
+                // For enemies, if any listed action's spritesheet isn't loaded, it's an issue.
+                if (! (isPet && action === 'idle') ) { // Don't warn for pet 'idle' as it's handled by Pet class
+                     console.warn(`Spritesheet ${spritesheetKeyToLoad} not loaded or does not exist. Cannot create animation ${animationKeyToCreate}.`);
                 }
             }
         });
@@ -1194,60 +1216,214 @@ export class BattleSystem extends Scene {
 
                         const itemToUse = inventoryItem.item;
 
-                        // Perform usability checks (e.g., HP Potion on full HP pet)
                         const currentPetStats = this.petEntity.data.stats;
                         const petBuffs = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? 
                                          this.petEntity.data.activeBuffs.stats : { hp: 0, sp: 0 };
-                        const currentHPWithBuffs = currentPetStats.hp + (petBuffs.hp || 0);
-                        const maxHPWithBuffs = (currentPetStats.maxhp || currentPetStats.hp) + (petBuffs.hp || 0);
-                        const currentSPWithBuffs = currentPetStats.sp + (petBuffs.sp || 0);
-                        const maxSPWithBuffs = (currentPetStats.maxsp || currentPetStats.sp) + (petBuffs.sp || 0);
+                        
+                        const baseMaxHP = currentPetStats.maxhp;
+                        const baseMaxSP = currentPetStats.maxsp;
+                        const currentHP = currentPetStats.hp;
+                        const currentSP = currentPetStats.sp;
 
-                        if (itemToUse.name === 'hp-potion' && currentHPWithBuffs >= maxHPWithBuffs) {
-                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full HP!`);
+                        if (typeof baseMaxHP === 'undefined' || typeof baseMaxSP === 'undefined') {
+                            console.error("Critical: baseMaxHP or baseMaxSP is undefined in petEntity.data.stats!", currentPetStats);
+                            this.battleLogic.battleLog.push('Error: Pet max stats unavailable.');
                             this.updateBattleLog();
-                            this.time.delayedCall(800, () => {
-                                this.setActionMenuEnabled(true);
-                                this.battleLogic.actionInProgress = false;
-                            });
-                            return;
-                        }
-                        if (itemToUse.name === 'sp-potion' && currentSPWithBuffs >= maxSPWithBuffs) {
-                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full SP!`);
-                            this.updateBattleLog();
-                            this.time.delayedCall(800, () => {
-                                this.setActionMenuEnabled(true);
-                                this.battleLogic.actionInProgress = false;
-                            });
-                            return;
-                        }
-                         if ((itemToUse.name === 'mixed-potion' || itemToUse.name === 'best-potion') && currentHPWithBuffs >= maxHPWithBuffs && currentSPWithBuffs >= maxSPWithBuffs) {
-                            this.battleLogic.battleLog.push(`${this.petEntity.data.name} is already at full HP and SP!`);
-                            this.updateBattleLog();
-                            this.time.delayedCall(800, () => {
+                             this.time.delayedCall(800, () => {
                                 this.setActionMenuEnabled(true);
                                 this.battleLogic.actionInProgress = false;
                             });
                             return;
                         }
 
+                        const currentHPWithBuffs = currentHP + (petBuffs.hp || 0);
+                        const maxHPWithBuffs = baseMaxHP + (petBuffs.hp || 0);
+                        const currentSPWithBuffs = currentSP + (petBuffs.sp || 0);
+                        const maxSPWithBuffs = baseMaxSP + (petBuffs.sp || 0);
 
-                        // Animate item use, then apply effects and consume
-                        this.animateAction('medicine', 'pet', null, async () => {
-                            const effectApplied = this.battleLogic.usePlayerItem(this.petEntity, itemToUse);
-                            if (effectApplied) {
-                                await this.consumeItemFromInventory(itemToUse._id); // Wait for consumption
-                                this.battleLogic.itemUsedThisTurn = true; // Set only after successful consumption
+                        console.log(`[BattleSystem] Item Use Check. Item: ${itemToUse.name} (${itemToUse._id})`);
+                        console.log(`  Pet Base Stats: HP=${currentHP}/${baseMaxHP}, SP=${currentSP}/${baseMaxSP}`);
+                        console.log(`  Pet Buffs: HP=${petBuffs.hp || 0}, SP=${petBuffs.sp || 0}`);
+                        console.log(`  Effective Stats: HP=${currentHPWithBuffs}/${maxHPWithBuffs}, SP=${currentSPWithBuffs}/${maxSPWithBuffs}`);
+                        console.log(`  Item Effects: health=${itemToUse.effects?.health}, sp=${itemToUse.effects?.sp}`);
+
+                        let blockAPICall = false;
+                        let blockReason = "";
+
+                        // Standard usability checks based on item type and pet's current stats (aligning with MainMenu.js)
+                        const isHpPotion = itemToUse.name === 'hp-potion';
+                        const isSpPotion = itemToUse.name === 'sp-potion';
+                        const isMixedOrBestPotion = itemToUse.name === 'mixed-potion' || itemToUse.name === 'best-potion';
+
+                        const hpIsFull = currentHPWithBuffs >= maxHPWithBuffs;
+                        const spIsFull = currentSPWithBuffs >= maxSPWithBuffs;
+
+                        console.log(`[BattleSystem] Stat fullness: hpIsFull=${hpIsFull}, spIsFull=${spIsFull}`);
+                        console.log(`[BattleSystem] Item type flags: isHpPotion=${isHpPotion}, isSpPotion=${isSpPotion}, isMixedOrBestPotion=${isMixedOrBestPotion}`);
+
+                        if (isHpPotion) {
+                            console.log("[BattleSystem] Evaluating 'hp-potion' conditions...");
+                            if (hpIsFull) {
+                                console.log("[BattleSystem]   HP Potion Blocked: HP is full.");
+                                blockAPICall = true;
+                                blockReason = `${this.petEntity.data.name} is already at full HP!`;
+                            } else {
+                                console.log("[BattleSystem]   HP-potion check: No block condition met.");
                             }
-                            this.afterPlayerAction(); // This will reset actionInProgress
-                        }, { itemName: itemToUse.name }); // Pass itemName for Pet.js animation
+                        } else if (isSpPotion) {
+                            console.log("[BattleSystem] Evaluating 'sp-potion' conditions...");
+                            if (spIsFull) {
+                                console.log("[BattleSystem]   SP Potion Blocked: SP is full.");
+                                blockAPICall = true;
+                                blockReason = `${this.petEntity.data.name} is already at full SP!`;
+                            } else {
+                                console.log("[BattleSystem]   SP-potion check: No block condition met.");
+                            }
+                        } else if (isMixedOrBestPotion) {
+                            console.log("[BattleSystem] Evaluating 'mixed-potion'/'best-potion' conditions...");
+                            if (hpIsFull && spIsFull) {
+                                console.log("[BattleSystem]   Mixed/Best Potion Blocked: Both HP & SP are full.");
+                                blockAPICall = true;
+                                blockReason = `${this.petEntity.data.name} is already at full HP and SP!`;
+                            } else {
+                                console.log("[BattleSystem]   Mixed/Best-potion check: No block condition met.");
+                            }
+                        } else {
+                            console.log(`[BattleSystem] Item name '${itemToUse.name}' did not match known potion types for these checks.`);
+                        }
+
+                        if (blockAPICall) {
+                            console.log(`[BattleSystem] Blocking API call for item use: ${blockReason}`);
+                            this.battleLogic.battleLog.push(blockReason);
+                            this.updateBattleLog();
+                            this.time.delayedCall(800, () => {
+                                this.setActionMenuEnabled(true);
+                                this.battleLogic.actionInProgress = false;
+                            });
+                            return;
+                        }
+                        
+                        console.log("[BattleSystem] Frontend checks passed. Proceeding with API call for item use.");
+
+                        // Animate item use, then apply effects and consume via backend
+                        this.animateAction('medicine', 'pet', null, async () => {
+                            try {
+                                const token = localStorage.getItem('token');
+                                const API_URL = import.meta.env.VITE_API_URL;
+                                const petId = this.petEntity.data._id;
+                                const globalContext = getGlobalContext(); // Ensure globalContext is defined in this scope
+
+                                if (!token || !petId) {
+                                    this.battleLogic.battleLog.push('Authentication or Pet ID missing.');
+                                    this.afterPlayerAction(); 
+                                    return;
+                                }
+
+                                const response = await fetch(`${API_URL}/pets/${petId}/medicine`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({ itemId: itemToUse._id }) 
+                                });
+
+                                let responseData;
+                                // Check content type before attempting to parse as JSON
+                                const contentType = response.headers.get("content-type");
+                                if (contentType && contentType.includes("application/json")) {
+                                    responseData = await response.json();
+                                } else {
+                                    const textResponse = await response.text();
+                                    console.error(`Server returned non-JSON response (${response.status}):`, textResponse);
+                                    this.battleLogic.battleLog.push(`Server error: ${response.status}. Check console for details.`);
+                                    // Propagate an error to be caught by the catch block
+                                    throw new Error(`Server returned non-JSON response: ${response.status} - ${textResponse.substring(0, 150)}`);
+                                }
+
+                                if (response.ok && responseData.success) {
+                                    const updatedPetDataFromBackend = responseData.data; 
+                                    
+                                    const oldCurrentHP = this.petEntity.data.stats.hp;
+                                    const oldCurrentSP = this.petEntity.data.stats.sp;
+
+                                    // Update petEntity in battle with new stats from backend
+                                    this.petEntity.data.stats.hp = updatedPetDataFromBackend.currentHP; 
+                                    this.petEntity.data.stats.sp = updatedPetDataFromBackend.currentSP; 
+                                    this.petEntity.data.stats.maxhp = updatedPetDataFromBackend.stats.hp; 
+                                    this.petEntity.data.stats.maxsp = updatedPetDataFromBackend.stats.sp; 
+
+                                    console.log(`[BattleSystem] Pet entity updated after item use: HP=${this.petEntity.data.stats.hp}/${this.petEntity.data.stats.maxhp}, SP=${this.petEntity.data.stats.sp}/${this.petEntity.data.stats.maxsp}`);
+
+                                    if (this.petData && this.petData._id === updatedPetDataFromBackend._id) {
+                                        this.petData = updatedPetDataFromBackend;
+                                    }
+
+                                    if (globalContext) {
+                                        await globalContext.fetchInventory();
+                                        if (globalContext.userData && globalContext.userData.selectedPet && globalContext.userData.selectedPet._id === petId) {
+                                            globalContext.userData.selectedPet = updatedPetDataFromBackend;
+                                        }
+                                    }
+                                    
+                                    const actualHealedHP = this.petEntity.data.stats.hp - oldCurrentHP;
+                                    const actualRestoredSP = this.petEntity.data.stats.sp - oldCurrentSP;
+                                    const petName = this.petEntity.data.name;
+                                    const itemNameDisplay = itemToUse.displayName || itemToUse.name;
+                                    
+                                    let logMessage = `${petName} used ${itemNameDisplay}`;
+
+                                    // Simpler message construction, similar to MainMenu.js style
+                                    // Acknowledges all healing that occurred.
+                                    if (itemToUse.name === 'best-potion' && 
+                                        this.petEntity.data.stats.hp >= (this.petEntity.data.stats.maxhp + (petBuffs.hp || 0)) &&
+                                        this.petEntity.data.stats.sp >= (this.petEntity.data.stats.maxsp + (petBuffs.sp || 0)) ) {
+                                        logMessage = `${petName} is fully restored with ${itemNameDisplay}!`;
+                                    } else if (actualHealedHP > 0 && actualRestoredSP > 0) {
+                                        logMessage += `! Restored ${actualHealedHP} HP and ${actualRestoredSP} SP.`;
+                                    } else if (actualHealedHP > 0) {
+                                        logMessage += `! Restored ${actualHealedHP} HP.`;
+                                    } else if (actualRestoredSP > 0) {
+                                        logMessage += `! Restored ${actualRestoredSP} SP.`;
+                                    } else {
+                                        logMessage += `, but no significant effect or already at maximum.`;
+                                    }
+                                    this.battleLogic.battleLog.push(logMessage);
+
+                                    const updatedPetBuffs = this.petEntity.data.activeBuffs && this.petEntity.data.activeBuffs.stats ? this.petEntity.data.activeBuffs.stats : { hp: 0, sp: 0 };
+                                    const currentMaxHPUI = (this.petEntity.data.stats.maxhp || this.petEntity.data.stats.hp) + (updatedPetBuffs.hp || 0);
+                                    const currentMaxSPUI = (this.petEntity.data.stats.maxsp || this.petEntity.data.stats.sp) + (updatedPetBuffs.sp || 0);
+                                    this.battleLogic.battleLog.push(`${this.petEntity.data.name} HP: ${this.petEntity.data.stats.hp}/${currentMaxHPUI}, SP: ${this.petEntity.data.stats.sp}/${currentMaxSPUI}`);
+                                    
+                                    this.battleLogic.itemUsedThisTurn = true;
+                                } else {
+                                    // Use error message from responseData if available
+                                    const errorMsg = responseData.error || responseData.message || `Server returned ${response.status}`;
+                                    this.battleLogic.battleLog.push(`Failed to use item: ${errorMsg}`);
+                                    console.error('[BattleSystem] Failed to use item, server response:', responseData);
+                                }
+                            } catch (error) {
+                                console.error('[BattleSystem] Error using item in battle:', error);
+                                // Check if it's our custom error for non-JSON responses
+                                if (error.message && error.message.startsWith("Server returned non-JSON response")) {
+                                   // Message already pushed to battle log from the 'else' block where the error was thrown
+                                } else if (error instanceof SyntaxError) { 
+                                    this.battleLogic.battleLog.push('Received invalid response format from server.');
+                                } else {
+                                    this.battleLogic.battleLog.push('An unexpected error occurred while using the item.');
+                                }
+                            } finally {
+                                this.afterPlayerAction(); 
+                            }
+                        }, { itemName: itemToUse.name }); 
                     },
                     onClose: () => {
-                        this.setActionMenuEnabled(true); // Re-enable menu if modal is closed without selection
+                        this.setActionMenuEnabled(true); 
                         this.battleLogic.actionInProgress = false;
                     }
                 });
                 this.inventoryModal.show();
+                // No explicit actionSuccess = true here, as success is determined by the async callback
                 break;
             case 'run':
                 this.battleLogic.battleLog.push('Attempting to escape...');
@@ -1844,55 +2020,6 @@ export class BattleSystem extends Scene {
                 if (onComplete) onComplete();
             });
         });
-    }
-    
-    // New method to consume item from inventory via backend
-    async consumeItemFromInventory(itemId) {
-        const globalContext = getGlobalContext();
-        if (!globalContext) {
-            console.error("Global context not found for item consumption.");
-            this.battleLogic.battleLog.push('Error: Could not access inventory.');
-            this.updateBattleLog();
-            return false;
-        }
-        const token = localStorage.getItem('token');
-        const API_URL = import.meta.env.VITE_API_URL;
-
-        if (!token) {
-            console.error("No token found for item consumption.");
-            this.battleLogic.battleLog.push('Error: Authentication failed.');
-            this.updateBattleLog();
-            return false;
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/users/me/inventory/decrement`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ itemId: itemId, quantity: 1 })
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                console.log('Item consumed successfully from inventory:', itemId);
-                // Refresh inventory in global context
-                await globalContext.fetchInventory(); // Make sure fetchInventory is awaitable or handles updates
-                return true;
-            } else {
-                console.error('Failed to consume item from inventory:', data.error);
-                this.battleLogic.battleLog.push(`Failed to use item: ${data.message || data.error || 'Item unavailable'}`);
-                this.updateBattleLog();
-                return false;
-            }
-        } catch (error) {
-            console.error('Error consuming item from inventory:', error);
-            this.battleLogic.battleLog.push('Error using item. Please try again.');
-            this.updateBattleLog();
-            return false;
-        }
     }
     
     update() {

@@ -615,7 +615,9 @@ exports.medicinePet = async (req, res, next) => {
         error: 'Pet not found'
       });
     }
-    
+
+    await pet.updateStats(); // Ensure passive stat changes are calculated before checks
+
     // Check if pet belongs to user
     if (pet.owner.toString() !== req.user.id) {
       return res.status(401).json({
@@ -683,10 +685,10 @@ exports.medicinePet = async (req, res, next) => {
 
         // Apply heals
         if (hpHeal > 0) {
-          pet.currentHP = Math.min(pet.stats.hp, (pet.currentHP || pet.stats.hp) + hpHeal);
+          pet.currentHP = Math.min(pet.stats.hp, (pet.currentHP || 0) + hpHeal);
         }
         if (spHeal > 0) {
-          pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || pet.stats.sp) + spHeal);
+          pet.currentSP = Math.min(pet.stats.sp, (pet.currentSP || 0) + spHeal);
         }
       }
       
