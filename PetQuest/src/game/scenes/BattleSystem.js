@@ -1024,38 +1024,40 @@ export class BattleSystem extends Scene {
         // Create a container for the popup (invisible initially)
         this.resultPopup = this.add.container(width/2, height/2)
             .setAlpha(0)
-            .setVisible(false);
+            .setVisible(false)
+            .setDepth(100); // Set a high depth for the container
             
-        // Background with border
-        const popupBg = this.add.rectangle(0, 0, width * 0.6, height * 0.4, 0x222244, 0.95)
+        // Background to cover the full screen
+        const popupBg = this.add.rectangle(0, 0, width, height, 0x222244, 0.95) // x,y relative to container center
             .setStrokeStyle(3, 0xaaaaff);
             
-        // Result title text
-        this.resultTitle = this.add.text(0, -height * 0.12, '', {
-            fontSize: '32px',
+        // Result title text - Positioned towards the top
+        this.resultTitle = this.add.text(0, -height * 0.35, '', { // Adjusted Y
+            fontSize: '36px', // Slightly larger title
             color: '#ffffff',
             fontFamily: 'monospace',
             align: 'center'
         }).setOrigin(0.5);
         
-        // Result details text
-        this.resultDetails = this.add.text(0, -height * 0.02, '', {
-            fontSize: '20px',
+        // Result details text - Positioned in the middle area
+        this.resultDetails = this.add.text(0, 0, '', { // Adjusted Y to be centered
+            fontSize: '22px', // Slightly larger details
             color: '#ffff99',
             fontFamily: 'monospace',
             align: 'center',
-            wordWrap: { width: width * 0.5 }
+            wordWrap: { width: width * 0.7 } // Wider word wrap for fullscreen
         }).setOrigin(0.5);
         
-        // Continue button
-        const continueBtn = this.add.rectangle(0, height * 0.1, 150, 50, 0x4444aa)
+        // Continue button - Positioned towards the bottom
+        const continueBtnY = height * 0.35; // Adjusted Y
+        const continueBtn = this.add.rectangle(0, continueBtnY, 200, 60, 0x4444aa) // Slightly larger button
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.handleBattleEnd())
             .on('pointerover', () => continueBtn.setFillStyle(0x6666cc))
             .on('pointerout', () => continueBtn.setFillStyle(0x4444aa));
             
-        const continueTxt = this.add.text(0, height * 0.1, 'Continue', {
-            fontSize: '20px',
+        const continueTxt = this.add.text(0, continueBtnY, 'Continue', {
+            fontSize: '24px', // Slightly larger button text
             color: '#ffffff',
             fontFamily: 'monospace'
         }).setOrigin(0.5);
@@ -1649,9 +1651,11 @@ export class BattleSystem extends Scene {
             this.goldGained = Math.floor(enemyLevel * 10 + Math.random() * enemyLevel * 5);
             
             // Calculate gem drops (rare chance)
-            if (Math.random() < 0.2) { // 20% chance to find a gem
-                this.gemsGained = Math.ceil(Math.random() * 2); // 1-2 gems
-            }
+            // REMOVED: Gem calculation
+            // if (Math.random() < 0.2) { // 20% chance to find a gem
+            //     this.gemsGained = Math.ceil(Math.random() * 2); // 1-2 gems
+            // }
+            this.gemsGained = 0; // Ensure gemsGained is 0
             
             // Add experience and gold to pet data
             if (!this.petEntity.data.experience) this.petEntity.data.experience = 0;
@@ -1676,9 +1680,10 @@ export class BattleSystem extends Scene {
             this.battleLogic.drops.push(`${this.goldGained} Coins`);
             
             // Add gems to rewards list if any were gained
-            if (this.gemsGained > 0) {
-                this.battleLogic.drops.push(`${this.gemsGained} Gem${this.gemsGained > 1 ? 's' : ''}`);
-            }
+            // REMOVED: Adding gems to drops
+            // if (this.gemsGained > 0) {
+            //     this.battleLogic.drops.push(`${this.gemsGained} Gem${this.gemsGained > 1 ? 's' : ''}`);
+            // }
             
             // Add item drops to the rewards list
             if (this.itemsGained && this.itemsGained.length > 0) {
@@ -1923,8 +1928,9 @@ export class BattleSystem extends Scene {
             // Track responses for coins and gems to update global context
             let coinsUpdateSuccess = false;
             let coinsNewAmount = 0;
-            let gemsUpdateSuccess = false;
-            let gemsNewAmount = 0;
+            // REMOVED: Gem tracking variables
+            // let gemsUpdateSuccess = false;
+            // let gemsNewAmount = 0;
             
             // Update user coins if goldGained > 0
             if (this.goldGained && this.goldGained > 0) {
@@ -1946,23 +1952,24 @@ export class BattleSystem extends Scene {
             }
             
             // Update user gems if gemsGained > 0
-            if (this.gemsGained && this.gemsGained > 0) {
-                const gemsResponse = await fetch(`${API_URL}/users/me/gems`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ delta: this.gemsGained })
-                });
+            // REMOVED: Entire block for updating user gems
+            // if (this.gemsGained && this.gemsGained > 0) {
+            //     const gemsResponse = await fetch(`${API_URL}/users/me/gems`, {
+            //         method: 'PUT',
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //             'Authorization': `Bearer ${token}`
+            //         },
+            //         body: JSON.stringify({ delta: this.gemsGained })
+            //     });
                 
-                const gemsData = await gemsResponse.json();
-                if (gemsResponse.ok && gemsData.success) {
-                    gemsUpdateSuccess = true;
-                    gemsNewAmount = gemsData.gems;
-                    console.log(`Updated gems: +${this.gemsGained} = ${gemsNewAmount}`);
-                }
-            }
+            //     const gemsData = await gemsResponse.json();
+            //     if (gemsResponse.ok && gemsData.success) {
+            //         gemsUpdateSuccess = true;
+            //         gemsNewAmount = gemsData.gems;
+            //         console.log(`Updated gems: +${this.gemsGained} = ${gemsNewAmount}`);
+            //     }
+            // }
             
             // Add item rewards to inventory if any were gained
             if (this.itemsGained && this.itemsGained.length > 0) {
@@ -2030,12 +2037,13 @@ export class BattleSystem extends Scene {
                 }
                 
                 // Update gems if successfully updated in the backend
-                if (gemsUpdateSuccess) {
-                    globalContext.updateUserData({ gems: gemsNewAmount });
-                } else if (this.gemsGained > 0) {
-                    // Use addGems function to update gems in global context
-                    globalContext.addGems(this.gemsGained);
-                }
+                // REMOVED: Updating gems in globalContext
+                // if (gemsUpdateSuccess) {
+                //     globalContext.updateUserData({ gems: gemsNewAmount });
+                // } else if (this.gemsGained > 0) {
+                //     // Use addGems function to update gems in global context
+                //     globalContext.addGems(this.gemsGained);
+                // }
                 
                 console.log('Updated global context with battle results');
             }
@@ -2050,8 +2058,8 @@ export class BattleSystem extends Scene {
         
         // Format rewards nicely
         const rewards = this.battleLogic.drops;
-        const itemRewards = rewards.filter(r => !r.includes('EXP') && !r.includes('Coin') && !r.includes('Gem'));
-        const expGold = rewards.filter(r => r.includes('EXP') || r.includes('Coin') || r.includes('Gem'));
+        const itemRewards = rewards.filter(r => !r.includes('EXP') && !r.includes('Coin')); // REMOVED: && !r.includes('Gem')
+        const expGold = rewards.filter(r => r.includes('EXP') || r.includes('Coin')); // REMOVED: || r.includes('Gem')
         
         let rewardText = '';
         
