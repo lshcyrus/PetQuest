@@ -16,7 +16,7 @@ class BattleLogic {
         this.battleLog = [];
         this.isPlayerDefending = false;
         this.isEnemyDefending = false;
-        this.itemUsedThisTurn = false;
+        this.itemUsedThisBattle = false; // Renamed from itemUsedThisTurn
         this.battleEnded = false;
         this.drops = [];
         this.actionInProgress = false;
@@ -31,6 +31,7 @@ class BattleLogic {
         this.currentTurn = Math.random() < 0.5 ? 'player' : 'enemy';
         this.battleLog.push(`${this.currentTurn === 'player' ? this.playerPet.data.name : this.enemy.data.name} goes first!`);
         this.turnCount = 0;
+        this.itemUsedThisBattle = false; // Reset for the new battle
         return this.battleLog;
     }
 
@@ -40,7 +41,7 @@ class BattleLogic {
         if (this.currentTurn === 'player') {
             this.currentTurn = 'enemy';
             this.isPlayerDefending = false;
-            this.itemUsedThisTurn = false;
+            // Removed: this.itemUsedThisTurn = false;
         } else {
             this.currentTurn = 'player';
             this.isEnemyDefending = false;
@@ -1172,8 +1173,8 @@ export class BattleSystem extends Scene {
                 this.time.delayedCall(800, () => this.afterPlayerAction());
                 break;
             case 'item':
-                if (this.battleLogic.itemUsedThisTurn) {
-                    this.battleLogic.battleLog.push('You can only use one item per turn!');
+                if (this.battleLogic.itemUsedThisBattle) { // Check itemUsedThisBattle
+                    this.battleLogic.battleLog.push('You can only use one item per battle!'); // Updated message
                     this.updateBattleLog();
                     this.time.delayedCall(800, () => {
                         this.setActionMenuEnabled(true);
@@ -1395,7 +1396,7 @@ export class BattleSystem extends Scene {
                                     const currentMaxSPUI = (this.petEntity.data.stats.maxsp || this.petEntity.data.stats.sp) + (updatedPetBuffs.sp || 0);
                                     this.battleLogic.battleLog.push(`${this.petEntity.data.name} HP: ${this.petEntity.data.stats.hp}/${currentMaxHPUI}, SP: ${this.petEntity.data.stats.sp}/${currentMaxSPUI}`);
                                     
-                                    this.battleLogic.itemUsedThisTurn = true;
+                                    this.battleLogic.itemUsedThisBattle = true; // Set itemUsedThisBattle to true
                                 } else {
                                     // Use error message from responseData if available
                                     const errorMsg = responseData.error || responseData.message || `Server returned ${response.status}`;
