@@ -1089,7 +1089,7 @@ export class MainMenu extends Scene {
                     
                     // Play animation when item is selected and will be used
                     if (this.pet && typeof this.pet.playAnimation === 'function') {
-                        this.pet.playAnimation('medicine');
+                        this.pet.playAnimation('medicine', { itemName: item.name });
                     }
                     
                     // Use the selected medicine for healing

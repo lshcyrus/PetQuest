@@ -257,8 +257,9 @@ export class Pet {
     /**
      * Play a specific animation or visual effect for the pet
      * @param {string} action - One of: 'play', 'train', 'outdoor', 'feed', 'medicine', 'attack', 'hurt'
+     * @param {object} [details={}] - Optional details for the animation, e.g., { itemName: 'hp-potion' }
      */
-    playAnimation(action) {
+    playAnimation(action, details = {}) {
         if (!this.sprite) return;
         const petKey = this.data.key;
         const scene = this.scene;
@@ -375,33 +376,74 @@ export class Pet {
                 break;
             }
             case 'medicine': {
-                // Medicine icon drops, pet tints, +HP text
-                const med = scene.add.image(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2, 'pet_addHealth')
+                const itemName = details.itemName || 'hp-potion'; // Default to hp-potion if no name provided
+                let tintColor = 0x88ff88; // Default green for HP Potion
+                let effectTextStr = '+HP';
+                let textColor = '#88ff88';
+
+                switch (itemName) {
+                    case 'sp-potion':
+                        tintColor = 0x88ccff; // Light blue
+                        effectTextStr = '+SP';
+                        textColor = '#88ccff';
+                        break;
+                    case 'mixed-potion':
+                        tintColor = 0xcc88ff; // Purple
+                        effectTextStr = '+HP,SP';
+                        textColor = '#cc88ff';
+                        break;
+                    case 'best-potion':
+                        tintColor = 0xff8888; // Red
+                        effectTextStr = 'Fully Recovered!';
+                        textColor = '#ff8888';
+                        break;
+                    case 'hp-potion':
+                    default:
+                        // Already set by defaults
+                        break;
+                }
+
+                // Medicine icon drops
+                const medIcon = scene.add.image(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2, 'pet_addHealth')
                     .setDisplaySize(32, 32)
                     .setDepth(this.sprite.depth + 1);
-                this._effectOverlay = med;
+                this._effectOverlay = medIcon;
+
                 scene.tweens.add({
-                    targets: med,
+                    targets: medIcon,
                     y: this.sprite.y,
                     duration: 400,
                     onComplete: () => {
-                        this.sprite.setTint(0x88ff88);
-                        // +HP text
-                        const hpText = scene.add.text(this.sprite.x, this.sprite.y - this.sprite.displayHeight/2 - 24, '+HP', {
-                            fontSize: '24px', color: '#88ff88', stroke: '#000', strokeThickness: 3
-                        }).setOrigin(0.5).setDepth(this.sprite.depth + 2);
-                        this._effectText = hpText;
+                        if (this.sprite) { // Check if sprite still exists
+                           this.sprite.setTint(tintColor);
+                        }
+                        
+                        // Effect text
+                        const effectText = scene.add.text(
+                            this.sprite.x, 
+                            this.sprite.y - this.sprite.displayHeight / 2 - 24, 
+                            effectTextStr, 
+                            {
+                                fontFamily: '"Silkscreen", cursive', // Ensure consistent font
+                                fontSize: '24px', 
+                                color: textColor, 
+                                stroke: '#000000', // Keep stroke for readability
+                                strokeThickness: 3
+                            }
+                        ).setOrigin(0.5).setDepth(this.sprite.depth + 2);
+                        this._effectText = effectText;
+
                         scene.tweens.add({
-                            targets: hpText,
-                            y: hpText.y - 30,
+                            targets: effectText,
+                            y: effectText.y - 30,
                             alpha: 0,
-                            duration: 600,
-                            onComplete: () => { hpText.destroy(); }
+                            duration: 800, // Slightly longer for "Fully Recovered!"
+                            onComplete: () => { if (effectText) effectText.destroy(); }
                         });
-                        med.destroy();
+                        if (medIcon) medIcon.destroy();
                     }
                 });
-                playIdle(900);
+                playIdle(1000); // Adjusted delay to ensure text is visible
                 break;
             }
             case 'attack': { 

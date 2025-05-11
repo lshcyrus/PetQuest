@@ -158,13 +158,17 @@ export class Preloader extends Scene {
         // Load pet attack animations
         console.log('Loading pet attack animations');
         const petAttacks = [
+
             { key: 'dino_rex_attack', path: 'Pet_Dino Rex/dino_rex_attack.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_rex_skill1', path: 'Pet_Dino Rex/dino_rex_skill1.png', frameWidth: 384, frameHeight: 128 },
             { key: 'badger_attack', path: 'Pet_Badger/badger_attack.png', frameWidth: 384, frameHeight: 128 },
-            // Special case for Dino Tri which has split attack files
-            { key: 'dino_tri_attack_A', path: 'Pet_Dino Tri/dino_tri_attack_A.png', frameWidth: 384, frameHeight: 128 },
-            { key: 'dino_tri_attack_B', path: 'Pet_Dino Tri/dino_tri_attack_B.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'badger_skill1', path: 'Pet_Badger/badger_skill1.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_attack', path: 'Pet_Dino Tri/dino_tri_attack.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_skill1', path: 'Pet_Dino Tri/dino_tri_skill1.png', frameWidth: 384, frameHeight: 128 },
             { key: 'frogger_attack', path: 'Pet_Frogger/frogger_attack.png', frameWidth: 384, frameHeight: 128 },
-            { key: 'pengu_attack', path: 'Pet_Pengu/pengu_attack.png', frameWidth: 384, frameHeight: 128 }
+            { key: 'frogger_skill1', path: 'Pet_Frogger/frogger_skill1.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_attack', path: 'Pet_Pengu/pengu_attack.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_skill1', path: 'Pet_Pengu/pengu_skill1.png', frameWidth: 384, frameHeight: 128 },
         ];
         
         petAttacks.forEach(attack => {
