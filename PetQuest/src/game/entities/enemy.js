@@ -338,7 +338,7 @@ export const EnemyTypes = {
 // Base stats for a medium difficulty enemy (Level 2)
 const BASE_ENEMY_STATS = {
     hp: 300,
-    sp: 120,
+    sp: 100,
     atk: 100,
     def: 60,
     level: 2 // Base level corresponds to medium difficulty

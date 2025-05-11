@@ -317,75 +317,104 @@ class BattleLogic {
     }
 
     generateDrops() {
-        // Generate random drops based on enemy level and difficulty
         const enemyLevel = this.enemy.data.level || 1;
-        const difficulty = this.battleground.selectedDifficulty || 1;
-        const drops = [];
-        
-        // Base drop chance (increases with enemy level and difficulty)
-        const dropChance = Math.min(0.7, 0.3 + (enemyLevel * 0.05) + (difficulty * 0.1));
-        
-        // Determine if we get any item drops
-        if (Math.random() < dropChance) {
-            // Item types available as drops
-            const itemTypes = ['medicine', 'equipment', 'food'];
-            const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-            
-            // Determine item rarity based on difficulty
-            // Higher difficulty = better chance for rare items
-            let rarityChances;
-            
-            switch(difficulty) {
-                case 3: // Hard difficulty
-                    rarityChances = {
-                        common: 0.4,
-                        uncommon: 0.35,
-                        rare: 0.2,
-                        legendary: 0.05
-                    };
-                    break;
-                case 2: // Medium difficulty
-                    rarityChances = {
-                        common: 0.5,
-                        uncommon: 0.35,
-                        rare: 0.15,
-                        legendary: 0.0 // No legendary drops on medium
-                    };
-                    break;
-                case 1: // Easy difficulty
-                default:
-                    rarityChances = {
-                        common: 0.7,
-                        uncommon: 0.25,
-                        rare: 0.05, 
-                        legendary: 0.0 // No legendary drops on easy
-                    };
-                    break;
-            }
-            
-            // Determine the rarity of the drop
-            const rarityRoll = Math.random();
-            let selectedRarity;
-            let cumulativeChance = 0;
-            
-            for (const [rarity, chance] of Object.entries(rarityChances)) {
-                cumulativeChance += chance;
-                if (rarityRoll <= cumulativeChance) {
-                    selectedRarity = rarity;
-                    break;
+        const difficulty = this.battleground.selectedDifficulty || 1; 
+        const allDrops = [];
+
+        let numberOfItemSlots = 0;
+        switch (difficulty) {
+            case 1: // Easy
+                numberOfItemSlots = 1;
+                break;
+            case 2: // Medium
+                numberOfItemSlots = 1 + (Math.random() < 0.5 ? 1 : 0); // 1 or 2 slots
+                break;
+            case 3: // Hard
+                numberOfItemSlots = 2;
+                break;
+            case 4: // Expert
+                numberOfItemSlots = 2 + (Math.random() < 0.5 ? 1 : 0); // 2 or 3 slots
+                break;
+            default:
+                numberOfItemSlots = 1;
+                break;
+        }
+
+        console.log(`Difficulty ${difficulty}: Attempting to generate items for ${numberOfItemSlots} slot(s).`);
+
+        for (let i = 0; i < numberOfItemSlots; i++) {
+            // Base drop chance for this slot (increases with enemy level and difficulty)
+            // Adjusted to be a bit higher per slot, as there are multiple chances now.
+            const slotDropChance = Math.min(0.85, 0.4 + (enemyLevel * 0.05) + (difficulty * 0.1));
+
+            if (Math.random() < slotDropChance) {
+                const itemTypes = ['medicine', 'equipment', 'food'];
+                const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+
+                let rarityChances;
+                switch(difficulty) {
+                    case 4: // Expert
+                        rarityChances = {
+                            common: 0.25,
+                            uncommon: 0.35,
+                            rare: 0.30,
+                            legendary: 0.10
+                        };
+                        break;
+                    case 3: // Hard
+                        rarityChances = {
+                            common: 0.4,
+                            uncommon: 0.35,
+                            rare: 0.2,
+                            legendary: 0.05
+                        };
+                        break;
+                    case 2: // Medium
+                        rarityChances = {
+                            common: 0.5,
+                            uncommon: 0.35,
+                            rare: 0.15,
+                            legendary: 0.0 // No legendary drops on medium
+                        };
+                        break;
+                    case 1: // Easy
+                    default:
+                        rarityChances = {
+                            common: 0.7,
+                            uncommon: 0.25,
+                            rare: 0.05, 
+                            legendary: 0.0 // No legendary drops on easy
+                        };
+                        break;
                 }
+
+                const rarityRoll = Math.random();
+                let selectedRarity;
+                let cumulativeChance = 0;
+                for (const [rarity, chance] of Object.entries(rarityChances)) {
+                    cumulativeChance += chance;
+                    if (rarityRoll <= cumulativeChance) {
+                        selectedRarity = rarity;
+                        break;
+                    }
+                }
+                
+                // Ensure a rarity is selected (fallback to common if logic somehow fails)
+                if (!selectedRarity) selectedRarity = 'common';
+
+                allDrops.push({
+                    type: selectedType,
+                    rarity: selectedRarity,
+                    // The id can be more generic here, as the backend will assign the actual item
+                    id: `dropped_${selectedType}_${selectedRarity}` 
+                });
+                console.log(`Slot ${i+1}: Dropped ${selectedRarity} ${selectedType}`);
+            } else {
+                console.log(`Slot ${i+1}: No item dropped (chance: ${slotDropChance.toFixed(2)}).`);
             }
-            
-            // Add the item drop to the list with type and rarity
-            // The actual item will be determined by the backend
-            drops.push({
-                type: selectedType,
-                rarity: selectedRarity,
-                id: `${selectedType}_${selectedRarity}_drop`
-            });
         }
         
-        return drops;
+        return allDrops;
     }
 }
 
