@@ -1558,32 +1558,91 @@ export class BattleSystem extends Scene {
     
     // Modified to handle death animations before showing popup
     async handleBattleResult() {
-        let deathAnimationPlayed = false;
-        let animationPromise = Promise.resolve();
+        let petDied = this.petEntity.data.stats.hp <= 0;
+        let enemyDied = this.enemyEntity.data.stats.hp <= 0;
+        let deathAnimationPromise = Promise.resolve();
+        let enemyFadeOutPromise = Promise.resolve(); // Promise specifically for enemy fade-out
 
-        if (this.petEntity.data.stats.hp <= 0) {
+        if (petDied) {
             if (this.petEntity.sprite && this.petEntity.playAnimation) {
-                this.petEntity.playAnimation('die');
-                deathAnimationPlayed = true;
-                // Create a promise that resolves after the animation duration, if known, or a fixed delay
+                // Assuming Pet.js playAnimation correctly handles a 'die' animation key
+                this.petEntity.playAnimation('die'); 
                 const animDuration = (this.petEntity.sprite.anims.currentAnim?.duration || 1000);
-                animationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
+                deathAnimationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
             }
-        } else if (this.enemyEntity.data.stats.hp <= 0) {
-            if (this.enemyEntity.sprite && this.enemyEntity.playAnimation) { // Assuming Enemy has playAnimation
-                this.enemyEntity.playAnimation('die');
-                deathAnimationPlayed = true;
-                const animDuration = (this.enemyEntity.sprite.anims.currentAnim?.duration || 1000);
-                animationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
+        } else if (enemyDied) {
+            if (this.enemyEntity.sprite) {
+                const enemyEntityKey = this.enemyEntity.data.key; // e.g., 'gorgon_idle'
+                const baseEnemyKey = enemyEntityKey.endsWith('_idle') ? enemyEntityKey.substring(0, enemyEntityKey.length - 5) : enemyEntityKey;
+                const dieAnimKey = `${baseEnemyKey}_die`; // e.g., 'gorgon_die'
+
+                if (this.anims.exists(dieAnimKey)) {
+                    console.log(`Playing enemy death animation: ${dieAnimKey}`);
+                    this.enemyEntity.sprite.play(dieAnimKey, true); // Play the animation, ignoreIfPlaying = true
+                    const animDuration = (this.enemyEntity.sprite.anims.currentAnim?.duration || 1000);
+                    
+                    // Promise for the death animation itself
+                    deathAnimationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
+
+                    // Chain fade out after death animation for enemy
+                    // This promise will be awaited specifically if the enemy died
+                    enemyFadeOutPromise = deathAnimationPromise.then(() => {
+                        return new Promise(resolveAfterFade => {
+                            if (this.enemyEntity.sprite && this.enemyEntity.sprite.active) { // Check if sprite still exists
+                                console.log(`Fading out enemy sprite: ${this.enemyEntity.data.name}`);
+                                this.tweens.add({
+                                    targets: this.enemyEntity.sprite,
+                                    alpha: 0,
+                                    duration: 500, // Duration of fade out
+                                    ease: 'Power2',
+                                    onComplete: () => {
+                                        if (this.enemyEntity.sprite) {
+                                            // this.enemyEntity.sprite.setVisible(false); // Optionally hide more permanently
+                                        }
+                                        resolveAfterFade(); // Resolve the fade-out promise
+                                    }
+                                });
+                            } else {
+                                resolveAfterFade(); // Sprite already gone or inactive
+                            }
+                        });
+                    });
+
+                } else {
+                    console.warn(`Death animation ${dieAnimKey} not found for enemy ${this.enemyEntity.data.name}. Fading out directly.`);
+                    // Fallback: If 'die' animation doesn't exist, just fade out
+                    if (this.enemyEntity.sprite && this.enemyEntity.sprite.active) {
+                         enemyFadeOutPromise = new Promise(resolve => {
+                            this.tweens.add({
+                                targets: this.enemyEntity.sprite,
+                                alpha: 0,
+                                duration: 500,
+                                ease: 'Power2',
+                                onComplete: () => {
+                                    resolve();
+                                }
+                            });
+                        });
+                    } else {
+                        enemyFadeOutPromise = Promise.resolve(); // No sprite to fade
+                    }
+                    deathAnimationPromise = enemyFadeOutPromise; // The 'death animation' is just the fade
+                }
             }
         }
 
-        await animationPromise; // Wait for death animation to roughly complete
+        // Wait for the primary death animation (pet or enemy's main anim part)
+        await deathAnimationPromise;
+        
+        // If enemy died, also wait for its fade-out to complete *before* showing victory popup.
+        if (enemyDied) {
+            await enemyFadeOutPromise;
+        }
 
         // Proceed with calculating rewards and showing popup
-        if (this.petEntity.data.stats.hp <= 0) {
+        if (petDied) {
             this.showResultPopup('defeat');
-        } else if (this.enemyEntity.data.stats.hp <= 0) {
+        } else if (enemyDied) {
             // Victory: Calculate rewards
             const enemyLevel = this.enemyData.level || 1;
             this.expGained = Math.floor(enemyLevel * 20 + Math.random() * 10);
