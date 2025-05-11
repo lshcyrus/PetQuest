@@ -516,8 +516,9 @@ export class BattleSystem extends Scene {
         // Create the pet and enemy entities with proper positioning
         this.createCombatants();
         
-        // Set up attack animations for pet and enemy
-        this.setupAttackAnimations();
+        // Set up ALL relevant animations for pet and enemy
+        this.setupEntityAnimations(this.petEntity, true);
+        this.setupEntityAnimations(this.enemyEntity, false);
         
         // Create battle UI elements
         this.createUI();
@@ -686,47 +687,56 @@ export class BattleSystem extends Scene {
         }
     }
     
-    // Ensure attack animations exist for both pet and enemy
-    setupAttackAnimations() {
-        // Set up pet attack animation if not already present
-        if (this.petEntity && this.petEntity.data.key) {
-            const petKey = this.petEntity.data.key;
-            const petAttackKey = `${petKey}_atk`;
-            
-            if (!this.anims.exists(petAttackKey) && this.textures.exists(petKey)) {
-                console.log(`Creating attack animation for pet: ${petAttackKey}`);
-                try {
-                    this.anims.create({
-                        key: petAttackKey,
-                        frames: this.anims.generateFrameNumbers(petKey, { start: 4, end: 7 }),
-                        frameRate: 10,
-                        repeat: 0
-                    });
-                } catch (error) {
-                    console.warn(`Failed to create pet attack animation: ${error.message}`);
+    // New comprehensive animation setup
+    setupEntityAnimations(entity, isPet) {
+        if (!entity || !entity.data || !entity.data.key) {
+            console.warn('Cannot setup animations for entity, missing data or key.', entity);
+            return;
+        }
+
+        const entityKey = entity.data.key;
+        let actions = [];
+
+        if (isPet) {
+            // Actions for pets: attack, skill1, hurt, die. Idle is handled in Pet.js.
+            // Play, train, outdoor are for MainMenu.
+            actions = ['attack', 'skill1', 'hurt', 'die'];
+        } else {
+            // Actions for enemies: idle, attack, hurt, die. Walk might be for future.
+            actions = ['idle', 'attack', 'hurt', 'die', 'walk'];
+        }
+
+        actions.forEach(action => {
+            const spritesheetKey = `${entityKey}_${action}`; // e.g., "dino_rex_attack" or "gorgon_idle"
+            const animKey = spritesheetKey; // Animation key will be the same as the spritesheet key
+
+            if (this.textures.exists(spritesheetKey)) {
+                if (!this.anims.exists(animKey)) {
+                    try {
+                        const frameConfig = { start: 0, end: this.textures.get(spritesheetKey).frameTotal - 1 };
+                        if (frameConfig.end < 0) { // Handle single-frame spritesheets if any (though unlikely for these actions)
+                            console.warn(`Spritesheet ${spritesheetKey} has 0 or 1 frames. Creating single frame anim.`);
+                            frameConfig.end = 0;
+                        }
+                        
+                        this.anims.create({
+                            key: animKey,
+                            frames: this.anims.generateFrameNumbers(spritesheetKey, frameConfig),
+                            frameRate: 10, // Adjust as needed
+                            repeat: (action === 'idle' || action === 'walk') ? -1 : 0 // Loop idle/walk, others play once
+                        });
+                        console.log(`Created animation: ${animKey} for ${entityKey} from spritesheet ${spritesheetKey}`);
+                    } catch (e) {
+                        console.error(`Error creating animation ${animKey} from ${spritesheetKey}:`, e);
+                    }
+                }
+            } else {
+                // Idle for pets is special, it's created from the base key (e.g. 'dino_rex') in Pet.js
+                if (!(isPet && action === 'idle')) {
+                     console.warn(`Spritesheet ${spritesheetKey} not loaded or does not exist. Cannot create animation ${animKey}.`);
                 }
             }
-        }
-        
-        // Set up enemy attack animation if not already present
-        if (this.enemyEntity && this.enemyEntity.data.key) {
-            const enemyKey = this.enemyEntity.data.key;
-            const enemyAttackKey = `${enemyKey}_atk`;
-            
-            if (!this.anims.exists(enemyAttackKey) && this.textures.exists(enemyKey)) {
-                console.log(`Creating attack animation for enemy: ${enemyAttackKey}`);
-                try {
-                    this.anims.create({
-                        key: enemyAttackKey,
-                        frames: this.anims.generateFrameNumbers(enemyKey, { start: 4, end: 7 }),
-                        frameRate: 10,
-                        repeat: 0
-                    });
-                } catch (error) {
-                    console.warn(`Failed to create enemy attack animation: ${error.message}`);
-                }
-            }
-        }
+        });
     }
     
     createUI() {
@@ -1089,7 +1099,7 @@ export class BattleSystem extends Scene {
 
         // Disable menu during action
         this.setActionMenuEnabled(false);
-        let actionSuccess = false;
+        // let actionSuccess = false; // Not used consistently, can remove
         const petStats = this.petEntity.data.stats;
         switch(actionType) {
             case 'attack':
@@ -1117,7 +1127,8 @@ export class BattleSystem extends Scene {
                     });
                     return;
                 }
-                this.animateAction('attack', 'pet', 'enemy', () => {
+                // Pass 'skill1' as actionType to animateAction
+                this.animateAction('skill1', 'pet', 'enemy', () => { 
                     this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
@@ -1252,9 +1263,10 @@ export class BattleSystem extends Scene {
                 actionSuccess = true;
                 break;
         }
-        if (!actionSuccess && actionType !== 'run') {
-            this.time.delayedCall(500, () => this.setActionMenuEnabled(true));
-        }
+        // Remove this block as actionSuccess was not consistently set or used
+        // if (!actionSuccess && actionType !== 'run') {
+        //     this.time.delayedCall(500, () => this.setActionMenuEnabled(true));
+        // }
     }
     
     afterPlayerAction() {
@@ -1283,24 +1295,26 @@ export class BattleSystem extends Scene {
             return;
         }
         
-        // Add turn indicator to battle log
         this.battleLogic.battleLog.push(`${this.enemyEntity.data.name}'s turn...`);
         this.updateBattleLog();
         
-        // Short delay before enemy acts
         this.time.delayedCall(800, () => {
-            // Get enemy action and animate
-            const enemyAction = this.battleLogic.enemyAction();
+            const enemyPerformedAction = this.battleLogic.enemyAction(); // e.g., 'attack', 'special', 'defend', 'skip'
             
-            if (enemyAction === 'defend' || enemyAction === 'skip') {
-                // No animation for defend/skip, just update the UI
-                this.updateBattleLog(); // Ensure log is updated for skip/defend message
+            if (enemyPerformedAction === 'defend' || enemyPerformedAction === 'skip') {
+                this.updateBattleLog(); 
                 this.time.delayedCall(1000, () => this.afterEnemyTurn());
-            } else {
-                // Attack or skill animation
-                this.animateAction('attack', 'enemy', 'pet', () => {
+            } else if (enemyPerformedAction) { // 'attack' or 'special'
+                // Determine animation type based on enemyPerformedAction.
+                // Assuming 'special' from enemyAction corresponds to a skill1-like animation.
+                // If enemy only has one attack animation, map 'special' to 'attack' for animation.
+                const animationToPlay = (enemyPerformedAction === 'special' && this.anims.exists(`${this.enemyEntity.data.key}_skill1`)) ? 'skill1' : 'attack';
+                this.animateAction(animationToPlay, 'enemy', 'pet', () => {
                     this.afterEnemyTurn();
                 });
+            } else {
+                 // Should not happen if enemyAction always returns a string
+                this.afterEnemyTurn();
             }
         });
     }
@@ -1327,13 +1341,32 @@ export class BattleSystem extends Scene {
         });
     }
     
-    handleBattleResult() {
-        // Calculate battle rewards and experience
-        
-        // Determine result and show appropriate popup
+    // Modified to handle death animations before showing popup
+    async handleBattleResult() {
+        let deathAnimationPlayed = false;
+        let animationPromise = Promise.resolve();
+
         if (this.petEntity.data.stats.hp <= 0) {
-            // Defeat: Pet is injured, restore some HP (50%)
-            this.petEntity.data.stats.hp = Math.max(1, Math.floor(this.petEntity.data.stats.hp * 0.5));
+            if (this.petEntity.sprite && this.petEntity.playAnimation) {
+                this.petEntity.playAnimation('die');
+                deathAnimationPlayed = true;
+                // Create a promise that resolves after the animation duration, if known, or a fixed delay
+                const animDuration = (this.petEntity.sprite.anims.currentAnim?.duration || 1000);
+                animationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
+            }
+        } else if (this.enemyEntity.data.stats.hp <= 0) {
+            if (this.enemyEntity.sprite && this.enemyEntity.playAnimation) { // Assuming Enemy has playAnimation
+                this.enemyEntity.playAnimation('die');
+                deathAnimationPlayed = true;
+                const animDuration = (this.enemyEntity.sprite.anims.currentAnim?.duration || 1000);
+                animationPromise = new Promise(resolve => this.time.delayedCall(animDuration, resolve));
+            }
+        }
+
+        await animationPromise; // Wait for death animation to roughly complete
+
+        // Proceed with calculating rewards and showing popup
+        if (this.petEntity.data.stats.hp <= 0) {
             this.showResultPopup('defeat');
         } else if (this.enemyEntity.data.stats.hp <= 0) {
             // Victory: Calculate rewards
@@ -1384,15 +1417,14 @@ export class BattleSystem extends Scene {
             
             this.showResultPopup('victory', this.battleLogic.drops);
         } else if (this.battleLogic.battleEnded) {
-            // Escaped: No penalties, minor rewards
+            // Escaped
             this.showResultPopup('escape');
         }
         
-        // Update pet's combat stats
+        // Update pet's combat stats (original logic)
         this.updatePetStats();
     }
     
-    // New function to check for level up
     checkPetLevelUp() {
         const pet = this.petEntity.data;
         let leveledUp = false;
@@ -1777,43 +1809,29 @@ export class BattleSystem extends Scene {
     }
     
     animateAction(actionType, sourceType, targetType, onComplete, details = {}) {
-        // Get entities based on types
         const source = sourceType === 'pet' ? this.petEntity : this.enemyEntity;
-        const target = targetType === 'pet' ? this.petEntity : this.enemyEntity;
+        const target = targetType === 'pet' ? this.petEntity : (targetType === 'enemy' ? this.enemyEntity : null);
         
-        // Initial short delay for timing
         this.time.delayedCall(200, () => {
-            // Play source animation
-            if (source && source.sprite) {
-                if (actionType === 'attack') {
-                    // Use specific attack animations based on entity key
-                    const sourceKey = source.data.key;
-                    const attackKey = `${sourceKey}_atk`;
-                    
-                    // Check if the attack animation exists, if not fall back to generic attack
-                    if (this.anims.exists(attackKey)) {
-                        console.log(`Playing attack animation: ${attackKey}`);
-                        source.sprite.play(attackKey);
-                    } else {
-                        console.log(`Animation ${attackKey} not found, using fallback`);
-                        source.playAnimation(actionType);
-                    }
-                } else if (actionType === 'medicine') {
-                    source.playAnimation(actionType, details); // Pass details for medicine
-                } else {
-                    source.playAnimation(actionType);
-                }
+            if (source && source.sprite && source.playAnimation) {
+                 // actionType here can be 'attack', 'skill1', 'medicine'
+                source.playAnimation(actionType, details);
             }
             
-            // If we have a target, play hurt animation after a short delay
-            if (target && target.sprite) {
-                this.time.delayedCall(350, () => {
+            if (target && target.sprite && target.playAnimation && actionType !== 'medicine') { // Don't make target play 'hurt' if source is using medicine on self
+                this.time.delayedCall(350, () => { // Delay hurt animation
                     target.playAnimation('hurt');
                 });
             }
             
-            // Allow time for animations to complete
-            this.time.delayedCall(800, () => {
+            // Estimate animation duration for callback
+            // This is a rough estimate; ideally, use animation complete events
+            let maxDuration = 800;
+            if (source && source.sprite && source.sprite.anims && source.sprite.anims.currentAnim) {
+                maxDuration = Math.max(maxDuration, source.sprite.anims.currentAnim.duration || 800);
+            }
+
+            this.time.delayedCall(maxDuration, () => {
                 if (onComplete) onComplete();
             });
         });

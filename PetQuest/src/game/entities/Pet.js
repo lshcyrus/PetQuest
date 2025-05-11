@@ -267,11 +267,12 @@ export class Pet {
         // Helper to restore idle after anim, ensuring tint is cleared
         const playIdle = (delay = 600) => {
             scene.time.delayedCall(delay, () => {
-                if (this.sprite) { // Check if sprite still exists
-                    // Ensure the idle animation key matches the one created in Pet.create()
+                if (this.sprite && this.sprite.active) { // Check if sprite still exists and is active
                     const idleAnimKey = `${petKey}_idle`; 
-                    this.sprite.play(idleAnimKey);
-                    this.sprite.clearTint(); // Important: clear tint when returning to idle
+                    if (scene.anims.exists(idleAnimKey)) {
+                        this.sprite.play(idleAnimKey);
+                    }
+                    this.sprite.clearTint();
                 }
             });
         };
@@ -448,106 +449,68 @@ export class Pet {
             }
             case 'attack': { 
                 if (this.sprite) {
-                    // Try to use the specific attack animation if it exists
-                    const attackAnimKey = `${petKey}_atk`;
-                    let usingCustomAnim = false;
-                    
-                    // Check for the regular attack animation first
-                    if (scene.anims.exists(attackAnimKey)) {
-                        console.log(`Playing existing attack animation: ${attackAnimKey}`);
-                        this.sprite.play(attackAnimKey);
-                        usingCustomAnim = true;
-                    } 
-                    // Check if we need to create an animation from a separate attack spritesheet
-                    else if (scene.textures.exists(`${petKey}_attack`)) {
-                        console.log(`Creating attack animation from spritesheet: ${petKey}_attack`);
-                        scene.anims.create({
-                            key: attackAnimKey,
-                            frames: scene.anims.generateFrameNumbers(`${petKey}_attack`, { start: 0, end: 3 }),
-                            frameRate: 10,
-                            repeat: 0
+                    const animKey = `${petKey}_attack`; // Use direct spritesheet key
+                    let animationPlayed = false;
+                    if (scene.anims.exists(animKey)) {
+                        this.sprite.play(animKey);
+                        animationPlayed = true;
+                        console.log(`Playing pet animation: ${animKey}`);
+                    } else {
+                        // Fallback if specific attack animation is not defined
+                        console.warn(`Animation ${animKey} not found for pet ${petKey}. Using generic tween.`);
+                        // Simple tween as fallback
+                        const originalX = this.sprite.x;
+                        const attackMovement = this.sprite.flipX ? -20 : 20;
+                        scene.tweens.add({
+                            targets: this.sprite,
+                            x: originalX + attackMovement,
+                            yoyo: true,
+                            duration: 150,
+                            ease: 'Power1'
                         });
-                        this.sprite.play(attackAnimKey);
-                        usingCustomAnim = true;
-                    }
-                    // Check if we need to create from split A/B attack spritesheets (e.g. Dino Tri)
-                    else if (scene.textures.exists(`${petKey}_attack_A`) && scene.textures.exists(`${petKey}_attack_B`)) {
-                        console.log(`Creating attack animation from A/B spritesheets: ${petKey}_attack_A/B`);
-                        scene.anims.create({
-                            key: attackAnimKey,
-                            frames: [
-                                { key: `${petKey}_attack_A`, frame: 0 },
-                                { key: `${petKey}_attack_A`, frame: 1 },
-                                { key: `${petKey}_attack_B`, frame: 0 },
-                                { key: `${petKey}_attack_B`, frame: 1 }
-                            ],
-                            frameRate: 10,
-                            repeat: 0
-                        });
-                        this.sprite.play(attackAnimKey);
-                        usingCustomAnim = true;
-                    }
-                    else {
-                        console.log(`No custom attack animation found for ${petKey}, using fallback animation`);
                     }
                     
-                    const originalX = this.sprite.x;
-                    const attackMovement = this.sprite.flipX ? -30 : 30; // Movement direction based on flip
-                    
-                    // Optional attack effect - glowing outline
-                    this.sprite.setTint(0x00aaff);
-                    
-                    // Move forward quickly
-                    scene.tweens.add({
-                        targets: this.sprite,
-                        x: originalX + attackMovement,
-                        duration: 150,
-                        ease: 'Power1',
-                        onComplete: () => {
-                            // Add attack effect - slashing line with pet-themed colors
-                            const slashX = this.sprite.x + (this.sprite.flipX ? -50 : 50);
-                            const slash = scene.add.graphics();
-                            slash.lineStyle(3, 0x00ffff, 1); // Cyan color for pet
-                            slash.beginPath();
-                            slash.moveTo(slashX - 20, this.sprite.y - 20);
-                            slash.lineTo(slashX + 20, this.sprite.y + 20);
-                            slash.moveTo(slashX + 20, this.sprite.y - 20);
-                            slash.lineTo(slashX - 20, this.sprite.y + 20);
-                            slash.closePath();
-                            slash.stroke();
-                            this._effectOverlay = slash;
-                            
-                            // Add a sparkle effect at the slash point
-                            const sparkleText = scene.add.text(
-                                slashX, 
-                                this.sprite.y, 
-                                '✦', 
-                                { fontSize: '24px', color: '#66ffff' }
-                            ).setOrigin(0.5);
-                            
+                    // Optional: Keep visual effects like tint or slash, adjust timing if needed
+                    this.sprite.setTint(0x00aaff); // Example tint
+
+                    const attackDuration = animationPlayed ? (this.sprite.anims.currentAnim.duration || 1000) : 400;
+                    playIdle(attackDuration);
+                }
+                break;
+            }
+            case 'skill1': {
+                if (this.sprite) {
+                    const animKey = `${petKey}_skill1`; // Use direct spritesheet key for skill1
+                    let animationPlayed = false;
+                    if (scene.anims.exists(animKey)) {
+                        this.sprite.play(animKey);
+                        animationPlayed = true;
+                        console.log(`Playing pet animation: ${animKey}`);
+                    } else {
+                        // Fallback to default attack animation if skill1 is not found
+                        const attackAnimKey = `${petKey}_attack`;
+                        console.warn(`Animation ${animKey} not found for ${petKey}, trying ${attackAnimKey}.`);
+                        if (scene.anims.exists(attackAnimKey)) {
+                            this.sprite.play(attackAnimKey);
+                            animationPlayed = true;
+                        } else {
+                            console.warn(`Animation ${attackAnimKey} also not found for ${petKey}. Using generic tween.`);
+                             const originalX = this.sprite.x;
+                            const attackMovement = this.sprite.flipX ? -20 : 20;
                             scene.tweens.add({
-                                targets: [slash, sparkleText],
-                                alpha: 0,
-                                duration: 300,
-                                delay: 200,
-                                onComplete: () => {
-                                    if (slash && !slash.destroyed) slash.destroy();
-                                    if (sparkleText && !sparkleText.destroyed) sparkleText.destroy();
-                                    
-                                    // Return to original position
-                                    scene.tweens.add({
-                                        targets: this.sprite,
-                                        x: originalX,
-                                        duration: 150,
-                                        ease: 'Power1'
-                                    });
-                                }
+                                targets: this.sprite,
+                                x: originalX + attackMovement,
+                                yoyo: true,
+                                duration: 150,
+                                ease: 'Power1'
                             });
                         }
-                    });
-                    
-                    // Return to idle animation after the attack completes
-                    playIdle(1000);
+                    }
+                     // Optional: Add distinct visual effects for skill
+                    this.sprite.setTint(0xffaa00); // Example different tint for skill
+
+                    const skillDuration = animationPlayed ? (this.sprite.anims.currentAnim.duration || 1200) : 500;
+                    playIdle(skillDuration);
                 }
                 break;
             }
@@ -571,6 +534,25 @@ export class Pet {
                     });
                 } else {
                     playIdle(300); // Fallback if no sprite
+                }
+                break;
+            }
+            case 'die': {
+                if (this.sprite) {
+                    const animKey = `${petKey}_die`; // Assuming a _die animation exists/will be created
+                    if (scene.anims.exists(animKey)) {
+                        this.sprite.play(animKey);
+                        console.log(`Playing pet animation: ${animKey}`);
+                        // Optional: listen for animation complete to then fully destroy or hide
+                        this.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                            // this.sprite.setVisible(false); // Or destroy after animation
+                        });
+                    } else {
+                        console.warn(`Animation ${animKey} not found for ${petKey}. Fading out.`);
+                        scene.tweens.add({ targets: this.sprite, alpha: 0, duration: 500 });
+                    }
+                    // No playIdle, pet is defeated. Tint is cleared by playIdle helper, so clear manually if needed.
+                    // this.sprite.clearTint(); 
                 }
                 break;
             }
