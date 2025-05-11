@@ -674,7 +674,7 @@ export class BattleSystem extends Scene {
         
         // Create enemy sprite and name if we have a valid key
         if (this.enemyEntity.data.key) {
-            const enemySprite = this.enemyEntity.create(1.5, 2);
+            const enemySprite = this.enemyEntity.create(2.0, 2); // Changed scale from 1.5 to 2.0
             if (enemySprite) {
                 enemySprite.setFlipX(true);
             }
