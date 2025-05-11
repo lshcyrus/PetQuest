@@ -1099,7 +1099,7 @@ export class BattleSystem extends Scene {
 
         // Disable menu during action
         this.setActionMenuEnabled(false);
-        // let actionSuccess = false; // Not used consistently, can remove
+        let actionSuccess = false; // Declare actionSuccess here
         const petStats = this.petEntity.data.stats;
         switch(actionType) {
             case 'attack':
@@ -1116,6 +1116,7 @@ export class BattleSystem extends Scene {
                     this.battleLogic.attack(this.petEntity, this.enemyEntity, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
+                actionSuccess = true; // This was commented earlier, can be set if needed for other logic
                 break;
             case 'skill1':
                 if (petStats.sp < 10) {
@@ -1132,6 +1133,7 @@ export class BattleSystem extends Scene {
                     this.battleLogic.useAbility(this.petEntity, this.enemyEntity, 0, this.battleLogic.isEnemyDefending);
                     this.afterPlayerAction();
                 });
+                actionSuccess = true; // Similar to attack
                 break;
             case 'defend':
                 if (petStats.sp < 5) {
@@ -1143,7 +1145,7 @@ export class BattleSystem extends Scene {
                     });
                     return;
                 }
-                actionSuccess = this.battleLogic.defend(this.petEntity);
+                actionSuccess = this.battleLogic.defend(this.petEntity); // Now assigns to a declared variable
                 this.updateBattleLog();
                 this.time.delayedCall(800, () => this.afterPlayerAction());
                 break;
@@ -1260,12 +1262,19 @@ export class BattleSystem extends Scene {
                     this.updateBattleLog();
                     this.time.delayedCall(1200, () => this.afterPlayerAction());
                 }
-                actionSuccess = true;
+                actionSuccess = true; // Assigns to declared variable
                 break;
         }
-        // Remove this block as actionSuccess was not consistently set or used
-        // if (!actionSuccess && actionType !== 'run') {
-        //     this.time.delayedCall(500, () => this.setActionMenuEnabled(true));
+        // The following block was commented out, but declaring actionSuccess is still necessary
+        // if (!actionSuccess && actionType !== 'run' && actionType !== 'item' && actionType !== 'attack' && actionType !== 'skill1') {
+        // // The conditions for re-enabling menu are tricky here, as attack/skill/item have async callbacks
+        // // It's generally handled by the end of their respective sequences or onClose for modals
+        //     this.time.delayedCall(500, () => {
+        //         if (!this.battleLogic.battleEnded) { // Only re-enable if battle is still ongoing
+        //             this.setActionMenuEnabled(true);
+        //             this.battleLogic.actionInProgress = false;
+        //         }
+        //     });
         // }
     }
     

@@ -171,9 +171,25 @@ export class Preloader extends Scene {
             { key: 'pengu_skill1', path: 'Pet_Pengu/pengu_skill1.png', frameWidth: 384, frameHeight: 128 },
         ];
         
+        // Load enemy attack animations
         petAttacks.forEach(attack => {
             this.load.spritesheet(attack.key, attack.path, { frameWidth: attack.frameWidth, frameHeight: attack.frameHeight });
         });
+
+        // Load pet battle animations
+        const petBattleAnimations = [
+            { key: 'dino_rex_hurt', path: 'Pet_Dino Rex/dino_rex_hurt.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'badger_hurt', path: 'Pet_Badger/badger_hurt.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'dino_tri_hurt', path: 'Pet_Dino Tri/dino_tri_hurt.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'frogger_hurt', path: 'Pet_Frogger/frogger_hurt.png', frameWidth: 384, frameHeight: 128 },
+            { key: 'pengu_hurt', path: 'Pet_Pengu/pengu_hurt.png', frameWidth: 384, frameHeight: 128 },
+        ];
+        
+        petBattleAnimations.forEach(animation => {
+            this.load.spritesheet(animation.key, animation.path, { frameWidth: animation.frameWidth, frameHeight: animation.frameHeight });
+        });
+
+        
 
         // --- ENEMY SPRITES ---
         // Gorgon - Note the proper spelling is Gorgan for the files but gorgon for the keys
