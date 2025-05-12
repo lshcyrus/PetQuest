@@ -20,6 +20,8 @@ class BattleLogic {
         this.battleEnded = false;
         this.drops = [];
         this.actionInProgress = false;
+        this.playerFlatDefense = 0; // Flat damage reduction for player
+        this.enemyFlatDefense = 0; // Flat damage reduction for enemy
     }
 
     startBattle() {
@@ -41,10 +43,11 @@ class BattleLogic {
         if (this.currentTurn === 'player') {
             this.currentTurn = 'enemy';
             this.isPlayerDefending = false;
-            // Removed: this.itemUsedThisTurn = false;
+            this.playerFlatDefense = 0; // Reset if not used
         } else {
             this.currentTurn = 'player';
             this.isEnemyDefending = false;
+            this.enemyFlatDefense = 0; // Reset if not used
             this.turnCount++;
         }
         this.battleLog.push(`Turn ${this.turnCount + 1}: ${this.currentTurn === 'player' ? this.playerPet.data.name : this.enemy.data.name}'s turn`);
@@ -102,9 +105,19 @@ class BattleLogic {
         const damageVariation = Math.random() * 0.2 + 0.9; // 90% to 110% damage
         let finalDamage = Math.floor(baseDamage * damageVariation);
 
+        // Flat defense reduction logic
         if (isDefenderDefending) {
-            finalDamage = Math.floor(finalDamage * 0.5);
-            this.battleLog.push(`${defenderName} is defending and takes reduced damage!`);
+            let flatReduction = 0;
+            if (defender === this.playerPet && this.playerFlatDefense > 0) {
+                flatReduction = this.playerFlatDefense;
+                this.playerFlatDefense = 0;
+            } else if (defender === this.enemy && this.enemyFlatDefense > 0) {
+                flatReduction = this.enemyFlatDefense;
+                this.enemyFlatDefense = 0;
+            }
+            finalDamage = Math.max(0, finalDamage - flatReduction);
+            finalDamage = Math.floor(finalDamage * 0.5); // Keep the original 50% reduction
+            this.battleLog.push(`${defender.data.name} is defending and takes reduced damage! (-${flatReduction})`);
         }
 
         defender.data.stats.hp -= finalDamage;
@@ -139,9 +152,19 @@ class BattleLogic {
             let baseDamage = Math.max(2, Math.floor(attackStat * 1.5) - defenseStat);
             let finalDamage = Math.floor(baseDamage * (Math.random() * 0.2 + 0.9));
 
+            // Flat defense reduction logic
             if (isDefenderDefending) {
+                let flatReduction = 0;
+                if (defender === this.playerPet && this.playerFlatDefense > 0) {
+                    flatReduction = this.playerFlatDefense;
+                    this.playerFlatDefense = 0;
+                } else if (defender === this.enemy && this.enemyFlatDefense > 0) {
+                    flatReduction = this.enemyFlatDefense;
+                    this.enemyFlatDefense = 0;
+                }
+                finalDamage = Math.max(0, finalDamage - flatReduction);
                 finalDamage = Math.floor(finalDamage * 0.5);
-                this.battleLog.push(`${defenderName} is defending and takes reduced damage!`);
+                this.battleLog.push(`${defenderName} is defending and takes reduced damage! (-${flatReduction})`);
             }
             
             defender.data.stats.hp -= finalDamage;
@@ -191,11 +214,13 @@ class BattleLogic {
         character.data.stats.sp -= 5;
         if (this.currentTurn === 'player' && character === this.playerPet) {
             this.isPlayerDefending = true;
+            this.playerFlatDefense = 100; // Next attack on player reduced by 100
             this.battleLog.push(`${this.playerPet.data.name} takes a defensive stance!`);
             return true;
         } 
         else if (this.currentTurn === 'enemy' && character === this.enemy) {
             this.isEnemyDefending = true;
+            this.enemyFlatDefense = 100; // Next attack on enemy reduced by 100
             this.battleLog.push(`${this.enemy.data.name} takes a defensive stance!`);
             return true;
         }
