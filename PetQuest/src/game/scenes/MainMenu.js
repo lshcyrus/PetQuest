@@ -158,23 +158,23 @@ export class MainMenu extends Scene {
     // Method to fetch latest pet data from backend
     async refreshPetData() {
         try {
+            const API_URL = import.meta.env.VITE_API_URL;
             const token = localStorage.getItem('token');
             const globalContext = getGlobalContext();
             
-            if (!token || !globalContext || !globalContext.userData || !globalContext.userData.selectedPet) {
-                console.warn('Cannot refresh pet: missing token or pet data');
-                return;
+            if (!token || !globalContext || !globalContext.userData || !globalContext.userData.selectedPet || !globalContext.userData.selectedPet._id) {
+                console.error('Cannot refresh pet data: missing token or pet ID');
+                return null;
             }
             
-            const API_URL = import.meta.env.VITE_API_URL;
             const petId = globalContext.userData.selectedPet._id;
             
-            console.log('Refreshing pet data from backend for pet:', petId);
+            console.log('Refreshing pet data for ID:', petId);
             
-            // Fetch latest pet data from backend
             const response = await fetch(`${API_URL}/pets/${petId}`, {
                 method: 'GET',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 }
             });
@@ -183,6 +183,38 @@ export class MainMenu extends Scene {
             
             if (response.ok && responseData.success) {
                 console.log('Pet data refreshed:', responseData.data);
+                
+                // Ensure attributes are integers before updating local data
+                if (responseData.data && responseData.data.attributes) {
+                    // Create a copy of the attributes to avoid modifying the original response
+                    const attributes = { ...responseData.data.attributes };
+                    
+                    // Round specific attributes to integers
+                    if (attributes.stamina !== undefined) {
+                        attributes.stamina = Math.round(parseFloat(attributes.stamina));
+                    }
+                    if (attributes.happiness !== undefined) {
+                        attributes.happiness = Math.round(parseFloat(attributes.happiness));
+                    }
+                    if (attributes.hunger !== undefined) {
+                        attributes.hunger = Math.round(parseFloat(attributes.hunger));
+                    }
+                    
+                    // Ensure values are within valid range (0-100)
+                    if (attributes.stamina !== undefined) {
+                        attributes.stamina = Math.max(0, Math.min(100, attributes.stamina));
+                    }
+                    if (attributes.happiness !== undefined) {
+                        attributes.happiness = Math.max(0, Math.min(100, attributes.happiness));
+                    }
+                    if (attributes.hunger !== undefined) {
+                        attributes.hunger = Math.max(0, Math.min(100, attributes.hunger));
+                    }
+                    
+                    // Update the attributes in the response data
+                    responseData.data.attributes = attributes;
+                    console.log('Rounded pet attributes to integers:', attributes);
+                }
                 
                 // Update global context with the refreshed pet data
                 if (globalContext && globalContext.userData) {
@@ -1305,6 +1337,38 @@ export class MainMenu extends Scene {
 
             if (response.ok && responseData.success) {
                 console.log(`Pet ${action} successful:`, responseData.data);
+
+                // Ensure attributes are integers before updating local data
+                if (responseData.data && responseData.data.attributes) {
+                    // Create a copy of the attributes to avoid modifying the original response
+                    const attributes = { ...responseData.data.attributes };
+                    
+                    // Round specific attributes to integers
+                    if (attributes.stamina !== undefined) {
+                        attributes.stamina = Math.round(parseFloat(attributes.stamina));
+                    }
+                    if (attributes.happiness !== undefined) {
+                        attributes.happiness = Math.round(parseFloat(attributes.happiness));
+                    }
+                    if (attributes.hunger !== undefined) {
+                        attributes.hunger = Math.round(parseFloat(attributes.hunger));
+                    }
+                    
+                    // Ensure values are within valid range (0-100)
+                    if (attributes.stamina !== undefined) {
+                        attributes.stamina = Math.max(0, Math.min(100, attributes.stamina));
+                    }
+                    if (attributes.happiness !== undefined) {
+                        attributes.happiness = Math.max(0, Math.min(100, attributes.happiness));
+                    }
+                    if (attributes.hunger !== undefined) {
+                        attributes.hunger = Math.max(0, Math.min(100, attributes.hunger));
+                    }
+                    
+                    // Update the attributes in the response data
+                    responseData.data.attributes = attributes;
+                    console.log('Rounded pet attributes to integers:', attributes);
+                }
 
                 // Update local petData reference
                 this.petData = responseData.data;

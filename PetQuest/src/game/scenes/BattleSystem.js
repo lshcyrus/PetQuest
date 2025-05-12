@@ -1862,10 +1862,11 @@ export class BattleSystem extends Scene {
         console.log(`ATK: ${statsPayload.atk}, DEF: ${statsPayload.def}`);
 
         // Update attributes (decrease stamina)
+        // Ensure all attributes are integers by applying Math.round() before min/max limits
         const attrPayload = {
-            stamina: Math.max(0, this.petData.attributes.stamina - 10),
-            happiness: Math.max(0, this.petData.attributes.happiness - 10),
-            hunger: Math.min(100, this.petData.attributes.hunger + 10)
+            stamina: Math.max(0, Math.round(this.petData.attributes.stamina - 10)),
+            happiness: Math.max(0, Math.round(this.petData.attributes.happiness - 10)),
+            hunger: Math.min(100, Math.round(this.petData.attributes.hunger + 10))
         };
         
         // Get reference to global context
