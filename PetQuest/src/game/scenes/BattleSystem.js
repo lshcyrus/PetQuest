@@ -1648,8 +1648,8 @@ export class BattleSystem extends Scene {
             // Victory: Calculate rewards
             const enemyLevel = this.enemyData.level || 1;
             this.expGained = Math.floor(enemyLevel * 20 + Math.random() * 10);
-            this.goldGained = Math.floor(enemyLevel * 10 + Math.random() * enemyLevel * 5);
-            
+            this.goldGained = Math.floor(enemyLevel * 20 + Math.random() * enemyLevel * 10); // Increased coin reward
+
             // Calculate gem drops (rare chance)
             // REMOVED: Gem calculation
             // if (Math.random() < 0.2) { // 20% chance to find a gem

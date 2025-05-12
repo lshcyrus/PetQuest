@@ -195,9 +195,6 @@ export class LevelSelector extends Scene {
 
         // Generate rewards, scaled by difficulty
         const rewards = this.generateLevelRewards(difficulty);
-        // Coins: 50 + 50 * difficulty
-        const coins = 50 + 50 * difficulty;
-        rewards.push(`${coins} Coins`);
 
         // Generate unique ID
         const id = `level_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -226,63 +223,37 @@ export class LevelSelector extends Scene {
         const rewards = [];
         // Reward count based on difficulty (1-3 item rewards)
         const rewardCount = Math.min(3, Math.ceil(difficulty / 2));
-    
-        const getItemFromPool = (pool) => {
-            // Ensure pool is an array and has items
-            if (Array.isArray(pool) && pool.length > 0) {
-                return pool[Math.floor(Math.random() * pool.length)];
-            }
-            return null;
-        };
-    
+
+        // Define possible item types that can drop in battle
+        const BATTLE_ITEM_TYPES = ['medicine', 'equipment', 'food'];
+
         for (let i = 0; i < rewardCount; i++) {
-            let reward = null;
+            let rarityName = '';
             const rareness = Math.random(); // Random roll for each reward item
-    
-            let targetPool;
-    
-            // Determine target reward pool based on difficulty and rareness
+
+            // Determine rarity based on difficulty and rareness roll
             if (difficulty >= 4) { // Expert difficulty
-                if (rareness < 0.10) targetPool = ALL_AVAILABLE_ITEMS.legendary;      // 10% chance for Legendary
-                else if (rareness < 0.40) targetPool = ALL_AVAILABLE_ITEMS.rare;      // 30% chance for Rare (0.10 to 0.39)
-                else if (rareness < 0.70) targetPool = ALL_AVAILABLE_ITEMS.uncommon;  // 30% chance for Uncommon (0.40 to 0.69)
-                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 30% chance for Common (0.70 to 0.99)
+                if (rareness < 0.10) rarityName = 'Legendary';      // 10% chance for Legendary
+                else if (rareness < 0.40) rarityName = 'Rare';      // 30% chance for Rare
+                else if (rareness < 0.70) rarityName = 'Uncommon';  // 30% chance for Uncommon
+                else rarityName = 'Common';                        // 30% chance for Common
             } else if (difficulty === 3) { // Hard difficulty
-                if (rareness < 0.20) targetPool = ALL_AVAILABLE_ITEMS.rare;           // 20% chance for Rare
-                else if (rareness < 0.50) targetPool = ALL_AVAILABLE_ITEMS.uncommon;   // 30% chance for Uncommon (0.20 to 0.49)
-                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 50% chance for Common (0.50 to 0.99)
+                if (rareness < 0.20) rarityName = 'Rare';           // 20% chance for Rare
+                else if (rareness < 0.50) rarityName = 'Uncommon';   // 30% chance for Uncommon
+                else rarityName = 'Common';                        // 50% chance for Common
             } else if (difficulty === 2) { // Medium difficulty
-                if (rareness < 0.30) targetPool = ALL_AVAILABLE_ITEMS.uncommon;       // 30% chance for Uncommon
-                else targetPool = ALL_AVAILABLE_ITEMS.common;                        // 70% chance for Common (0.30 to 0.99)
+                if (rareness < 0.30) rarityName = 'Uncommon';       // 30% chance for Uncommon
+                else rarityName = 'Common';                        // 70% chance for Common
             } else { // Difficulty 1 (Easy) or default
-                targetPool = ALL_AVAILABLE_ITEMS.common;                             // 100% chance for Common
+                rarityName = 'Common';                             // 100% chance for Common
             }
+
+            // Randomly select a type from battle-compatible types
+            const typeName = BATTLE_ITEM_TYPES[Math.floor(Math.random() * BATTLE_ITEM_TYPES.length)];
             
-            reward = getItemFromPool(targetPool);
-    
-            // Fallback mechanism if the chosen targetPool was empty or failed to yield an item
-            if (!reward) {
-                const fallbackOrder = [
-                    ALL_AVAILABLE_ITEMS.common, 
-                    ALL_AVAILABLE_ITEMS.uncommon, 
-                    ALL_AVAILABLE_ITEMS.rare, 
-                    ALL_AVAILABLE_ITEMS.legendary
-                ];
-                for (const pool of fallbackOrder) {
-                    // Skip if this pool was the original target and already failed
-                    if (pool === targetPool && getItemFromPool(pool) === null) continue; 
-                    
-                    reward = getItemFromPool(pool);
-                    if (reward) break; // Found a reward from a fallback pool
-                }
-            }
-    
-            if (reward) {
-                rewards.push(reward);
-            } else {
-                // This warning indicates all item pools (common, uncommon, rare, legendary) might be empty.
-                console.warn(`Could not generate ANY reward item for slot ${i + 1} at difficulty ${difficulty}. Check ALL_AVAILABLE_ITEMS definitions.`);
-            }
+            // Format the reward string, e.g., "Equipment"
+            const rewardString = `${typeName.charAt(0).toUpperCase() + typeName.slice(1)}`;
+            rewards.push(rewardString);
         }
         return rewards;
     }
@@ -834,8 +805,11 @@ export class LevelSelector extends Scene {
             console.warn('Pet too tired, stamina is', this.petData.attributes.stamina);
             this.showError('Your pet is too tired to battle!');
             return;
+        } else if (this.petData.attributes.hunger >= 90) {
+            this.showError('Your pet is too hungry to battle!');
+            return;
         }
-
+        
         // Transition to BattleSystem
         this.cameras.main.fadeOut(800, 0, 0, 0);
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
